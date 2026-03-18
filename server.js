@@ -37,7 +37,49 @@ const ASSISTANT_AREAS = {
 };
 
 app.use(bodyParser.json({ limit: "10mb" }));
+app.use("/js", express.static(path.join(__dirname, "public", "dist", "js")));
+app.use("/css", express.static(path.join(__dirname, "public", "dist", "css")));
+app.use("/components", express.static(path.join(__dirname, "public", "dist", "components")));
 app.use(express.static(path.join(__dirname, "public")));
+function serveDistPage(res, fileName) {
+  return res.sendFile(path.join(__dirname, "public", "dist", fileName));
+}
+
+const distPages = new Set([
+  "index",
+  "dashboard",
+  "audit",
+  "chat-manager",
+  "knowledge-base",
+  "reports",
+  "users",
+  "forgot-password",
+  "reset-password",
+  "accept-invite",
+  "verify-session",
+  "dashboard-preferencias"
+]);
+
+app.get("/", (_req, res) => serveDistPage(res, "index.html"));
+app.get("/dist", (_req, res) => serveDistPage(res, "index.html"));
+app.get("/dist/:page", (req, res, next) => {
+  const page = String(req.params.page || "").trim().toLowerCase();
+  if (!distPages.has(page)) return next();
+  return serveDistPage(res, `${page}.html`);
+});
+
+app.get("/login", (_req, res) => serveDistPage(res, "index.html"));
+app.get("/dashboard", (_req, res) => serveDistPage(res, "dashboard.html"));
+app.get("/audit", (_req, res) => serveDistPage(res, "audit.html"));
+app.get("/atendimento", (_req, res) => serveDistPage(res, "chat-manager.html"));
+app.get("/conhecimento", (_req, res) => serveDistPage(res, "knowledge-base.html"));
+app.get("/relatorios", (_req, res) => serveDistPage(res, "reports.html"));
+app.get("/usuarios", (_req, res) => serveDistPage(res, "users.html"));
+app.get("/preferencias", (_req, res) => serveDistPage(res, "dashboard-preferencias.html"));
+app.get("/esqueci-senha", (_req, res) => serveDistPage(res, "forgot-password.html"));
+app.get("/redefinir-senha", (_req, res) => serveDistPage(res, "reset-password.html"));
+app.get("/ativar-conta", (_req, res) => serveDistPage(res, "accept-invite.html"));
+app.get("/verificar-sessao", (_req, res) => serveDistPage(res, "verify-session.html"));
 app.use("/webhook", webhookRoutes);
 app.use("/api/webchat", webchatRoutes);
 
@@ -498,9 +540,6 @@ async function processIdleConversations() {
   }
 }
 
-app.get("/", (_req, res) => {
-  res.status(200).send("Assistente Publico online");
-});
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true, service: "lab-ia-educacao", at: new Date().toISOString() });
@@ -1035,6 +1074,10 @@ app.listen(PORT, () => {
   console.log(`Servidor institucional online em http://localhost:${PORT}`);
   void processIdleConversations();
 });
+
+
+
+
 
 
 

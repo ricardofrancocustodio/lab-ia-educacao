@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
@@ -537,7 +537,7 @@
       try {
         const { error } = await _supabaseLogin.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.href = 'dashboard.html';
+        window.location.href = '/dashboard';
       } catch (err) {
         errorMsg.innerText = 'Falha no login: ' + (err.message.includes('Invalid login') ? 'E-mail ou senha incorretos.' : err.message);
         errorMsg.style.display = 'block';
@@ -558,4 +558,5 @@
   </script>
 </body>
 </html>
+
 

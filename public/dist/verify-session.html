@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="utf-8">
@@ -8,8 +8,8 @@
 <body class="hold-transition login-page">
     <div class="text-center">
         <div id="loader" class="spinner-border text-primary" role="status"></div>
-        <h4 class="mt-3" id="status-title">Finalizando sua ativação...</h4>
-        <p class="text-muted" id="status-desc">Vinculando sua conta à escola selecionada.</p>
+        <h4 class="mt-3" id="status-title">Finalizando sua ativaÃ§Ã£o...</h4>
+        <p class="text-muted" id="status-desc">Vinculando sua conta Ã  escola selecionada.</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -33,12 +33,12 @@ async function forcarSincronizacao() {
             .maybeSingle();
 
         if (fetchError || !membro) {
-            console.error("Membro não localizado no banco para o email:", userEmail);
-            document.getElementById('status-title').innerText = "Convite não localizado";
+            console.error("Membro nÃ£o localizado no banco para o email:", userEmail);
+            document.getElementById('status-title').innerText = "Convite nÃ£o localizado";
             return;
         }
 
-        // 2. Agora que temos a ID exata da linha (id primário), fazemos o update
+        // 2. Agora que temos a ID exata da linha (id primÃ¡rio), fazemos o update
         const { error: updateError } = await window.supabaseClient
             .from('school_members')
             .update({ 
@@ -46,11 +46,11 @@ async function forcarSincronizacao() {
                 status: 'active',
                 active: true 
             })
-            .eq('id', membro.id); // Usamos o ID primário (UUID da tabela)
+            .eq('id', membro.id); // Usamos o ID primÃ¡rio (UUID da tabela)
 
         if (updateError) throw updateError;
 
-        window.location.href = '/dist/dashboard.html';
+        window.location.href = '/dashboard';
 
     } catch (err) {
         console.error("Erro:", err);

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
@@ -113,25 +113,25 @@
   </div>
 
   <div v-if="error" class="error">
-    <h3>❌ Erro</h3>
+    <h3>âŒ Erro</h3>
     <p>{{ error }}</p>
     <a href="/" style="color:#0d6efd;">Voltar ao login</a>
   </div>
 
   <div v-if="showPasswordForm">
     <div class="logo">ASSISTENTE PUBLICO</div>
-    <div class="subtitle">Olá, {{ userName }} 👋<br>Crie sua senha para ativar a conta</div>
+    <div class="subtitle">OlÃ¡, {{ userName }} ðŸ‘‹<br>Crie sua senha para ativar a conta</div>
 
     <input type="password" v-model="password" placeholder="Nova senha">
     <input type="password" v-model="confirmPassword" placeholder="Confirmar senha">
 
     <!-- Regras -->
     <div class="rules">
-      <div :class="['rule', rules.min ? 'ok' : '']">✔ Mínimo 8 caracteres</div>
-      <div :class="['rule', rules.upper ? 'ok' : '']">✔ Letra maiúscula</div>
-      <div :class="['rule', rules.lower ? 'ok' : '']">✔ Letra minúscula</div>
-      <div :class="['rule', rules.number ? 'ok' : '']">✔ Número</div>
-      <div :class="['rule', rules.special ? 'ok' : '']">✔ Caractere especial</div>
+      <div :class="['rule', rules.min ? 'ok' : '']">âœ” MÃ­nimo 8 caracteres</div>
+      <div :class="['rule', rules.upper ? 'ok' : '']">âœ” Letra maiÃºscula</div>
+      <div :class="['rule', rules.lower ? 'ok' : '']">âœ” Letra minÃºscula</div>
+      <div :class="['rule', rules.number ? 'ok' : '']">âœ” NÃºmero</div>
+      <div :class="['rule', rules.special ? 'ok' : '']">âœ” Caractere especial</div>
     </div>
 
     <button :disabled="!passwordValida || saving" @click="setPassword">
@@ -141,7 +141,7 @@
   </div>
 
   <div v-if="success" class="success">
-    <h3>✅ Conta ativada!</h3>
+    <h3>âœ… Conta ativada!</h3>
     <p>Redirecionando para o dashboard...</p>
   </div>
 </div>
@@ -189,7 +189,7 @@
         Object.values(rules.value).every(v => v)
         )
 
-      // Função para extrair hash da URL
+      // FunÃ§Ã£o para extrair hash da URL
       function getHashParams() {
         const hash = window.location.hash.substring(1)
         const params = {}
@@ -200,39 +200,39 @@
         return params
       }
 
-      // Inicialização
+      // InicializaÃ§Ã£o
       async function init() {
       try {
         loading.value = true;
         console.log('Validando link de convite...');
 
         // 1. O SDK do Supabase captura automaticamente o token do hash (#) 
-        // e cria a sessão assim que a página carrega.
-        // Basta pedir a sessão atual.
+        // e cria a sessÃ£o assim que a pÃ¡gina carrega.
+        // Basta pedir a sessÃ£o atual.
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) throw sessionError;
 
-        // 2. Se houver uma sessão, significa que o token era válido!
+        // 2. Se houver uma sessÃ£o, significa que o token era vÃ¡lido!
         if (session) {
           const metadata = session.user.user_metadata;
-          console.log('✅ Sessão validada para:', session.user.email);
+          console.log('âœ… SessÃ£o validada para:', session.user.email);
           const schoolIdRecuperado = metadata?.school_id;
-          userName.value = session.user.user_metadata?.full_name || "Usuário";
+          userName.value = session.user.user_metadata?.full_name || "UsuÃ¡rio";
           
-          console.log('🏫 Escola identificada:', schoolIdRecuperado);
+          console.log('ðŸ« Escola identificada:', schoolIdRecuperado);
           
-          // Inteligência: Vincula o UUID ao banco se necessário
+          // InteligÃªncia: Vincula o UUID ao banco se necessÃ¡rio
           await atualizarMembroNoBanco(session.user);
           
           showPasswordForm.value = true;
         } else {
-          // Se não houver sessão, o link pode ter expirado ou o hash foi removido
-          throw new Error('Link de convite inválido ou já utilizado.');
+          // Se nÃ£o houver sessÃ£o, o link pode ter expirado ou o hash foi removido
+          throw new Error('Link de convite invÃ¡lido ou jÃ¡ utilizado.');
         }
 
       } catch (err) {
-          console.error('❌ Erro na validação:', err);
+          console.error('âŒ Erro na validaÃ§Ã£o:', err);
             error.value = err.message;
           } finally {
             loading.value = false;
@@ -246,7 +246,7 @@
             .from('school_members')
             .update({ user_id: user.id })
             .eq('email', user.email)
-            .is('user_id', null); // Só atualiza se ainda não tiver ID
+            .is('user_id', null); // SÃ³ atualiza se ainda nÃ£o tiver ID
 
           if (dbError) console.warn('Aviso ao vincular ID:', dbError.message);
         } catch (e) {
@@ -254,31 +254,31 @@
         }
       }
 
-// Nova função para garantir que o UUID do Auth preencha o school_members
+// Nova funÃ§Ã£o para garantir que o UUID do Auth preencha o school_members
 async function vincularUsuarioAoBanco(user, schoolIdRecuperado) {
   try {
     // Fazemos o update na tabela school_members usando o e-mail como chave
-    // para preencher o user_id (UUID) que agora temos na sessão
+    // para preencher o user_id (UUID) que agora temos na sessÃ£o
     const { error: updateDbError } = await supabase
       .from('school_members')
       .update({ 
         user_id: user.id,
         school_id: schoolIdRecuperado,
-        status: 'active' // Já marcamos como ativo no processo
+        status: 'active' // JÃ¡ marcamos como ativo no processo
       })
       .eq('email', user.email)
-      .is('user_id', null); // Só atualiza se ainda estiver null
+      .is('user_id', null); // SÃ³ atualiza se ainda estiver null
 
     if (updateDbError) console.warn('Aviso ao vincular UUID:', updateDbError.message);
   } catch (e) {
-    console.error('Falha ao vincular usuário no banco:', e);
+    console.error('Falha ao vincular usuÃ¡rio no banco:', e);
   }
 }
 
-      // Função para definir senha
+      // FunÃ§Ã£o para definir senha
 async function setPassword() {
   if (password.value !== confirmPassword.value) {
-    return Swal.fire('Erro', 'As senhas não coincidem!', 'error');
+    return Swal.fire('Erro', 'As senhas nÃ£o coincidem!', 'error');
   }
 
   saving.value = true;
@@ -290,23 +290,23 @@ async function setPassword() {
 
     if (updateError) throw updateError;
 
-    // ✅ TRUQUE DE SEGURANÇA: Pegamos a sessão fresca direto do storage
+    // âœ… TRUQUE DE SEGURANÃ‡A: Pegamos a sessÃ£o fresca direto do storage
     // Isso garante que temos o UUID (user.id) atualizado.
     const { data: { session } } = await supabase.auth.getSession();
     const currentUser = session?.user;
 
     if (!currentUser) {
-        throw new Error("Sessão perdida após atualizar senha. Tente fazer login.");
+        throw new Error("SessÃ£o perdida apÃ³s atualizar senha. Tente fazer login.");
     }
 
-    // 2. RECUPERAÇÃO DE METADADOS
+    // 2. RECUPERAÃ‡ÃƒO DE METADADOS
     const schoolIdConvite = currentUser.user_metadata?.school_id;
-    const userUUID = currentUser.id; // O UUID que você precisa!
+    const userUUID = currentUser.id; // O UUID que vocÃª precisa!
 
-    console.log("🔗 Vinculando UUID:", userUUID, "à escola:", schoolIdConvite);
+    console.log("ðŸ”— Vinculando UUID:", userUUID, "Ã  escola:", schoolIdConvite);
 
-    // 3. VÍNCULO NO BANCO
-    // Forçamos o email para minúsculo para evitar erros de comparação
+    // 3. VÃNCULO NO BANCO
+    // ForÃ§amos o email para minÃºsculo para evitar erros de comparaÃ§Ã£o
     const userEmail = currentUser.email.toLowerCase();
 
     const { error: dbError } = await supabase
@@ -317,7 +317,7 @@ async function setPassword() {
         active: true,
         school_id: schoolIdConvite 
       })
-      .ilike('email', userEmail); // ilike ignora maiúsculas/minúsculas
+      .ilike('email', userEmail); // ilike ignora maiÃºsculas/minÃºsculas
 
     if (dbError) throw dbError;
 
@@ -325,18 +325,18 @@ async function setPassword() {
 
     // 4. Redirecionamento
     setTimeout(() => {
-      window.location.href = '/dist/verify-session.html';
+      window.location.href = '/verificar-sessao';
     }, 2000);
 
   } catch (err) {
-    console.error('❌ Erro crítico no vínculo:', err);
-    Swal.fire('Falha na Ativação', err.message, 'error');
+    console.error('âŒ Erro crÃ­tico no vÃ­nculo:', err);
+    Swal.fire('Falha na AtivaÃ§Ã£o', err.message, 'error');
   } finally {
     saving.value = false;
   }
 }
 
-      // Inicia quando a página carrega
+      // Inicia quando a pÃ¡gina carrega
       init()
 
       return {
@@ -357,3 +357,4 @@ async function setPassword() {
 </script>
 </body>
 </html>
+

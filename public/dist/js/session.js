@@ -1,4 +1,4 @@
-// session.js
+﻿// session.js
 async function initSession() {
   const client = window.supabaseClient || window._supabase || null;
   if (!client) {
@@ -8,7 +8,7 @@ async function initSession() {
   const { data: { user } } = await client.auth.getUser();
 
   if (!user) {
-    window.location.href = '/index.html';
+    window.location.href = '/login';
     return null;
   }
 
@@ -78,16 +78,17 @@ function fazerLogout() {
   if (!client) {
     sessionStorage.clear();
     localStorage.clear();
-    window.location.href = '/index.html';
+    window.location.href = '/login';
     return;
   }
 
   client.auth.signOut().finally(() => {
     sessionStorage.clear();
     localStorage.clear();
-    window.location.href = '/index.html';
+    window.location.href = '/login';
   });
 }
 
 window.initSession = initSession;
 window.fazerLogout = fazerLogout;
+

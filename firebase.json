@@ -1,19 +1,38 @@
-{
-  "hosting": {
-    "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "run": {
-          "serviceId": "qnexy-bot",
-          "region": "us-central1"
+﻿{
+  "hosting": [
+    {
+      "target": "labia",
+      "public": "public",
+      "cleanUrls": true,
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "redirects": [
+        { "source": "/", "destination": "/dist/index.html", "type": 302 },
+        { "source": "/login", "destination": "/dist/index.html", "type": 302 },
+        { "source": "/dashboard", "destination": "/dist/dashboard.html", "type": 302 },
+        { "source": "/audit", "destination": "/dist/audit.html", "type": 302 },
+        { "source": "/atendimento", "destination": "/dist/chat-manager.html", "type": 302 },
+        { "source": "/conhecimento", "destination": "/dist/knowledge-base.html", "type": 302 },
+        { "source": "/relatorios", "destination": "/dist/reports.html", "type": 302 },
+        { "source": "/usuarios", "destination": "/dist/users.html", "type": 302 },
+        { "source": "/preferencias", "destination": "/dist/dashboard-preferencias.html", "type": 302 },
+        { "source": "/esqueci-senha", "destination": "/dist/forgot-password.html", "type": 302 },
+        { "source": "/redefinir-senha", "destination": "/dist/reset-password.html", "type": 302 },
+        { "source": "/ativar-conta", "destination": "/dist/accept-invite.html", "type": 302 },
+        { "source": "/verificar-sessao", "destination": "/dist/verify-session.html", "type": 302 }
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "run": {
+            "serviceId": "lab-ia",
+            "region": "us-central1"
+          }
         }
-      }
-    ]
-  }
+      ]
+    }
+  ]
 }

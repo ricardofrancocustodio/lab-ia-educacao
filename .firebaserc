@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "qnexy-22e3f"
-  }
+  },
+  "targets": {
+    "qnexy-22e3f": {
+      "hosting": {
+        "labia": [
+          "lab-ia"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
