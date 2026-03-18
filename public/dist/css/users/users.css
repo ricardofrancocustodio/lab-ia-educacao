@@ -1,0 +1,223 @@
+/* users.css - Estilos específicos para a página de Gestão de Usuários */
+
+/* Badges de Role */
+.badge-role { 
+    font-size: 0.9rem; 
+    padding: 5px 10px; 
+    border-radius: 20px;
+    font-weight: 500;
+    display: inline-block;
+    min-width: 110px;
+}
+
+.role-admin { 
+    background-color: #dc3545; 
+    color: white; 
+}
+
+.role-coordinator { 
+    background-color: #6f42c1; 
+    color: white; 
+}
+
+.role-secretary { 
+    background-color: #17a2b8; 
+    color: white; 
+}
+
+.role-it { 
+    background-color: #343a40; 
+    color: white; 
+}
+
+.role-finance {
+    background-color: #28a745;
+    color: white;
+}
+
+.role-teacher {
+    background-color: #007bff;
+    color: white;
+}
+
+.role-support {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Avatar na tabela */
+.table .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Badges de Status */
+.status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-draft {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+/* Modal de segmentos */
+#divSegments {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Checkboxes de segmento */
+.segment-checkbox-container {
+    min-width: 150px;
+    margin-right: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Ajustes responsivos para a tabela */
+@media (max-width: 768px) {
+    .table-responsive {
+        border: 0;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table, .table tbody, .table tr, .table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .table tr {
+        margin-bottom: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        background: white;
+    }
+    
+    .table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        min-height: 50px;
+    }
+    
+    .table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        padding-right: 15px;
+        font-weight: bold;
+        text-align: left;
+    }
+    
+    .table td:last-child {
+        border-bottom: 0;
+    }
+    
+    .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: flex-end;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        min-width: 70px;
+        text-align: center;
+    }
+
+    /* Ajuste para o avatar em mobile */
+    .table td .d-flex {
+        justify-content: flex-end;
+    }
+    
+    .table td .d-flex img {
+        margin-left: 0;
+        margin-right: 0.5rem !important;
+    }
+}
+
+/* Estilo para o card de membros */
+.projects .project-actions {
+    white-space: nowrap;
+}
+
+/* Badge "VOCÊ" */
+.badge-warning.badge-self {
+    font-size: 0.7rem;
+    vertical-align: middle;
+}
+
+/* Animação de carregamento */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Gap utility (já que o Bootstrap não tem gap por padrão) */
+.gap-2 {
+    gap: 0.5rem;
+}
+
+/* Scrollbar personalizada para a div de segmentos */
+#segmentsContainer {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+#segmentsContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#segmentsContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#segmentsContainer::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+#segmentsContainer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+#permissionsContainer {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.role-perm-container {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+
+body {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+}

@@ -1,0 +1,352 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head id="component-head">
+    <title>Assistente Publico | Preferencias</title>
+    <style>
+        body {
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed" data-page="preferences">
+    <div class="wrapper">
+
+        <div id="component-header"></div>
+        <div id="component-sidebar"></div>
+
+        <div class="content-wrapper">
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">Preferências da Escola</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="content">
+                <div class="container-fluid">
+
+                    <!-- CabeÃ§alho - Responsivo -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="callout callout-info d-none d-md-block"> <!-- Oculta em mobile -->
+                                <h5 class="mb-1"><i class="fas fa-sliders-h mr-2"></i>Segmentos atendidos pela Escola</h5>
+                                <p class="mb-0">
+                                    O <b>Administrador</b> define aqui os segmentos e séries/anos que a Escola atende.
+                                    Essa configuração controla o que aparece em relatórios, CRM e cadastros.
+                                </p>
+                            </div>
+                            <!-- Versão mobile do cabeçalho -->
+                            <div class="card card-info d-block d-md-none mb-3">
+                                <div class="card-body py-2">
+                                    <button class="btn btn-info btn-sm btn-block text-left" type="button" data-toggle="collapse" data-target="#mobileInfo">
+                                        <i class="fas fa-info-circle mr-2"></i> Informações
+                                    </button>
+                                    <div class="collapse mt-2" id="mobileInfo">
+                                        <small class="text-muted">
+                                            O <b>Administrador</b> define aqui os segmentos e séries/anos que a Escola atende.
+                                            Essa configuração controla o que aparece em relatórios, CRM e cadastros.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card principal - Responsivo -->
+                    <div class="row">
+                        <div class="col-lg-9 col-md-10 col-12"> <!-- Colunas responsivas -->
+                            <div class="card card-outline card-primary">
+                                <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="card-title m-0">
+                                                <i class="fas fa-school mr-2"></i>Selecione os segmentos e séries/anos e a quantidade de vagas
+                                            </h3>
+                                            <small class="text-muted d-block d-md-none mt-1">
+                                                Toque para expandir/colapsar
+                                            </small>
+                                        </div>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Alert / Feedback -->
+                                    <div id="alert-segmentos-escola" class="alert" style="display:none;"></div>
+
+                                    <!-- Loader -->
+                                    <div id="segmentos-loader" class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i>Carregando segmentos...
+                                    </div>
+
+                                    <!-- Container que o JS vai preencher -->
+                                    <div id="segmentos-hierarquia" style="display:none;">
+                                        <!-- JS renderiza aqui:
+                                            - grupos (pai) com checkbox
+                                            - filhos (sÃ©ries/anos) com checkboxes
+                                        -->
+                                    </div>
+
+                                    <hr class="my-3">
+
+                                    <!-- AÃ§Ãµes - Responsivo -->
+                                    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+                                        <div class="mb-2 mb-md-0">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                Dica: marcar o segmento principal pode marcar automaticamente todas as séries/anos.
+                                            </small>
+                                        </div>
+                                        <div class="mt-2 mt-md-0 w-100 w-md-auto">
+                                            <button id="btn-salvar-segmentos-escola" type="button" class="btn btn-primary btn-block btn-md" onclick="salvarPreferenciasSegmentos();">
+                                                <i class="fas fa-save mr-1"></i>Salvar configuração
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card secundário (explicação curta) - Responsivo -->
+                            <div class="card card-outline card-secondary mt-3">
+                                <div class="card-header">
+                                    <h3 class="card-title m-0">
+                                        <i class="fas fa-globe-americas mr-2"></i>Configurações Gerais da Escola
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label for="schoolTimezone">Fuso Horário da Escola</label>
+                                        <p class="small text-muted">
+                                            Isso garante que os relatórios de IA identifiquem corretamente o que é "Atendimento Noturno" na sua região.
+                                        </p>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="far fa-clock"></i></span>
+                                            </div>
+                                            <select class="form-control" id="schoolTimezone">
+                                                <option value="America/Sao_Paulo">Brasília (DF, SP, RJ, MG, Sul, Nordeste, GO, TO, AP, PA-Leste)</option>
+                                                <option value="America/Manaus">Amazonas (Manaus), MT, MS, RR, RO, PA-Oeste (-1h)</option>
+                                                <option value="America/Rio_Branco">Acre e Amazonas (Oeste) (-2h)</option>
+                                                <option value="America/Noronha">Fernando de Noronha (+1h)</option>
+                                                <option value="Europe/Lisbon">Portugal (Lisboa)</option>
+                                                <option value="UTC">UTC (Universal)</option>
+                                            </select>
+                                            <div class="input-group-append">
+                                                <button class="btn btn-secondary" type="button" onclick="salvarFusoHorario()">
+                                                    Salvar Fuso
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card card-outline card-warning mt-3">
+                                <div class="card-header">
+                                    <h3 class="card-title m-0">
+                                        <i class="fas fa-bell mr-2"></i>Configuração de Notificações
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-3">
+                                        As configurações de notificação foram movidas para uma página dedicada,
+                                        com suporte por usuário (preferências individuais) e por escola.
+                                    </p>
+                                    <a href="./preferences-notifications.html" class="btn btn-warning">
+                                        <i class="fas fa-cog mr-1"></i> Abrir Preferências de Notificações
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card de ajuda lateral - Apenas desktop -->
+                        <div class="col-lg-3 d-none d-lg-block">
+                            <div class="card card-outline card-info">
+                                <div class="card-header">
+                                    <h3 class="card-title m-0">
+                                        <i class="fas fa-question-circle mr-2"></i>Ajuda Rápida
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <h6 class="text-info"><i class="fas fa-check-circle mr-2"></i>Como configurar</h6>
+                                        <p class="small text-muted mb-0">
+                                            Selecione os segmentos que sua escola oferece. Isso filtrará automaticamente todas as áreas do sistema.
+                                        </p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <h6 class="text-info"><i class="fas fa-sync-alt mr-2"></i>Atualização</h6>
+                                        <p class="small text-muted mb-0">
+                                            As alterações são aplicadas imediatamente após salvar, afetando todos os usuários.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <h6 class="text-info"><i class="fas fa-user mr-2"></i>Usuários</h6>
+                                        <p class="small text-muted mb-0">
+                                            Cada usuário poderá ajustar sua visualização pessoal baseada nessas configurações globais.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+
+        <div id="component-footer"></div>
+    </div>
+
+    <!-- Modal Novo Lead (NÃƒO ALTERADO) -->
+    <div class="modal fade" id="modalNovoLead" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title text-white">Cadastrar Novo Lead</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoLead">
+                    <div class="form-group">
+                        <label>Nome do ResponsÃ¡vel *</label>
+                        <input type="text" class="form-control" id="newLeadName" placeholder="Ex: Maria Silva" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Telefone / WhatsApp *</label>
+                        <input type="tel" class="form-control" id="newLeadPhone" placeholder="(XX) XXXXX-XXXX" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Segmento</label>
+                                <select class="form-control" id="newLeadSegment">
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Status Inicial</label>
+                                <select class="form-control" id="newLeadStatus">
+                                    <option value="AGENDADO">Agendado</option>
+                                    <option value="SOLICITOU_CONTATO">Solicitou Contato</option>
+                                    <option value="VISITOU">JÃ¡ Visitou</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info" onclick="salvarNovoLead()">
+                    <i class="fas fa-save"></i> Salvar Lead
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para melhorias de responsividade (NÃƒO interfere no JS existente) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Apenas ajustes visuais para mobile
+        if (window.innerWidth < 768) {
+            // Ajusta padding dos cards em mobile
+            document.querySelectorAll('.card-body').forEach(function(cardBody) {
+                cardBody.classList.add('px-2');
+            });
+            
+            // Ajusta botÃµes para serem mais fÃ¡ceis de tocar
+            document.querySelectorAll('.btn').forEach(function(btn) {
+                if (!btn.classList.contains('btn-sm') && !btn.classList.contains('btn-lg')) {
+                    btn.classList.add('btn-md');
+                }
+            });
+        }
+        
+        // Torna checkboxes mais fÃ¡ceis de tocar em mobile
+        if ('ontouchstart' in window) {
+            document.addEventListener('touchstart', function(e) {
+                if (e.target.type === 'checkbox' || e.target.type === 'radio') {
+                    e.target.parentElement.classList.add('active-touch');
+                }
+            });
+            
+            document.addEventListener('touchend', function(e) {
+                document.querySelectorAll('.active-touch').forEach(function(el) {
+                    el.classList.remove('active-touch');
+                });
+            });
+        }
+    });
+</script>
+
+<!-- Modal de ConfirmaÃ§Ã£o -->
+<div class="modal fade" id="modalConfirmacao" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-check-circle mr-2"></i>Sucesso!
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5>Preferências salvas com sucesso!</h5>
+                    <p class="text-muted mb-0">
+                        As configurações dos segmentos foram atualizadas.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-success" data-dismiss="modal">
+                    <i class="fas fa-check mr-1"></i> Ok
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Scripts base -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Scripts da aplica??o -->
+    <script src="../js/supabaseConfig.js"></script>
+    <script src="./js/session.js"></script>
+    <script src="./js/permissions.js"></script>
+    <script src="./js/cache.js"></script>
+    <script src="./js/js.js"></script>
+
+    <!-- Component loader -->
+    <script src="./js/coordinator/carregar-componentes.js"></script>
+
+    <!-- Scripts espec?ficos da p?gina preferences -->
+    <script src="./js/preferences/data-preferences.js"></script>
+    <script src="./js/preferences/ui-preferences.js"></script>
+    <script src="./js/preferences/core-preferences.js"></script>
+    <script src="./js/preferences/general-settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "name": "lab-ia-educacao",
+  "version": "1.0.0",
+  "description": "Assistente institucional multiagente para atendimento educacional publico",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "educacao",
+    "assistente-publico",
+    "supabase",
+    "atendimento"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.81.1",
+    "axios": "^1.12.2",
+    "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.18",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "googleapis": "^164.1.0",
+    "open": "^8.4.2",
+    "openai": "^6.9.0"
+  }
+}

@@ -1,0 +1,126 @@
+[
+  {
+    "activity_name": "Judô",
+    "description": "Aulas de judô focadas em disciplina e coordenação motora.",
+    "requirements": "Atestado médico, Kimono branco",
+    "classes": [
+      {
+        "name": "Judô",
+        "teacher_name": "",
+        "age_min": 6,
+        "age_max": 14,
+        "schedule": "Seg/Qua 17:30 - 18:30",
+        "location": "Espaço dedicado ao Judô",
+        "price": 150.00,
+        "capacity_max": 20,
+        "students_enrolled": 0
+      }
+    ]
+  },
+  {
+    "activity_name": "Xadrez",
+    "description": "Aulas de Xadrez como atividade estratégica, reconhecendo os benefícios dessa prática no desenvolvimento cognitivo e estratégico dos alunos.",
+    "requirements": "",
+    "classes": [
+      {
+        "name": "Xadrez",
+        "teacher_name": "",
+        "age_min": 6,
+        "age_max": 14,
+        "schedule": "Seg/Qua 17:30 - 18:30",
+        "location": "Espaço dedicado ao Xadrez",
+        "price": 100.00,
+        "capacity_max": 20,
+        "students_enrolled": 0
+      }
+    ]
+  },
+  {
+    "activity_name": "Tênis de Mesa",
+    "description": "Aulas de Tênis de Mesa.",
+    "requirements": "",
+    "classes": [
+      {
+        "name": "Tênis de Mesa",
+        "teacher_name": "",
+        "age_min": 6,
+        "age_max": 14,
+        "schedule": "Seg/Qua 17:30 - 18:30",
+        "location": "Espaço dedicado ao Tênis de Mesa",
+        "price": 100.00,
+        "capacity_max": 20,
+        "students_enrolled": 0
+      }
+    ]
+  },
+  {
+    "activity_name": "Totó",
+    "description": "Aulas de Totó",
+    "requirements": "",
+    "classes": [
+      {
+        "name": "Aulas de Totó",
+        "teacher_name": "",
+        "age_min": 6,
+        "age_max": 14,
+        "schedule": "Seg/Qua 09:00 - 09:45",
+        "location": "Espaço dedicado ao Totó",
+        "price": 180.00,
+        "capacity_max": 8,
+        "students_enrolled": 8
+      }
+    ]
+  },
+  {
+  "activity_name": "Programa AVR+ (Português e Matemática)",
+  "description": "Projeto extracurricular para consolidar conhecimentos em Lógico-Matemática e Língua Portuguesa, com foco em concursos de Escolas Militares, Olimpíadas e bolsas de Ensino Médio. Inclui material exclusivo e acesso à Plataforma AVR+ Estudos.",
+  "requirements": "Apostilas Próprias Exclusivas, Resolução de Provas Anteriores",
+  "classes": [
+    {
+      "name": "AVR+ 4º Ano",
+      "teacher_name": "Equipe AVR+",
+      "age_min": 9,
+      "age_max": 10,
+      "schedule": "3ª e 5ª feira (Matutino: 08h-11h40 | Vespertino: 13h40-17h20)",
+      "location": "Sala de Aula / Plataforma AVR+",
+      "price": 0.00, 
+      "capacity_max": 30,
+      "students_enrolled": 0
+    },
+    {
+      "name": "AVR+ 5º ao 9º Ano",
+      "teacher_name": "Equipe AVR+",
+      "age_min": 10,
+      "age_max": 15,
+      "schedule": "3ª e 5ª feira (Matutino: 08h-11h40 | Vespertino: 13h40-17h20)",
+      "location": "Sala de Aula / Plataforma AVR+",
+      "price": 0.00,
+      "capacity_max": 30,
+      "students_enrolled": 0
+    }
+  ],
+  "tags": ["reforço", "concurso militar", "português", "matemática", "olimpíadas"]
+},
+{
+  "activity_name": "Funcional Kids",
+  "description": "Atividade física voltada ao desenvolvimento motor, coordenação, equilíbrio e bem-estar emocional das crianças.",
+  "requirements": "Roupa adequada para atividade física",
+  "classes": [
+    {
+      "name": "Funcional Kids",
+      "teacher_name": "",
+      "age_min": 6,
+      "age_max": 14,
+      "schedule": "",
+      "location": "",
+      "price": 0.00,
+      "capacity_max": null,
+      "students_enrolled": null
+    }
+  ],
+  "tags": ["atividade física", "saúde", "movimento"]
+}
+
+
+
+]

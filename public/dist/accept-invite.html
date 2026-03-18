@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Assistente Publico | Ativar Conta</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+  <style>
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0d6efd, #6610f2);
+      font-family: 'Inter', Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+
+    .card {
+      background: #fff;
+      width: 420px;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.2);
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0d6efd;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 25px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #0d6efd;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      background: #0d6efd;
+      color: #fff;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    button:disabled {
+      background: #adb5bd;
+      cursor: not-allowed;
+    }
+
+    .rules {
+      text-align: left;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+
+    .rule {
+      margin-bottom: 6px;
+      color: #999;
+    }
+
+    .rule.ok {
+      color: #198754;
+    }
+
+    .error {
+      color: #dc3545;
+      margin-top: 10px;
+    }
+
+    .success {
+      color: #198754;
+    }
+
+    .loader {
+      font-size: 18px;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="app" class="card">
+
+  <div v-if="loading">
+    <div class="loader">
+      <i class="fas fa-spinner fa-spin"></i><br>
+      Validando convite...
+    </div>
+  </div>
+
+  <div v-if="error" class="error">
+    <h3>❌ Erro</h3>
+    <p>{{ error }}</p>
+    <a href="/" style="color:#0d6efd;">Voltar ao login</a>
+  </div>
+
+  <div v-if="showPasswordForm">
+    <div class="logo">ASSISTENTE PUBLICO</div>
+    <div class="subtitle">Olá, {{ userName }} 👋<br>Crie sua senha para ativar a conta</div>
+
+    <input type="password" v-model="password" placeholder="Nova senha">
+    <input type="password" v-model="confirmPassword" placeholder="Confirmar senha">
+
+    <!-- Regras -->
+    <div class="rules">
+      <div :class="['rule', rules.min ? 'ok' : '']">✔ Mínimo 8 caracteres</div>
+      <div :class="['rule', rules.upper ? 'ok' : '']">✔ Letra maiúscula</div>
+      <div :class="['rule', rules.lower ? 'ok' : '']">✔ Letra minúscula</div>
+      <div :class="['rule', rules.number ? 'ok' : '']">✔ Número</div>
+      <div :class="['rule', rules.special ? 'ok' : '']">✔ Caractere especial</div>
+    </div>
+
+    <button :disabled="!passwordValida || saving" @click="setPassword">
+      <span v-if="!saving">Ativar Conta</span>
+      <span v-else><i class="fas fa-spinner fa-spin"></i> Salvando...</span>
+    </button>
+  </div>
+
+  <div v-if="success" class="success">
+    <h3>✅ Conta ativada!</h3>
+    <p>Redirecionando para o dashboard...</p>
+  </div>
+</div>
+
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const supabase = createClient(
+    'https://daervzofihzytmvynkpi.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhZXJ2em9maWh6eXRtdnlua3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2OTIyMDYsImV4cCI6MjA4OTI2ODIwNn0.raA68qFf0Pnj2kzNXCOfKEAdNKwSkW166QDrgpzhts4'
+  )
+
+  const { createApp, ref, watch, computed } = Vue
+
+  createApp({
+    setup() {
+      const loading = ref(true)
+      const error = ref(null)
+      const showPasswordForm = ref(false)
+      const success = ref(false)
+      const saving = ref(false)
+      const userName = ref('')
+      const password = ref('')
+      const confirmPassword = ref('')
+
+      const rules = ref({
+        min: false,
+        upper: false,
+        lower: false,
+        number: false,
+        special: false
+      })
+
+      watch(password, (val) => {
+        rules.value.min = val.length >= 8
+        rules.value.upper = /[A-Z]/.test(val)
+        rules.value.lower = /[a-z]/.test(val)
+        rules.value.number = /[0-9]/.test(val)
+        rules.value.special = /[^A-Za-z0-9]/.test(val)
+        })
+
+        const passwordValida = computed(() =>
+        Object.values(rules.value).every(v => v)
+        )
+
+      // Função para extrair hash da URL
+      function getHashParams() {
+        const hash = window.location.hash.substring(1)
+        const params = {}
+        hash.split('&').forEach(pair => {
+          const [key, value] = pair.split('=')
+          params[key] = decodeURIComponent(value)
+        })
+        return params
+      }
+
+      // Inicialização
+      async function init() {
+      try {
+        loading.value = true;
+        console.log('Validando link de convite...');
+
+        // 1. O SDK do Supabase captura automaticamente o token do hash (#) 
+        // e cria a sessão assim que a página carrega.
+        // Basta pedir a sessão atual.
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        // 2. Se houver uma sessão, significa que o token era válido!
+        if (session) {
+          const metadata = session.user.user_metadata;
+          console.log('✅ Sessão validada para:', session.user.email);
+          const schoolIdRecuperado = metadata?.school_id;
+          userName.value = session.user.user_metadata?.full_name || "Usuário";
+          
+          console.log('🏫 Escola identificada:', schoolIdRecuperado);
+          
+          // Inteligência: Vincula o UUID ao banco se necessário
+          await atualizarMembroNoBanco(session.user);
+          
+          showPasswordForm.value = true;
+        } else {
+          // Se não houver sessão, o link pode ter expirado ou o hash foi removido
+          throw new Error('Link de convite inválido ou já utilizado.');
+        }
+
+      } catch (err) {
+          console.error('❌ Erro na validação:', err);
+            error.value = err.message;
+          } finally {
+            loading.value = false;
+          }
+    }
+
+      async function atualizarMembroNoBanco(user) {
+        try {
+          // Agora que temos o UUID (user.id), preenchemos o campo que estava null
+          const { error: dbError } = await supabase
+            .from('school_members')
+            .update({ user_id: user.id })
+            .eq('email', user.email)
+            .is('user_id', null); // Só atualiza se ainda não tiver ID
+
+          if (dbError) console.warn('Aviso ao vincular ID:', dbError.message);
+        } catch (e) {
+          console.error('Erro ao atualizar UUID:', e);
+        }
+      }
+
+// Nova função para garantir que o UUID do Auth preencha o school_members
+async function vincularUsuarioAoBanco(user, schoolIdRecuperado) {
+  try {
+    // Fazemos o update na tabela school_members usando o e-mail como chave
+    // para preencher o user_id (UUID) que agora temos na sessão
+    const { error: updateDbError } = await supabase
+      .from('school_members')
+      .update({ 
+        user_id: user.id,
+        school_id: schoolIdRecuperado,
+        status: 'active' // Já marcamos como ativo no processo
+      })
+      .eq('email', user.email)
+      .is('user_id', null); // Só atualiza se ainda estiver null
+
+    if (updateDbError) console.warn('Aviso ao vincular UUID:', updateDbError.message);
+  } catch (e) {
+    console.error('Falha ao vincular usuário no banco:', e);
+  }
+}
+
+      // Função para definir senha
+async function setPassword() {
+  if (password.value !== confirmPassword.value) {
+    return Swal.fire('Erro', 'As senhas não coincidem!', 'error');
+  }
+
+  saving.value = true;
+  try {
+    // 1. Atualiza a senha no Supabase Auth
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: password.value
+    });
+
+    if (updateError) throw updateError;
+
+    // ✅ TRUQUE DE SEGURANÇA: Pegamos a sessão fresca direto do storage
+    // Isso garante que temos o UUID (user.id) atualizado.
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUser = session?.user;
+
+    if (!currentUser) {
+        throw new Error("Sessão perdida após atualizar senha. Tente fazer login.");
+    }
+
+    // 2. RECUPERAÇÃO DE METADADOS
+    const schoolIdConvite = currentUser.user_metadata?.school_id;
+    const userUUID = currentUser.id; // O UUID que você precisa!
+
+    console.log("🔗 Vinculando UUID:", userUUID, "à escola:", schoolIdConvite);
+
+    // 3. VÍNCULO NO BANCO
+    // Forçamos o email para minúsculo para evitar erros de comparação
+    const userEmail = currentUser.email.toLowerCase();
+
+    const { error: dbError } = await supabase
+      .from('school_members')
+      .update({ 
+        user_id: userUUID,   // Agora garantido!
+        status: 'active',
+        active: true,
+        school_id: schoolIdConvite 
+      })
+      .ilike('email', userEmail); // ilike ignora maiúsculas/minúsculas
+
+    if (dbError) throw dbError;
+
+    success.value = true;
+
+    // 4. Redirecionamento
+    setTimeout(() => {
+      window.location.href = '/dist/verify-session.html';
+    }, 2000);
+
+  } catch (err) {
+    console.error('❌ Erro crítico no vínculo:', err);
+    Swal.fire('Falha na Ativação', err.message, 'error');
+  } finally {
+    saving.value = false;
+  }
+}
+
+      // Inicia quando a página carrega
+      init()
+
+      return {
+        loading,
+        error,
+        showPasswordForm,
+        success,
+        saving,
+        userName,
+        password,
+        confirmPassword,
+        rules,
+        passwordValida,
+        setPassword
+      }
+    }
+  }).mount('#app')
+</script>
+</body>
+</html>

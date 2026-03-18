@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Assistente Publico | Acesso</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/rawline@5.0.18/index.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="css/adminlte.css" />
+  <style>
+    :root {
+      --govbr-blue: #1351b4;
+      --govbr-blue-dark: #0c326f;
+      --govbr-yellow: #ffcd07;
+      --govbr-text: #1f2a3d;
+      --govbr-muted: #4d5d79;
+      --govbr-bg: #f6f6f6;
+      --govbr-surface: #ffffff;
+      --govbr-border: #d9d9d9;
+      --govbr-card-border: #ebedf0;
+      --govbr-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Rawline", "Segoe UI", sans-serif;
+      background: var(--govbr-bg);
+      color: var(--govbr-text);
+    }
+
+    .top-strip {
+      height: 4px;
+      background: var(--govbr-yellow);
+    }
+
+    .gov-header {
+      background: #fff;
+      border-bottom: 1px solid #dadada;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .gov-header-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .gov-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 3rem;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.07em;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .gov-logo .g1 { color: #2670e8; }
+    .gov-logo .g2 { color: #ffb300; }
+    .gov-logo .g3 { color: #2e9b3e; }
+    .gov-logo .g4 { color: #2670e8; }
+    .gov-logo .g5 { color: #ffb300; }
+    .gov-logo .g6 { color: #2670e8; }
+
+    .gov-tools {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      color: var(--govbr-blue);
+      font-size: 0.98rem;
+    }
+
+    .gov-tools span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .page-shell {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 26px 24px 48px;
+    }
+
+    .page-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(352px, 384px);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .promo-panel {
+      min-height: 628px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--govbr-card-border);
+      background:
+        linear-gradient(0deg, rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
+        linear-gradient(135deg, #f1f3f6 0%, #ffffff 100%);
+    }
+
+    .promo-panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 60px;
+      width: 180px;
+      height: 100%;
+      background: rgba(255, 205, 7, 0.95);
+    }
+
+    .promo-portrait {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 46%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 53% 20%, rgba(0,0,0,0.07) 0 9%, transparent 10%),
+        radial-gradient(circle at 50% 24%, rgba(0,0,0,0.12) 0 13%, transparent 14%),
+        radial-gradient(circle at 50% 18%, rgba(0,0,0,0.16) 0 20%, transparent 21%),
+        linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08));
+      clip-path: polygon(16% 100%, 18% 68%, 24% 48%, 30% 33%, 40% 18%, 49% 12%, 58% 17%, 63% 25%, 69% 38%, 72% 51%, 78% 100%);
+      opacity: 0.42;
+      filter: grayscale(1);
+      mix-blend-mode: multiply;
+    }
+
+    .promo-content {
+      position: absolute;
+      inset: 0;
+      padding: 92px 56px 72px 52%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      color: #17345d;
+    }
+
+    .promo-mark {
+      font-size: clamp(4.6rem, 8vw, 6.8rem);
+      line-height: 0.88;
+      font-weight: 700;
+      letter-spacing: -0.09em;
+      margin-bottom: 20px;
+      white-space: nowrap;
+      text-shadow: 0 0 0 #fff, 6px 6px 0 rgba(255,255,255,0.88);
+    }
+
+    .promo-mark .g1 { color: #2670e8; }
+    .promo-mark .g2 { color: #ffb300; }
+    .promo-mark .g3 { color: #2e9b3e; }
+    .promo-mark .g4 { color: #2670e8; }
+    .promo-mark .g5 { color: #ffb300; }
+    .promo-mark .g6 { color: #2670e8; }
+
+    .promo-title {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #111f35;
+    }
+
+    .promo-copy {
+      max-width: 25ch;
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.65;
+      color: #354968;
+    }
+
+    .login-card {
+      background: var(--govbr-surface);
+      border: 1px solid var(--govbr-card-border);
+      box-shadow: var(--govbr-shadow);
+      padding: 22px 20px 20px;
+    }
+
+    .login-title {
+      margin: 0 0 28px;
+      font-size: 1.04rem;
+      line-height: 1.45;
+      font-weight: 700;
+      color: #12213a;
+    }
+
+    .method-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--govbr-blue);
+    }
+
+    .method-box i {
+      font-size: 1.1rem;
+      margin-top: 2px;
+    }
+
+    .method-title {
+      margin-bottom: 4px;
+      font-size: 0.97rem;
+      color: #15315c;
+    }
+
+    .method-copy {
+      font-size: 0.97rem;
+      line-height: 1.55;
+      color: #2c3f63;
+    }
+
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    .field-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.96rem;
+      font-weight: 600;
+      color: #10213d;
+    }
+
+    .input-shell {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid #8f96a3;
+      border-radius: 4px;
+      background: #fff;
+      overflow: hidden;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .input-shell:focus-within {
+      border-color: #0c326f;
+      box-shadow: 0 0 0 3px rgba(19, 81, 180, 0.12);
+    }
+
+    .input-icon,
+    .toggle-btn {
+      width: 44px;
+      border: 0;
+      background: #fff;
+      color: var(--govbr-blue);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .toggle-btn {
+      cursor: pointer;
+    }
+
+    .gov-input {
+      flex: 1;
+      min-width: 0;
+      height: 40px;
+      border: 0;
+      padding: 0 12px;
+      font-size: 1rem;
+      color: var(--govbr-text);
+      background: #fffef1;
+      outline: none;
+    }
+
+    .gov-input::placeholder {
+      color: #707b8f;
+      font-style: italic;
+    }
+
+    .continue-btn {
+      width: 100%;
+      height: 40px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--govbr-blue);
+      color: #fff;
+      font-size: 0.98rem;
+      font-weight: 700;
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+
+    .continue-btn:hover:not(:disabled) {
+      background: #0f47a1;
+      transform: translateY(-1px);
+    }
+
+    .continue-btn:disabled {
+      background: #8ca3cd;
+      cursor: wait;
+    }
+
+    .divider-title {
+      margin: 28px 0 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #c5c9d1;
+      font-size: 0.97rem;
+      color: #22314d;
+    }
+
+    .alt-list {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 88px;
+    }
+
+    .alt-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #2c3f63;
+      font-size: 0.98rem;
+      text-decoration: none;
+    }
+
+    .alt-item i {
+      color: var(--govbr-blue);
+      font-size: 1.12rem;
+    }
+
+    .alt-item:hover {
+      color: var(--govbr-blue);
+      text-decoration: none;
+    }
+
+    .support-block {
+      display: grid;
+      gap: 10px;
+      text-align: center;
+      font-size: 0.96rem;
+    }
+
+    .support-block a {
+      color: var(--govbr-blue);
+      text-decoration: none;
+    }
+
+    .support-block a:hover {
+      text-decoration: underline;
+    }
+
+    .error-box {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid #f2c8cf;
+      background: #fff5f7;
+      color: #8a1c2f;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1120px) {
+      .promo-content {
+        padding-right: 40px;
+      }
+
+      .promo-mark {
+        font-size: 5.6rem;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .page-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .promo-panel {
+        display: none;
+      }
+
+      .page-shell {
+        max-width: 430px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .gov-header-inner {
+        padding: 12px 14px;
+      }
+
+      .gov-logo {
+        font-size: 2.25rem;
+      }
+
+      .gov-tools {
+        gap: 14px;
+        font-size: 0;
+      }
+
+      .gov-tools span {
+        gap: 0;
+      }
+
+      .gov-tools strong {
+        display: none;
+      }
+
+      .page-shell {
+        padding: 20px 14px 32px;
+      }
+
+      .login-card {
+        padding: 18px 12px 18px;
+      }
+
+      .alt-list {
+        margin-bottom: 52px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-strip"></div>
+  <header class="gov-header">
+    <div class="gov-header-inner">
+      <a class="gov-logo" href="#" aria-label="LAB-AI Educacao">
+        <span class="g1">l</span><span class="g2">a</span><span class="g3">b</span><span class="g4">-</span><span class="g5">a</span><span class="g6">i</span>
+      </a>
+      <div class="gov-tools" aria-label="Acessibilidade">
+        <span><i class="bi bi-circle-half"></i> <strong>Alto Contraste</strong></span>
+        <span><i class="bi bi-universal-access"></i> <strong>VLibras</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-grid">
+      <aside class="promo-panel" aria-hidden="true">
+        <div class="promo-portrait"></div>
+        <div class="promo-content">
+          <div class="promo-mark"><span class="g1">l</span><span class="g2">a</span><span class="g3">b</span><span class="g4">-</span><span class="g5">a</span><span class="g6">i</span></div>
+          <h2 class="promo-title">IA auditavel para atendimento institucional</h2>
+          <p class="promo-copy">apoia redes e orgaos educacionais com conhecimento versionado, rastreabilidade e inteligencia administrativa para o uso seguro de IA.</p>
+        </div>
+      </aside>
+
+      <section class="login-card" aria-label="Formulario de acesso">
+        <h1 class="login-title">Identifique-se no <strong>Assistente Publico</strong> com:</h1>
+
+        <div class="method-box">
+          <i class="bi bi-person-badge"></i>
+          <div>
+            <div class="method-title">E-mail institucional</div>
+            <div class="method-copy">Digite seu e-mail institucional para <strong>acessar</strong> sua conta administrativa.</div>
+          </div>
+        </div>
+
+        <form id="loginForm">
+          <div class="field-group">
+            <label for="email">E-mail</label>
+            <div class="input-shell">
+              <div class="input-icon"><i class="bi bi-envelope"></i></div>
+              <input type="email" id="email" class="gov-input" placeholder="Digite seu e-mail" required />
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="password">Senha</label>
+            <div class="input-shell">
+              <div class="input-icon"><i class="bi bi-key"></i></div>
+              <input type="password" id="password" class="gov-input" placeholder="Digite sua senha" required />
+              <button type="button" class="toggle-btn" id="togglePassword" aria-label="Mostrar senha">
+                <i class="bi bi-eye-slash" id="toggleIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="continue-btn" id="btn-login" disabled>Continuar</button>
+          <div id="error-msg" class="error-box"></div>
+        </form>
+
+        <div class="divider-title">Outras opcoes de identificacao:</div>
+
+        <div class="alt-list">
+          <a class="alt-item" href="forgot-password.html"><i class="bi bi-shield-lock"></i><span>Recuperar acesso com redefinicao de senha</span></a>
+          <a class="alt-item" href="#"><i class="bi bi-journal-check"></i><span>Orientacoes de acesso e uso institucional</span></a>
+          <a class="alt-item" href="#"><i class="bi bi-headset"></i><span>Suporte para credenciais e permissoes</span></a>
+        </div>
+
+        <div class="support-block">
+          <a href="#">Esta com duvidas e precisa de ajuda?</a>
+          <a href="#">Termo de Uso e Aviso de Privacidade</a>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="js/adminlte.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabaseConfig.js"></script>
+
+  <script>
+    let _supabaseLogin = null;
+    const btnLogin = document.getElementById('btn-login');
+
+    function verificarSupabase() {
+      if (window.supabaseClient) {
+        _supabaseLogin = window.supabaseClient;
+        btnLogin.disabled = false;
+      } else {
+        btnLogin.disabled = true;
+        setTimeout(verificarSupabase, 200);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', verificarSupabase);
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!_supabaseLogin) {
+        alert('Erro: o sistema ainda nao carregou. Recarregue a pagina e tente novamente.');
+        return;
+      }
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('error-msg');
+
+      errorMsg.style.display = 'none';
+      const textoOriginal = btnLogin.innerHTML;
+      btnLogin.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Entrando...';
+      btnLogin.disabled = true;
+
+      try {
+        const { error } = await _supabaseLogin.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errorMsg.innerText = 'Falha no login: ' + (err.message.includes('Invalid login') ? 'E-mail ou senha incorretos.' : err.message);
+        errorMsg.style.display = 'block';
+        btnLogin.innerHTML = textoOriginal;
+        btnLogin.disabled = false;
+      }
+    });
+
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('togglePassword');
+    const toggleIcon = document.getElementById('toggleIcon');
+
+    togglePassword.addEventListener('click', () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      toggleIcon.className = isPassword ? 'bi bi-eye' : 'bi bi-eye-slash';
+    });
+  </script>
+</body>
+</html>
+

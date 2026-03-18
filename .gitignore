@@ -1,0 +1,25 @@
+﻿# Dependencias
+node_modules/
+
+# Ambiente
+.env
+supabase/.env
+
+# Logs
+*.log
+
+# Sistema operacional
+.DS_Store
+
+# Editor
+.vscode/
+
+.firebase/
+
+# Credenciais locais sensiveis
+.qodo/services/google/credentials.json
+.qodo/services/google/services/google/
+.qodo/services/google/token*.json
+.qodo/services/google/*.local.json
+
+supabase/functions/**/.env.local

@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atendimento Online - Escola Alvacir Vite Rossi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      font-family: 'Nunito', sans-serif;
+    }
+    
+    .btn-service {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .btn-service:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(62, 64, 149, 0.25);
+    }
+    
+    .btn-service:active {
+      transform: translateY(0);
+    }
+    
+    .logo-placeholder {
+      width: 80px;
+      height: 80px;
+      border: 2px dashed rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-fade-in {
+      animation: fadeInUp 0.5s ease-out forwards;
+    }
+    
+    .btn-1 { animation-delay: 0.1s; }
+    .btn-2 { animation-delay: 0.15s; }
+    .btn-3 { animation-delay: 0.2s; }
+    .btn-4 { animation-delay: 0.25s; }
+    .btn-5 { animation-delay: 0.3s; }
+    .btn-6 { animation-delay: 0.35s; }
+    .btn-7 { animation-delay: 0.4s; }
+    .btn-8 { animation-delay: 0.45s; }
+    .btn-9 { animation-delay: 0.5s; }
+
+    .chat-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 40;
+    }
+
+    .chat-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .chat-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(440px, 100vw);
+      height: 100vh;
+      background: #fff;
+      box-shadow: -18px 0 42px rgba(15, 23, 42, 0.18);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-drawer.is-open {
+      transform: translateX(0);
+    }
+
+    .chat-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #f8fafc;
+    }
+
+    .chat-empty {
+      display: none;
+      height: 100%;
+      padding: 24px;
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gray-50">
+  <div id="app-wrapper" class="min-h-full w-full flex flex-col">
+    
+    <!-- Botão Voltar (topo direito) -->
+    <div class="absolute top-4 right-4 z-10">
+      <a href="main.html" class="btn-service opacity-0 animate-fade-in flex items-center p-3 rounded-2xl font-semibold shadow-md" style="background-color: #FEC12C; color: #3E4095;">
+        <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span class="text-sm font-semibold">Voltar</span>
+      </a>
+    </div>
+    
+    <!-- Header -->
+    <header id="header" class="w-full py-6 px-4 text-center" style="background: linear-gradient(135deg, #3E4095 0%, #2d2f6e 100%);">
+      <div class="max-w-md mx-auto">
+        <!-- Logo Placeholder -->
+        <div class="flex justify-center mb-4">
+          <div class="logo-placeholder">
+            <img src="./../dist/assets/alvacir/marcaavr.png" width="40" height="40" style="" alt="Escola Alvacir Vite Rossi" class="w-16 h-16 object-contain">
+          </div>
+        </div>
+        
+        <!-- School Name -->
+        <p id="school-name" class="text-white/80 text-sm font-medium tracking-wide uppercase mb-2">Escola Alvacir Vite Rossi</p>
+        
+        <!-- Main Title -->
+        <h1 id="main-title" class="text-white text-2xl md:text-3xl font-bold leading-tight">Atendimento Online ao Cliente</h1>
+        
+        <!-- Decorative Line -->
+        <div class="mt-4 flex justify-center">
+          <div class="w-16 h-1 rounded-full" style="background-color: #FEC12C;"></div>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="flex-1 w-full px-4 py-8">
+      <div class="max-w-md mx-auto">
+        <!-- Subtitle -->
+        <p class="text-center text-gray-500 text-sm mb-6">Selecione uma opção para continuar</p>
+        
+        <!-- Buttons Container -->
+        <div class="space-y-4">
+          
+          <!-- Talk to School Button -->
+          <a href="#" id="btn-chat-interno" class="btn-service btn-1 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #0F766E 0%, #115E59 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" id="btn-chat-icon-bg" style="background-color: rgba(255,255,255,0.18);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <span id="btn-chat-text" class="flex-1 text-left text-base">Conversar com a Escola (Chat Online)</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          <!-- Secretaria Button -->
+          <a href="#" id="btn-secretaria" class="btn-service btn-2 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #3E4095 0%, #2d2f6e 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(255,255,255,0.15);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+            </div>
+            <span id="btn-secretaria-text" class="flex-1 text-left text-base">Secretaria</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+          <!-- Assuntos Financeiros Button -->
+          <a href="#" id="btn-financeiro" class="btn-service btn-3 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #547642 0%, #3a4a2e 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(255,255,255,0.15);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v12" />
+                <path d="M15 9.5c0-1.38-1.343-2.5-3-2.5s-3 1.12-3 2.5 1.343 2.5 3 2.5 3 1.12 3 2.5-1.343 2.5-3 2.5" />
+              </svg>
+            </div>
+            <span id="btn-financeiro-text" class="flex-1 text-left text-base">Assuntos Financeiros</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+          <!-- Equipe Pedagógica Button -->
+          <a href="#" id="btn-pedagogico" class="btn-service btn-4 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #75ADD9 0%, #5a8db3 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              </svg>
+            </div>
+            <span id="btn-pedagogico-text" class="flex-1 text-left text-base">Equipe Pedagógica</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+          <!-- Lanchonete Button -->
+          <a href="#" id="btn-lanchonete" class="btn-service btn-5 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #D35400 0%, #a84300 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                <line x1="6" y1="1" x2="6" y2="4" />
+                <line x1="10" y1="1" x2="10" y2="4" />
+                <line x1="14" y1="1" x2="14" y2="4" />
+              </svg>
+            </div>
+            <span id="btn-lanchonete-text" class="flex-1 text-left text-base">Lanchonete</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+          <!-- Site Oficial Button -->
+          <a href="https://www.escolaalvacirviterossi.com.br/" id="btn-site" class="btn-service btn-6 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #9B59B6 0%, #7e4898 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
+                <path d="M12 6v6l4 2" />
+                <path d="M16 21.5V19a4 4 0 0 0-8 0v2.5" />
+              </svg>
+            </div>
+            <span id="btn-site-text" class="flex-1 text-left text-base">Site Oficial</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+          <!-- Instagram Button -->
+          <a href="https://www.instagram.com/escolaalvacirviterossi?igsh=MXZqZXhrZXFwZGQ1bw==" id="btn-instagram" class="btn-service btn-7 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #E4405F 0%, #C13584 100%);">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
+            </div>
+            <span id="btn-instagram-text" class="flex-1 text-left text-base">Instagram</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+          <!-- Continuar Button -->
+          <a href="#" id="btn-continuar" class="btn-service btn-8 opacity-0 animate-fade-in flex items-center w-full p-5 rounded-2xl font-semibold shadow-lg" style="background-color: #FEC12C; color: #3E4095;">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mr-4 flex-shrink-0" style="background-color: rgba(62, 64, 149, 0.15);">
+              <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+            </div>
+            <span id="btn-continuar-text" class="flex-1 text-left text-base">Continuar a ligação</span>
+            <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-60 flex-shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
+          
+        </div>
+      </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="w-full bg-gray-100 mt-8 py-8 px-4">
+      <div class="max-w-md mx-auto">
+        <!-- Operating Hours -->
+        <div class="mb-6 pb-6 border-b border-gray-300">
+          <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
+            <svg width="18" height="18" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2" style="color: #3E4095;">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            HORÁRIO DE FUNCIONAMENTO
+          </h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            Segunda a sexta: 07h às 18h<br>
+            Sábado: 08h às 12h
+          </p>
+        </div>
+        
+        <!-- Address -->
+        <div class="mb-6 pb-6 border-b border-gray-300">
+          <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
+            <svg width="18" height="18" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2" style="color: #547642;">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            ENDEREÇO
+          </h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            SHCGN 710 - Asa Norte<br>
+            Brasília (DF) - CEP: 70750-730
+          </p>
+        </div>
+        
+        <!-- Contact -->
+        <div class="mb-6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
+            <svg width="18" height="18" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2" style="color: #75ADD9;">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            FALE CONOSCO
+          </h3>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            <span class="font-semibold">Secretaria:</span> (61) 3347-8486<br>
+            <span class="font-semibold">Tesouraria:</span> (61) 3274-3861
+          </p>
+        </div>
+        
+        <!-- Copyright -->
+        <div class="pt-4 border-t border-gray-300 text-center">
+          <p class="text-xs text-gray-500">© 2024 Escola Alvacir Vite Rossi</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="chat-overlay" class="chat-overlay"></div>
+  <aside id="chat-drawer" class="chat-drawer" aria-hidden="true">
+    <div class="px-5 py-4 text-white" style="background: linear-gradient(135deg, #0F766E 0%, #115E59 100%);">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] opacity-75">Atendimento virtual</div>
+          <h2 id="chat-drawer-title" class="text-xl font-bold leading-tight">Conversar com a Escola</h2>
+          <p id="chat-drawer-subtitle" class="text-sm text-white/80 mt-1">Fale com a IA da escola sem sair desta pagina.</p>
+        </div>
+        <button id="chat-close-btn" type="button" class="rounded-xl bg-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/25">
+          Fechar
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 min-h-0">
+      <iframe id="chat-frame" class="chat-frame" title="Chat da Escola" style="display:none;"></iframe>
+      <div id="chat-empty" class="chat-empty">
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 text-white" style="background: linear-gradient(135deg, #0F766E 0%, #115E59 100%);">
+            <svg width="28" height="28" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Chat em configuracao</h3>
+          <p id="chat-empty-text" class="text-sm text-slate-600 leading-relaxed mb-4">
+            Configure a URL do chat web da escola em <code>chat_embed_url</code> para abrir a IA aqui mesmo.
+          </p>
+          <a id="chat-fallback-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white" style="background: linear-gradient(135deg, #3E4095 0%, #2d2f6e 100%);">
+            Abrir fallback de atendimento
+          </a>
+        </div>
+      </div>
+    </div>
+  </aside>
+  
+  <script>
+    const defaultConfig = {
+      main_title: 'Atendimento Online ao Cliente',
+      school_name: 'Escola Alvacir Vite Rossi',
+      btn_chat: 'Conversar com a Escola (Chat Online)',
+      btn_whatsapp: 'Continuar atendimento pelo WhatsApp',
+      btn_secretaria: 'Secretaria',
+      btn_financeiro: 'Assuntos Financeiros',
+      btn_pedagogico: 'Equipe Pedagógica',
+      btn_lanchonete: 'Lanchonete',
+      btn_site: 'Site Oficial',
+      btn_instagram: 'Instagram',
+      btn_continuar: 'Continuar a ligação',
+      primary_color: '#3E4095',
+      secondary_color: '#FEC12C',
+      text_color: '#FFFFFF',
+      background_color: '#F9FAFB',
+      accent_color: '#547642',
+      chat_color: '#0F766E',
+      chat_drawer_title: 'Conversar com a Escola',
+      chat_drawer_subtitle: 'Fale com a IA da escola sem sair desta pagina.',
+      chat_embed_url: '/omnichannel/chat-embed.html',
+      chat_fallback_url: ''
+    };
+
+    function buildChatUrl(baseUrl, config, options = {}) {
+      const raw = String(baseUrl || '').trim();
+      if (!raw) return '';
+
+      try {
+        const url = new URL(raw, window.location.origin);
+        url.searchParams.set('origin', 'main_interno');
+        url.searchParams.set('school_name', config.school_name || defaultConfig.school_name);
+        url.searchParams.set('entrypoint', options.entrypoint || 'chat_escola');
+        if (options.agentKey) url.searchParams.set('agent_key', options.agentKey);
+        if (options.agentTitle) url.searchParams.set('agent_title', options.agentTitle);
+        if (options.agentSubtitle) url.searchParams.set('agent_subtitle', options.agentSubtitle);
+        return url.toString();
+      } catch (_) {
+        return raw;
+      }
+    }
+
+    function closeChatDrawer() {
+      document.getElementById('chat-overlay').classList.remove('is-open');
+      document.getElementById('chat-drawer').classList.remove('is-open');
+      document.getElementById('chat-drawer').setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function openChatDrawer(config, options = {}) {
+      const drawer = document.getElementById('chat-drawer');
+      const overlay = document.getElementById('chat-overlay');
+      const frame = document.getElementById('chat-frame');
+      const empty = document.getElementById('chat-empty');
+      const fallbackLink = document.getElementById('chat-fallback-link');
+      const embedUrl = buildChatUrl(config.chat_embed_url || defaultConfig.chat_embed_url, config, options);
+      const fallbackUrl = String(config.chat_fallback_url || defaultConfig.chat_fallback_url || '').trim();
+
+      document.getElementById('chat-drawer-title').textContent = options.drawerTitle || config.chat_drawer_title || defaultConfig.chat_drawer_title;
+      document.getElementById('chat-drawer-subtitle').textContent = options.drawerSubtitle || config.chat_drawer_subtitle || defaultConfig.chat_drawer_subtitle;
+
+      if (embedUrl) {
+        frame.src = embedUrl;
+        frame.style.display = 'block';
+        empty.style.display = 'none';
+      } else {
+        frame.removeAttribute('src');
+        frame.style.display = 'none';
+        empty.style.display = 'block';
+      }
+
+      if (fallbackUrl) {
+        fallbackLink.href = fallbackUrl;
+        fallbackLink.classList.remove('hidden');
+        fallbackLink.classList.add('flex');
+      } else {
+        fallbackLink.classList.add('hidden');
+        fallbackLink.classList.remove('flex');
+      }
+
+      overlay.classList.add('is-open');
+      drawer.classList.add('is-open');
+      drawer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    async function onConfigChange(config) {
+      // Update text content
+      document.getElementById('main-title').textContent = config.main_title || defaultConfig.main_title;
+      document.getElementById('school-name').textContent = config.school_name || defaultConfig.school_name;
+      document.getElementById('btn-chat-text').textContent = config.btn_chat || defaultConfig.btn_chat;
+      document.getElementById('btn-secretaria-text').textContent = config.btn_secretaria || defaultConfig.btn_secretaria;
+      document.getElementById('btn-financeiro-text').textContent = config.btn_financeiro || defaultConfig.btn_financeiro;
+      document.getElementById('btn-pedagogico-text').textContent = config.btn_pedagogico || defaultConfig.btn_pedagogico;
+      document.getElementById('btn-lanchonete-text').textContent = config.btn_lanchonete || defaultConfig.btn_lanchonete;
+      document.getElementById('btn-site-text').textContent = config.btn_site || defaultConfig.btn_site;
+      document.getElementById('btn-instagram-text').textContent = config.btn_instagram || defaultConfig.btn_instagram;
+      document.getElementById('btn-continuar-text').textContent = config.btn_continuar || defaultConfig.btn_continuar;
+      
+      // Update colors
+      const primaryColor = config.primary_color || defaultConfig.primary_color;
+      const secondaryColor = config.secondary_color || defaultConfig.secondary_color;
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const accentColor = config.accent_color || defaultConfig.accent_color;
+      const chatColor = config.chat_color || defaultConfig.chat_color;
+      
+      // Header background
+      document.getElementById('header').style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`;
+      
+      // Background
+      document.getElementById('app-wrapper').style.backgroundColor = backgroundColor;
+      
+      // Update button gradients
+      document.getElementById('btn-chat-interno').style.background = `linear-gradient(135deg, ${chatColor} 0%, ${adjustColor(chatColor, -12)} 100%)`;
+      document.getElementById('btn-secretaria').style.background = `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`;
+      document.getElementById('btn-financeiro').style.background = `linear-gradient(135deg, ${accentColor} 0%, ${adjustColor(accentColor, -20)} 100%)`;
+      document.getElementById('btn-chat-icon-bg').style.backgroundColor = 'rgba(255,255,255,0.18)';
+      document.getElementById('chat-empty-text').textContent = embedUrlMessage(config);
+
+      const drawerHeader = document.getElementById('chat-drawer').querySelector('div');
+      if (drawerHeader) {
+        drawerHeader.style.background = `linear-gradient(135deg, ${chatColor} 0%, ${adjustColor(chatColor, -12)} 100%)`;
+      }
+      
+      // Continuar button
+      const continuarBtn = document.getElementById('btn-continuar');
+      continuarBtn.style.backgroundColor = secondaryColor;
+      continuarBtn.style.color = primaryColor;
+      continuarBtn.querySelector('div').style.backgroundColor = `rgba(${parseInt(primaryColor.slice(1,3), 16)}, ${parseInt(primaryColor.slice(3,5), 16)}, ${parseInt(primaryColor.slice(5,7), 16)}, 0.15)`;
+    }
+
+    function embedUrlMessage(config) {
+      return String(config.chat_embed_url || '').trim()
+        ? 'O chat web esta configurado, mas ainda nao foi carregado. Tente abrir novamente.'
+        : 'Configure a URL do chat web da escola em chat_embed_url para abrir a IA aqui mesmo.';
+    }
+
+    function adjustColor(hex, percent) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+      const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+      const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+      return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => { config.background_color = value; window.elementSdk.setConfig({ background_color: value }); }
+          },
+          {
+            get: () => config.primary_color || defaultConfig.primary_color,
+            set: (value) => { config.primary_color = value; window.elementSdk.setConfig({ primary_color: value }); }
+          },
+          {
+            get: () => config.secondary_color || defaultConfig.secondary_color,
+            set: (value) => { config.secondary_color = value; window.elementSdk.setConfig({ secondary_color: value }); }
+          },
+          {
+            get: () => config.accent_color || defaultConfig.accent_color,
+            set: (value) => { config.accent_color = value; window.elementSdk.setConfig({ accent_color: value }); }
+          },
+          {
+            get: () => config.chat_color || defaultConfig.chat_color,
+            set: (value) => { config.chat_color = value; window.elementSdk.setConfig({ chat_color: value }); }
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['main_title', config.main_title || defaultConfig.main_title],
+        ['school_name', config.school_name || defaultConfig.school_name],
+        ['btn_chat', config.btn_chat || defaultConfig.btn_chat],
+        ['btn_secretaria', config.btn_secretaria || defaultConfig.btn_secretaria],
+        ['btn_financeiro', config.btn_financeiro || defaultConfig.btn_financeiro],
+        ['btn_pedagogico', config.btn_pedagogico || defaultConfig.btn_pedagogico],
+        ['btn_lanchonete', config.btn_lanchonete || defaultConfig.btn_lanchonete],
+        ['btn_site', config.btn_site || defaultConfig.btn_site],
+        ['btn_instagram', config.btn_instagram || defaultConfig.btn_instagram],
+        ['btn_continuar', config.btn_continuar || defaultConfig.btn_continuar]
+      ]);
+    }
+
+    // Initialize SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    function getCurrentConfig() {
+      return (window.elementSdk && typeof window.elementSdk.getConfig === 'function')
+        ? { ...defaultConfig, ...(window.elementSdk.getConfig() || {}) }
+        : defaultConfig;
+    }
+
+    function bindChatTrigger(elementId, options) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      element.addEventListener('click', function (event) {
+        event.preventDefault();
+        openChatDrawer(getCurrentConfig(), options);
+      });
+    }
+
+    bindChatTrigger('btn-chat-interno', {
+      entrypoint: 'chat_escola',
+      drawerTitle: 'Conversar com a Escola',
+      drawerSubtitle: 'Fale com a IA da escola sem sair desta pagina.'
+    });
+
+    bindChatTrigger('btn-secretaria', {
+      entrypoint: 'secretaria',
+      agentKey: 'administration.front_office',
+      agentTitle: 'Secretaria',
+      agentSubtitle: 'Atendimento administrativo para familias matriculadas.',
+      drawerTitle: 'Secretaria',
+      drawerSubtitle: 'Tire duvidas com o agente de secretaria da escola.'
+    });
+
+    bindChatTrigger('btn-financeiro', {
+      entrypoint: 'financeiro',
+      agentKey: 'administration.finance',
+      agentTitle: 'Financeiro',
+      agentSubtitle: 'Mensalidades, cobrancas e pagamentos.',
+      drawerTitle: 'Assuntos Financeiros',
+      drawerSubtitle: 'Fale com o agente financeiro da escola.'
+    });
+
+    bindChatTrigger('btn-pedagogico', {
+      entrypoint: 'pedagogico',
+      agentKey: 'academic.curriculum',
+      agentTitle: 'Equipe Pedagogica',
+      agentSubtitle: 'Proposta pedagogica, rotina e organizacao curricular.',
+      drawerTitle: 'Equipe Pedagogica',
+      drawerSubtitle: 'Fale com o agente pedagogico da escola.'
+    });
+
+    bindChatTrigger('btn-lanchonete', {
+      entrypoint: 'lanchonete',
+      agentKey: 'operations.cafeteria',
+      agentTitle: 'Lanchonete',
+      agentSubtitle: 'Cardapio, funcionamento e consumo.',
+      drawerTitle: 'Lanchonete',
+      drawerSubtitle: 'Fale com o agente da lanchonete da escola.'
+    });
+
+    document.getElementById('chat-close-btn').addEventListener('click', closeChatDrawer);
+    document.getElementById('chat-overlay').addEventListener('click', closeChatDrawer);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeChatDrawer();
+    });
+  </script>
+  
+  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c9431ad1246629b',t:'MTc3MDMxMzIzOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+ </body>
+</html>

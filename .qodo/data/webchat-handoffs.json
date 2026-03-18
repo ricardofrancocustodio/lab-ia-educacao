@@ -1,0 +1,256 @@
+[
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b2d03409-593d-4819-bc76-b244c266319d",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b2d03409-593d-4819-bc76-b244c266319d",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b2d03409-593d-4819-bc76-b244c266319d",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Lab IA Educacao",
+        "entrypoint": "main_interno",
+        "agent_key": "administration.secretariat",
+        "agent_title": "Secretaria",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-17T13:44:37.000Z",
+      "updated_at": "2026-03-17T13:45:05.625Z",
+      "transcript": [
+        {
+          "id": "8b2d6ef3-2843-47a5-8997-b8134eca7505",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá, tudo bem?",
+          "created_at": "2026-03-17T13:44:37.003Z"
+        },
+        {
+          "id": "02652ba2-ecdf-45c7-8762-086c9590ce2d",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Olá! Tudo bem, e você? Como posso ajudá-lo hoje?",
+          "created_at": "2026-03-17T13:44:40.183Z"
+        },
+        {
+          "id": "0a797dfc-4d7b-4842-9afa-d3ec61d2f835",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber informações",
+          "created_at": "2026-03-17T13:45:03.068Z"
+        },
+        {
+          "id": "0933fb05-67d0-4db2-88b7-82806b695346",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Claro! Que tipo de informações você gostaria de saber? Estou aqui para ajudar com questões relacionadas a protocolos, documentos, orientações cadastrais, requerimentos e atendimento administrativo institucional.",
+          "created_at": "2026-03-17T13:45:05.624Z"
+        }
+      ],
+      "last_message": "Claro! Que tipo de informações você gostaria de saber? Estou aqui para ajudar com questões relacionadas a protocolos, documentos, orientações cadastrais, requerimentos e atendimento administrativo institucional."
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:6aae69fc-f506-4ac1-99bb-8d0063ffb03b",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:6aae69fc-f506-4ac1-99bb-8d0063ffb03b",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:6aae69fc-f506-4ac1-99bb-8d0063ffb03b",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Lab IA Educacao",
+        "entrypoint": "main_interno",
+        "agent_key": "public.assistant",
+        "agent_title": "Assistente Publico"
+      },
+      "summary": "",
+      "created_at": "2026-03-17T13:46:43.621Z",
+      "updated_at": "2026-03-17T13:46:47.508Z",
+      "transcript": [
+        {
+          "id": "d353f042-7747-4d11-8876-52aceec8bc25",
+          "role": "user",
+          "source": "webchat",
+          "text": "o que é esse atendimento?",
+          "created_at": "2026-03-17T13:46:43.623Z"
+        },
+        {
+          "id": "01b0279c-60c8-4b2d-9294-cc5a94a91ddd",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "O atendimento da Secretaria tem como foco a orientação administrativa institucional, que inclui a gestão de protocolos, documentos, orientações cadastrais e requerimentos. O objetivo é oferecer suporte aos usuários em relação a questões administrativas, garantindo que recebam informações claras e precisas sobre os serviços disponíveis e como acessá-los.\n\nSe você tiver alguma dúvida específica ou precisar de informações adicionais, sinta-se à vontade para perguntar!",
+          "created_at": "2026-03-17T13:46:47.508Z"
+        }
+      ],
+      "last_message": "O atendimento da Secretaria tem como foco a orientação administrativa institucional, que inclui a gestão de protocolos, documentos, orientações cadastrais e requerimentos. O objetivo é oferecer suporte aos usuários em relação a questões administrativas, garantindo que recebam informações claras e precisas sobre os serviços disponíveis e como acessá-los.\n\nSe você tiver alguma dúvida específica ou precisar de informações adicionais, sinta-se à vontade para perguntar!"
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b1733639-e2f9-4e8a-af62-d109f820c150",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b1733639-e2f9-4e8a-af62-d109f820c150",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b1733639-e2f9-4e8a-af62-d109f820c150",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Lab IA Educacao",
+        "entrypoint": "main_interno",
+        "agent_key": "administration.secretariat",
+        "agent_title": "Secretaria",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-17T13:58:56.498Z",
+      "updated_at": "2026-03-17T14:04:13.895Z",
+      "transcript": [
+        {
+          "id": "2a524a0b-d4da-4a52-bf01-1204ac65ff3a",
+          "role": "user",
+          "source": "webchat",
+          "text": "olçá",
+          "created_at": "2026-03-17T13:58:56.501Z"
+        },
+        {
+          "id": "1d462061-2283-4041-b53b-189381e70672",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Olá! Como posso ajudar você hoje?",
+          "created_at": "2026-03-17T13:58:58.660Z"
+        },
+        {
+          "id": "32ae31c5-15da-420c-9914-51c0784f580c",
+          "role": "user",
+          "source": "webchat",
+          "text": "tem dinheiro aí?",
+          "created_at": "2026-03-17T14:02:48.618Z"
+        },
+        {
+          "id": "73edba2e-71d9-4cc9-a86e-0abb682e1974",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Para questões relacionadas a finanças ou questões de tesouraria, recomendo que você entre em contato diretamente com a Tesouraria. Eles poderão fornecer informações precisas sobre a disponibilidade de recursos financeiros.",
+          "created_at": "2026-03-17T14:02:51.608Z"
+        },
+        {
+          "id": "a62aeca9-d726-4140-ad70-ff399496c73e",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber a data de matricula pro terceiro ano",
+          "created_at": "2026-03-17T14:04:10.215Z"
+        },
+        {
+          "id": "cd58812e-5875-4f2d-ba63-cc821c754112",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Infelizmente, não tenho acesso a informações específicas sobre datas de matrícula. É importante consultar diretamente a instituição de ensino ou a secretaria responsável para obter essa informação. Se precisar de outros esclarecimentos administrativos, estou à disposição para ajudar!",
+          "created_at": "2026-03-17T14:04:13.895Z"
+        }
+      ],
+      "last_message": "Infelizmente, não tenho acesso a informações específicas sobre datas de matrícula. É importante consultar diretamente a instituição de ensino ou a secretaria responsável para obter essa informação. Se precisar de outros esclarecimentos administrativos, estou à disposição para ajudar!"
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:ac2d4369-1588-49f4-a142-346e6433e6e8",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:ac2d4369-1588-49f4-a142-346e6433e6e8",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:ac2d4369-1588-49f4-a142-346e6433e6e8",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Lab IA Educacao",
+        "entrypoint": "main_interno",
+        "agent_key": "administration.secretariat",
+        "agent_title": "Secretaria",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T02:23:46.974Z",
+      "updated_at": "2026-03-18T02:24:54.388Z",
+      "transcript": [
+        {
+          "id": "38aa2634-d3f8-4431-a36c-00f03d2ec05d",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá! tudo bem",
+          "created_at": "2026-03-18T02:23:46.977Z"
+        },
+        {
+          "id": "2cc2c674-fd46-41fd-8638-f4420f405d74",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Olá! Tudo bem, e você? Como posso ajudar hoje?",
+          "created_at": "2026-03-18T02:23:48.988Z"
+        },
+        {
+          "id": "13924aed-3243-49fa-b605-9c4b0eb24fde",
+          "role": "user",
+          "source": "webchat",
+          "text": "você pode me ajudar com Tesouraria?",
+          "created_at": "2026-03-18T02:24:52.589Z"
+        },
+        {
+          "id": "9dfad3b3-21aa-40e7-8341-dbe18e8cdf6f",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Desculpe, mas não posso ajudar com assuntos da Tesouraria. Recomendo que você entre em contato diretamente com a equipe de Tesouraria para obter as informações necessárias. Estou à disposição para ajudar com questões administrativas ou da Secretaria.",
+          "created_at": "2026-03-18T02:24:54.388Z"
+        }
+      ],
+      "last_message": "Desculpe, mas não posso ajudar com assuntos da Tesouraria. Recomendo que você entre em contato diretamente com a equipe de Tesouraria para obter as informações necessárias. Estou à disposição para ajudar com questões administrativas ou da Secretaria."
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:7691aa46-03c3-46f6-9439-4573b4557994",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:7691aa46-03c3-46f6-9439-4573b4557994",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:7691aa46-03c3-46f6-9439-4573b4557994",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Lab IA Educacao",
+        "entrypoint": "main_interno",
+        "agent_key": "administration.secretariat",
+        "agent_title": "Secretaria",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T02:35:45.826Z",
+      "updated_at": "2026-03-18T02:36:26.979Z",
+      "transcript": [
+        {
+          "id": "361eba54-5591-4d64-acf4-fd0870180d17",
+          "role": "user",
+          "source": "webchat",
+          "text": "alow maneca! tudo certo com a caneca?",
+          "created_at": "2026-03-18T02:35:45.830Z"
+        },
+        {
+          "id": "5eca0804-20ee-4f68-baa0-3766d558605e",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Olá! Aqui é a Assistente da Secretaria. Estou à disposição para ajudar com orientações administrativas, protocolos, documentos e atendimentos relacionados à secretaria. Se precisar de algo específico, por favor, me avise!",
+          "created_at": "2026-03-18T02:35:48.451Z"
+        },
+        {
+          "id": "6e1a79f9-bf35-4241-a258-587a0ec9b350",
+          "role": "user",
+          "source": "webchat",
+          "text": "e com a tesouraria?",
+          "created_at": "2026-03-18T02:36:24.673Z"
+        },
+        {
+          "id": "04db86ce-f7ae-4052-a0ea-9df794f81483",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Para questões específicas sobre tesouraria, recomendo que você entre em contato diretamente com a equipe responsável nessa área. Estou aqui para ajudar apenas com assuntos administrativos e relacionados à secretaria. Se precisar de assistência com protocolos, documentos ou orientações cadastrais, estarei à disposição!",
+          "created_at": "2026-03-18T02:36:26.979Z"
+        }
+      ],
+      "last_message": "Para questões específicas sobre tesouraria, recomendo que você entre em contato diretamente com a equipe responsável nessa área. Estou aqui para ajudar apenas com assuntos administrativos e relacionados à secretaria. Se precisar de assistência com protocolos, documentos ou orientações cadastrais, estarei à disposição!"
+    }
+  ]
+]
