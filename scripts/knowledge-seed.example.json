@@ -1,0 +1,20 @@
+[
+  {
+    "question": "Quais canais oficiais a instituicao oferece para atendimento?",
+    "answer": "O atendimento institucional ocorre pelo webchat oficial e pelos canais administrativos definidos pela rede. Quando nao houver base suficiente para resposta automatica, o caso deve seguir para revisao humana.",
+    "keywords": ["atendimento", "canais", "webchat", "oficial"],
+    "category": "Institucional"
+  },
+  {
+    "question": "Como funciona a auditoria formal das respostas da IA?",
+    "answer": "Cada resposta automatica deve registrar trilha auditavel com pergunta original, resposta entregue, fontes consultadas, versao da fonte, nivel de risco e necessidade de revisao quando aplicavel.",
+    "keywords": ["auditoria", "trilha", "respostas", "ia"],
+    "category": "Institucional"
+  },
+  {
+    "question": "O que acontece quando a IA nao encontra base institucional suficiente?",
+    "answer": "Quando nao houver evidencia institucional suficiente e versionada, a IA deve se abster de responder ao merito, informar a limitacao com clareza e sinalizar revisao humana ou curadoria da base.",
+    "keywords": ["base suficiente", "evidencia", "revisao humana", "abster"],
+    "category": "Institucional"
+  }
+]

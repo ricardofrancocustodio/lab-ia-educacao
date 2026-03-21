@@ -1,5 +1,13 @@
 // js/preferences/data.js
 
+window.__legacyPreferencesSchemaAvailable = window.__legacyPreferencesSchemaAvailable ?? null;
+
+function isMissingPreferencesTableError(error) {
+    const code = String(error?.code || '').toUpperCase();
+    const message = String(error?.message || error?.details || '').toLowerCase();
+    return code === 'PGRST205' || message.includes('could not find the table') || message.includes('does not exist');
+}
+
 // Busca todos os segmentos da escola (ativos e inativos)
 async function buscarSegmentosDaEscola(schoolId) {
     if (!_supabase) return [];
@@ -10,11 +18,19 @@ async function buscarSegmentosDaEscola(schoolId) {
         .eq('school_id', schoolId)
         .order('display_order', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+        if (isMissingPreferencesTableError(error)) {
+            window.__legacyPreferencesSchemaAvailable = false;
+            console.warn('Tabela segments nao encontrada; modulo legado de segmentos sera desativado.', error.message || error);
+            return [];
+        }
+        throw error;
+    }
+    window.__legacyPreferencesSchemaAvailable = true;
     return data || [];
 }
 
-// Busca o que o usuário já salvou anteriormente
+// Busca o que o usuario ja salvou anteriormente
 async function buscarPreferenciasUsuario(userId, schoolId) {
     if (!_supabase || !userId) return [];
 
@@ -25,10 +41,15 @@ async function buscarPreferenciasUsuario(userId, schoolId) {
         .eq('school_id', schoolId)
         .single();
 
-    // Código PGRST116 significa que não achou registro (é a primeira vez do usuário), então não é erro grave
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error && error.code !== 'PGRST116') {
+        if (isMissingPreferencesTableError(error)) {
+            console.warn('Tabela user_dashboard_prefs nao encontrada; usando fallback de segmentos ativos.', error.message || error);
+            return [];
+        }
+        throw error;
+    }
 
-    return data?.visible_segments || []; 
+    return data?.visible_segments || [];
 }
 
 // Salva a lista de IDs selecionados
@@ -45,7 +66,13 @@ async function salvarPreferenciasNoBanco(idsSelecionados) {
         }, 
         { onConflict: 'user_id, school_id' });
 
-    if (error) throw error;
+    if (error) {
+        if (isMissingPreferencesTableError(error)) {
+            console.warn('Tabela user_dashboard_prefs nao encontrada; preferencia individual nao sera persistida.', error.message || error);
+            return true;
+        }
+        throw error;
+    }
     return true;
 }
 
@@ -126,6 +153,10 @@ async function buscarTurmasSalvas(schoolId) {
         .eq('school_year', ANO_LETIVO);
 
     if (error) {
+        if (isMissingPreferencesTableError(error)) {
+            console.warn('Tabela school_classes nao encontrada; interface seguira sem vagas salvas.', error.message || error);
+            return [];
+        }
         console.error("Erro ao buscar turmas:", error);
         return [];
     }

@@ -1,26 +1,30 @@
 const DEFAULT_ROLE_PAGES = {
-  superadmin: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'preferences', 'users'],
-  network_manager: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'preferences', 'users'],
-  content_curator: ['dashboard', 'reports', 'audit', 'knowledge'],
+  superadmin: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'official-content', 'preferences', 'users'],
+  network_manager: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'official-content', 'preferences', 'users'],
+  content_curator: ['dashboard', 'reports', 'audit', 'knowledge', 'official-content'],
   public_operator: ['dashboard', 'chat-manager', 'reports', 'knowledge'],
-  secretariat: ['dashboard', 'chat-manager', 'knowledge'],
-  coordination: ['dashboard', 'chat-manager', 'reports', 'knowledge'],
+  secretariat: ['dashboard', 'chat-manager', 'knowledge', 'official-content'],
+  coordination: ['dashboard', 'chat-manager', 'reports', 'knowledge', 'official-content'],
   treasury: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge'],
-  direction: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge'],
+  direction: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'official-content'],
   auditor: ['dashboard', 'reports', 'audit'],
   observer: ['dashboard', 'reports', 'knowledge']
 };
 
 window.DEFAULT_ROLE_PAGES = DEFAULT_ROLE_PAGES;
 
+function normalizeRoleKey(role) {
+  return String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
 function fallbackAllowedPages(role) {
-  const roleNorm = String(role || '').trim().toLowerCase();
+  const roleNorm = normalizeRoleKey(role);
   return DEFAULT_ROLE_PAGES[roleNorm] || [];
 }
 
 async function fetchRoleAllowedPages(schoolId, role) {
   const supabase = window.supabaseClient || window._supabase;
-  const roleNorm = String(role || '').trim().toLowerCase();
+  const roleNorm = normalizeRoleKey(role);
   if (!supabase || !schoolId || !roleNorm) {
     return fallbackAllowedPages(role);
   }
@@ -75,7 +79,7 @@ async function computeAndApplyPermissions() {
   let effective = fallbackAllowedPages(role);
 
   try {
-    if (platformRole === 'superadmin') {
+    if (normalizeRoleKey(platformRole) === 'superadmin') {
       effective = fallbackAllowedPages('superadmin');
     } else if (window.supabaseClient && schoolId && role) {
       const [roleAllowed, userOverrides] = await Promise.all([

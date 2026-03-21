@@ -252,5 +252,326 @@
       ],
       "last_message": "Para questões específicas sobre tesouraria, recomendo que você entre em contato diretamente com a equipe responsável nessa área. Estou aqui para ajudar apenas com assuntos administrativos e relacionados à secretaria. Se precisar de assistência com protocolos, documentos ou orientações cadastrais, estarei à disposição!"
     }
+  ],
+  [
+    "qa-fonte-forte-1773842873890",
+    {
+      "id": "qa-fonte-forte-1773842873890",
+      "user_id": "qa-fonte-forte-1773842873890",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:07:53.890Z",
+      "updated_at": "2026-03-18T14:07:54.144Z",
+      "transcript": [
+        {
+          "id": "528d42a1-be64-404c-9970-8718afb0ed3b",
+          "role": "user",
+          "source": "webchat",
+          "text": "Quais documentos sao necessarios para solicitar uma declaracao na secretaria?",
+          "created_at": "2026-03-18T14:07:53.893Z"
+        },
+        {
+          "id": "4be8e22f-b31b-403f-a116-cc086bbd5190",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
+          "created_at": "2026-03-18T14:07:54.143Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
+    }
+  ],
+  [
+    "qa-fonte-parcial-1773842874160",
+    {
+      "id": "qa-fonte-parcial-1773842874160",
+      "user_id": "qa-fonte-parcial-1773842874160",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:07:54.160Z",
+      "updated_at": "2026-03-18T14:07:54.169Z",
+      "transcript": [
+        {
+          "id": "26e060a8-1bdd-4840-877a-742e9ae6d7ed",
+          "role": "user",
+          "source": "webchat",
+          "text": "Existe algum prazo para resposta de protocolo interno da escola?",
+          "created_at": "2026-03-18T14:07:54.161Z"
+        },
+        {
+          "id": "49e90550-666d-457d-99a7-5d6c8f878773",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
+          "created_at": "2026-03-18T14:07:54.169Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
+    }
+  ],
+  [
+    "qa-sem-base-1773842874178",
+    {
+      "id": "qa-sem-base-1773842874178",
+      "user_id": "qa-sem-base-1773842874178",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:07:54.180Z",
+      "updated_at": "2026-03-18T14:07:54.194Z",
+      "transcript": [
+        {
+          "id": "e7552382-9b3e-4334-a4a6-69a6773a2d11",
+          "role": "user",
+          "source": "webchat",
+          "text": "A escola oferece intercambio internacional com bolsa integral em 2027?",
+          "created_at": "2026-03-18T14:07:54.185Z"
+        },
+        {
+          "id": "825fcf8f-5e84-4c0b-93e0-28a69920e088",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
+          "created_at": "2026-03-18T14:07:54.194Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
+    }
+  ],
+  [
+    "qa-fonte-forte-1773842889260",
+    {
+      "id": "qa-fonte-forte-1773842889260",
+      "user_id": "qa-fonte-forte-1773842889260",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:08:09.260Z",
+      "updated_at": "2026-03-18T14:08:11.877Z",
+      "transcript": [
+        {
+          "id": "94757b87-d303-4652-9f38-bf6fc5867a9a",
+          "role": "user",
+          "source": "webchat",
+          "text": "Quais documentos sao necessarios para solicitar uma declaracao na secretaria?",
+          "created_at": "2026-03-18T14:08:09.263Z"
+        },
+        {
+          "id": "77e276b0-a225-42ee-bfae-f3d5ee698f5e",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
+          "created_at": "2026-03-18T14:08:11.877Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
+    }
+  ],
+  [
+    "qa-fonte-parcial-1773842892582",
+    {
+      "id": "qa-fonte-parcial-1773842892582",
+      "user_id": "qa-fonte-parcial-1773842892582",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa",
+        "routed_agent": "administration.secretariat"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:08:12.582Z",
+      "updated_at": "2026-03-18T14:08:13.353Z",
+      "transcript": [
+        {
+          "id": "20d75a26-c0e3-409d-b0f5-c1fc7a527652",
+          "role": "user",
+          "source": "webchat",
+          "text": "Existe algum prazo para resposta de protocolo interno da escola?",
+          "created_at": "2026-03-18T14:08:12.587Z"
+        },
+        {
+          "id": "7e583df3-4450-4b71-9870-e8440db05f84",
+          "role": "assistant",
+          "source": "administration.secretariat",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
+          "created_at": "2026-03-18T14:08:13.350Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
+    }
+  ],
+  [
+    "qa-sem-base-1773842893761",
+    {
+      "id": "qa-sem-base-1773842893761",
+      "user_id": "qa-sem-base-1773842893761",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:08:13.761Z",
+      "updated_at": "2026-03-18T14:08:14.294Z",
+      "transcript": [
+        {
+          "id": "564da477-3b71-475e-ab4d-d588feeefe34",
+          "role": "user",
+          "source": "webchat",
+          "text": "A escola oferece intercambio internacional com bolsa integral em 2027?",
+          "created_at": "2026-03-18T14:08:13.767Z"
+        },
+        {
+          "id": "9761cdea-b077-4001-9d7e-2c3c984d6f9c",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
+          "created_at": "2026-03-18T14:08:14.294Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
+    }
+  ],
+  [
+    "qa-segura-1773845183446-694",
+    {
+      "id": "qa-segura-1773845183446-694",
+      "user_id": "qa-segura-1773845183446-694",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa",
+        "routed_agent": "administration.direction"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:46:23.448Z",
+      "updated_at": "2026-03-18T14:46:27.724Z",
+      "transcript": [
+        {
+          "id": "3b03a815-7766-458d-9b5a-ae80ee0fafdf",
+          "role": "user",
+          "source": "webchat",
+          "text": "O que acontece quando a IA nao encontra base institucional suficiente?",
+          "created_at": "2026-03-18T14:46:23.454Z"
+        },
+        {
+          "id": "75269beb-1bde-4070-b074-a6e32e639c8b",
+          "role": "assistant",
+          "source": "administration.direction",
+          "text": "Quando a IA não encontra base institucional suficiente, ela deve se abster de responder ao mérito da questão, informando sobre essa limitação com clareza e sinalizando que o caso necessita de revisão humana ou curadoria da base. \n\nEssa diretriz está sustentada pela fonte: FAQ Institucional 2026 | Versão: seed-v1.",
+          "created_at": "2026-03-18T14:46:27.723Z"
+        }
+      ],
+      "last_message": "Quando a IA não encontra base institucional suficiente, ela deve se abster de responder ao mérito da questão, informando sobre essa limitação com clareza e sinalizando que o caso necessita de revisão humana ou curadoria da base. \n\nEssa diretriz está sustentada pela fonte: FAQ Institucional 2026 | Versão: seed-v1."
+    }
+  ],
+  [
+    "qa-ressalva-1773845188252-101",
+    {
+      "id": "qa-ressalva-1773845188252-101",
+      "user_id": "qa-ressalva-1773845188252-101",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:46:28.252Z",
+      "updated_at": "2026-03-18T14:46:32.691Z",
+      "transcript": [
+        {
+          "id": "4cca7324-cb88-4f3c-9446-95d26cfae63e",
+          "role": "user",
+          "source": "webchat",
+          "text": "Como a governanca registra a trilha das respostas da IA?",
+          "created_at": "2026-03-18T14:46:28.255Z"
+        },
+        {
+          "id": "a38b4f5b-6b80-466f-8e67-71fd54505ebd",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. O registro da trilha das respostas da IA é realizado conforme diretrizes que garantem uma auditoria adequada. De acordo com a fonte consultada, cada resposta automática deve registrar uma trilha auditável que inclui a pergunta original, a resposta entregue, as fontes consultadas, a versão da fonte, o nível de risco e a necessidade de revisão, quando aplicável (Fonte: FAQ Institucional 2026 | Versão: seed-v1 | Evidência: 0.77). \n\nSe precisar de mais informações ou orientações, estou à disposição!",
+          "created_at": "2026-03-18T14:46:32.690Z"
+        }
+      ],
+      "last_message": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. O registro da trilha das respostas da IA é realizado conforme diretrizes que garantem uma auditoria adequada. De acordo com a fonte consultada, cada resposta automática deve registrar uma trilha auditável que inclui a pergunta original, a resposta entregue, as fontes consultadas, a versão da fonte, o nível de risco e a necessidade de revisão, quando aplicável (Fonte: FAQ Institucional 2026 | Versão: seed-v1 | Evidência: 0.77). \n\nSe precisar de mais informações ou orientações, estou à disposição!"
+    }
+  ],
+  [
+    "qa-abstencao-1773845193226-912",
+    {
+      "id": "qa-abstencao-1773845193226-912",
+      "user_id": "qa-abstencao-1773845193226-912",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "test_hallucination",
+        "profile": "qa"
+      },
+      "summary": "",
+      "created_at": "2026-03-18T14:46:33.226Z",
+      "updated_at": "2026-03-18T14:46:33.698Z",
+      "transcript": [
+        {
+          "id": "66eed55f-4864-4b81-b030-230721a99ba2",
+          "role": "user",
+          "source": "webchat",
+          "text": "A instituicao oferece intercambio internacional com bolsa integral em 2027?",
+          "created_at": "2026-03-18T14:46:33.228Z"
+        },
+        {
+          "id": "24718e4b-e891-4899-aed7-966b86ab24db",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
+          "created_at": "2026-03-18T14:46:33.698Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
+    }
   ]
 ]

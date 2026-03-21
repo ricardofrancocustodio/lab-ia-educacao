@@ -2,19 +2,126 @@
 <html lang="pt-br">
 <head id="component-head">
   <title>Assistente Publico | Relatorios</title>
-  <style>body { opacity: 0; transition: opacity .3s ease; }</style>
+  <style>
+    body { opacity: 0; transition: opacity .3s ease; }
+    .report-section .card { min-height: 100%; }
+    .filters-card .form-control, .filters-card .btn { min-height: 38px; }
+    .table thead th { white-space: nowrap; }
+    .badge-soft { font-size: .75rem; }
+    .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .comparison-box { border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; background: #fff; }
+  </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" data-page="reports">
   <div class="wrapper">
     <div id="component-header"></div>
     <div id="component-sidebar"></div>
     <div class="content-wrapper">
-      <section class="content-header"><div class="container-fluid"><h1 class="m-0">Relatorios Operacionais</h1></div></section>
-      <section class="content"><div class="container-fluid"><div class="row">
-        <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Consultas por Status</h3></div><div class="card-body" id="report-status"></div></div></div>
-        <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Topicos Mais Frequentes</h3></div><div class="card-body" id="report-topics"></div></div></div>
-        <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Cobertura de Fonte</h3></div><div class="card-body" id="report-sources"></div></div></div>
-      </div></div></section>
+      <section class="content-header"><div class="container-fluid"><h1 class="m-0">Relatorios Operacionais</h1><small class="text-muted">Indicadores de uso, qualidade, impacto operacional e governanca.</small></div></section>
+      <section class="content"><div class="container-fluid">
+        <div class="card filters-card mb-4">
+          <div class="card-header"><h3 class="card-title">Busca, Filtros e Exportacao</h3></div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-lg-2 col-md-4 mb-3"><label for="report-period" class="small text-muted">Periodo</label><select id="report-period" class="form-control"><option value="today">Hoje</option><option value="7d">Ultimos 7 dias</option><option value="30d">Ultimos 30 dias</option><option value="all">Todo o periodo</option></select></div>
+              <div class="col-lg-2 col-md-4 mb-3"><label for="report-assistant" class="small text-muted">Assistente</label><select id="report-assistant" class="form-control"><option value="all">Todos</option></select></div>
+              <div class="col-lg-2 col-md-4 mb-3"><label for="report-channel" class="small text-muted">Canal</label><select id="report-channel" class="form-control"><option value="all">Todos</option></select></div>
+              <div class="col-lg-2 col-md-4 mb-3"><label for="report-risk-filter" class="small text-muted">Risco</label><select id="report-risk-filter" class="form-control"><option value="all">Todos</option></select></div>
+              <div class="col-lg-4 col-md-8 mb-3"><label for="report-search" class="small text-muted">Busca</label><input id="report-search" class="form-control" type="search" placeholder="Tema, assistente, status, risco, fonte..."></div>
+            </div>
+            <div class="d-flex flex-wrap" style="gap:8px;">
+              <button id="report-apply" class="btn btn-primary">Aplicar filtros</button>
+              <button id="report-clear" class="btn btn-outline-secondary">Limpar</button>
+              <button id="report-export" class="btn btn-success">Exportar CSV</button>
+              <span class="text-muted align-self-center small" id="report-period-label">Visao operacional do periodo atual.</span>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-4">
+          <div class="card-header"><h3 class="card-title">Comparacao com Periodo Anterior</h3></div>
+          <div class="card-body" id="report-comparison"></div>
+        </div>
+        <div class="row" id="report-summary"></div>
+        <div class="row report-section">
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Consultas por Status</h3></div><div class="card-body" id="report-status"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Topicos Mais Frequentes</h3></div><div class="card-body" id="report-topics"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Cobertura de Fonte por Assistente</h3></div><div class="card-body" id="report-sources"></div></div></div>
+        </div>
+        <div class="row report-section">
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Distribuicao por Canal</h3></div><div class="card-body" id="report-channels"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Risco e Governanca</h3></div><div class="card-body" id="report-risk"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Desempenho por Assistente</h3></div><div class="card-body" id="report-assistants"></div></div></div>
+        </div>
+        <div class="row report-section">
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Horarios de Pico</h3></div><div class="card-body" id="report-peak-hours"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Temas Sem Base Suficiente</h3></div><div class="card-body" id="report-unresolved"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Documentos Mais Usados</h3></div><div class="card-body" id="report-documents"></div></div></div>
+        </div>
+        <div class="row report-section">
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Modulo de Avaliacao de Risco</h3></div><div class="card-body" id="report-response-risk-summary"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Temas com Maior Risco</h3></div><div class="card-body" id="report-response-risk-topics"></div></div></div>
+          <div class="col-lg-4"><div class="card"><div class="card-header"><h3 class="card-title">Assistentes Sob Revisao</h3></div><div class="card-body" id="report-response-risk-assistants"></div></div></div>
+        </div>
+        <div class="card mt-4">
+          <div class="card-header"><h3 class="card-title">Demanda Recorrente</h3></div>
+          <div class="card-body">
+            <p class="text-muted mb-3" id="report-recurring-summary">Monitoramento de temas recorrentes, crescimento, fallback humano e insatisfacao por tema.</p>
+            <div class="row report-section">
+              <div class="col-lg-3"><div class="card"><div class="card-header"><h3 class="card-title">Top 10 Temas</h3></div><div class="card-body" id="report-recurring-topics"></div></div></div>
+              <div class="col-lg-3"><div class="card"><div class="card-header"><h3 class="card-title">Maior Crescimento</h3></div><div class="card-body" id="report-recurring-growth"></div></div></div>
+              <div class="col-lg-3"><div class="card"><div class="card-header"><h3 class="card-title">Maior Fallback</h3></div><div class="card-body" id="report-recurring-fallback"></div></div></div>
+              <div class="col-lg-3"><div class="card"><div class="card-header"><h3 class="card-title">Maior Insatisfacao</h3></div><div class="card-body" id="report-recurring-dissatisfaction"></div></div></div>
+            </div>
+            <div class="card mt-3 mb-0">
+              <div class="card-header"><h3 class="card-title">Detalhe por Tema</h3></div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>Tema</th>
+                        <th>Total</th>
+                        <th>Participacao</th>
+                        <th>Crescimento</th>
+                        <th>Fallback</th>
+                        <th>Insatisfacao</th>
+                        <th>Assistente lider</th>
+                      </tr>
+                    </thead>
+                    <tbody id="report-recurring-table"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mt-4">
+          <div class="card-header"><h3 class="card-title">Detalhe Filtrado</h3></div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Consulta</th>
+                    <th>Tema</th>
+                    <th>Canal</th>
+                    <th>Assistente</th>
+                    <th>Modo</th>
+                    <th>Tempo</th>
+                    <th>Fonte</th>
+                    <th>Feedback</th>
+                    <th>Incidentes</th>
+                    <th>Risco</th>
+                    <th>Revisao</th>
+                  </tr>
+                </thead>
+                <tbody id="report-detail-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div></section>
     </div>
     <div id="component-footer"></div>
   </div>

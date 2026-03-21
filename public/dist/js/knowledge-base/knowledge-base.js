@@ -1,3 +1,29 @@
+﻿function setupKnowledgeToolbar() {
+    const actionButton = document.getElementById('knowledgeActionButton');
+    const searchWrap = document.getElementById('knowledgeSearchWrap');
+    const allTab = document.getElementById('all-tab');
+    const customTab = document.getElementById('custom-tab');
+    if (!actionButton || !allTab || !customTab) return;
+
+    const activateStructured = () => {
+        if (searchWrap) searchWrap.style.display = 'block';
+        actionButton.innerHTML = '<i class="fas fa-plus mr-1"></i> Novo Item Estruturado';
+        actionButton.onclick = abrirModalPergunta;
+    };
+
+    const activateCustom = () => {
+        if (searchWrap) searchWrap.style.display = 'none';
+        actionButton.innerHTML = '<i class="fas fa-plus mr-1"></i> Nova Resposta';
+        actionButton.onclick = typeof abrirModalMinhaPergunta === 'function' ? abrirModalMinhaPergunta : abrirModalPergunta;
+    };
+
+    if (typeof $ !== 'undefined') {
+        $(allTab).on('shown.bs.tab', activateStructured);
+        $(customTab).on('shown.bs.tab', activateCustom);
+    }
+
+    activateStructured();
+}
 let _todasPerguntas = [];
 let _todasPerguntasEstruturadas = [];
 
@@ -6,10 +32,11 @@ function isCustomEntry(item) {
 }
 
 
-// --- 1. Inicialização ---
+// --- 1. InicializaÃ§Ã£o ---
 document.addEventListener('DOMContentLoaded', () => {
     if (document.body.dataset.page === 'knowledge') {
         initPage();
+        setupKnowledgeToolbar();
     }
 });
 
@@ -18,14 +45,14 @@ async function carregarPerguntas() {
     const schoolId = sessionStorage.getItem('SCHOOL_ID');
     
     if (!schoolId) {
-        document.getElementById('loading').innerHTML = '<div class="alert alert-warning">Você precisa estar logado ou ter um ID de escola válido.</div>';
+        document.getElementById('loading').innerHTML = '<div class="alert alert-warning">VocÃª precisa estar logado ou ter um ID de escola vÃ¡lido.</div>';
         return;
     }
 
-    // Verificar se supabaseClient está disponível
+    // Verificar se supabaseClient estÃ¡ disponÃ­vel
     if (!window.supabaseClient) {
-        document.getElementById('loading').innerHTML = '<div class="alert alert-danger">Erro: Supabase não inicializado.</div>';
-        console.error('Supabase não inicializado. Verifique supabaseConfig.js');
+        document.getElementById('loading').innerHTML = '<div class="alert alert-danger">Erro: Supabase nÃ£o inicializado.</div>';
+        console.error('Supabase nÃ£o inicializado. Verifique supabaseConfig.js');
         return;
     }
 
@@ -77,8 +104,8 @@ function renderizarAccordion(grupos) {
         const itens = grupos[categoria];
         const tabId = `custom-tabs-${index}`;
         
-        // 1. Correção: Trocamos para tag <a>, usamos data-toggle="pill" e href="#..." (Padrão Bootstrap 4)
-        // Também ajustamos a classe da badge de bg-secondary para badge-secondary
+        // 1. CorreÃ§Ã£o: Trocamos para tag <a>, usamos data-toggle="pill" e href="#..." (PadrÃ£o Bootstrap 4)
+        // TambÃ©m ajustamos a classe da badge de bg-secondary para badge-secondary
         tabMenu.innerHTML += `
             <li class="nav-item">
                 <a class="nav-link ${isFirst ? 'active' : ''}" id="tab-${index}" data-toggle="pill" href="#${tabId}" role="tab" aria-controls="${tabId}" aria-selected="${isFirst ? 'true' : 'false'}">
@@ -86,7 +113,7 @@ function renderizarAccordion(grupos) {
                 </a>
             </li>`;
 
-        // Conteúdo da Aba (Permanece igual)
+        // ConteÃºdo da Aba (Permanece igual)
         tabContent.innerHTML += `
             <div class="tab-pane fade ${isFirst ? 'show active' : ''}" id="${tabId}" role="tabpanel" aria-labelledby="tab-${index}">
                 ${gerarHtmlPerguntas(itens)}
@@ -133,7 +160,7 @@ function gerarHtmlPerguntas(lista) {
                 </div>
             </div>
             <div class="card-body" style="display:none;">
-                <p class="text-muted mb-1"><small>Resposta Rápida:</small></p>
+                <p class="text-muted mb-1"><small>Resposta RÃ¡pida:</small></p>
                 <textarea class="form-control mb-2" id="answer-${item.id}" rows="3">${respostaValida}</textarea>
                 ${sourceHtml}
                 ${keywordsHtml}
@@ -158,7 +185,7 @@ async function salvarResposta(id) {
     const perguntaCompleta = _todasPerguntasEstruturadas.find(p => p.id == id) || _todasPerguntas.find(p => p.id == id);
     if (!perguntaCompleta) return;
     
-    // Garantir que não seja nulo
+    // Garantir que nÃ£o seja nulo
     const safeAnswer = novaResposta || "Resposta pendente.";
     
     Swal.fire({
@@ -264,7 +291,7 @@ document.getElementById('searchInput').addEventListener('keyup', (e) => {
     inicializarWidgets();
 });
 
-// --- 4. Permissões ---
+// --- 4. PermissÃµes ---
 const PERMISSIONS = {
     superadmin: { canDelete: true, canManageUsers: true, viewAllReports: true, kbAll: true },
     network_manager: { canDelete: true, canManageUsers: true, viewAllReports: true, kbAll: true },
@@ -278,11 +305,11 @@ const PERMISSIONS = {
     observer: { canDelete: false, canManageUsers: false, viewAllReports: false, kbAll: true }
 };
 
-// --- 5. Inicialização da página ---
+// --- 5. InicializaÃ§Ã£o da pÃ¡gina ---
 function initPage() {
     if (document.body.dataset.page !== 'knowledge') return;
 
-    // Configurar menu de usuários baseado na role
+    // Configurar menu de usuÃ¡rios baseado na role
     const userRole = sessionStorage.getItem('USER_ROLE');
     if (userRole === 'superadmin' || userRole === 'network_manager') {
         const menuUsuarios = document.getElementById('menu-usuarios');
@@ -308,7 +335,7 @@ function abrirModalPergunta(id = null, event = null) {
     }
 
     if (id) {
-        // MODO EDIÇÃO
+        // MODO EDIÃ‡ÃƒO
         const item = _todasPerguntas.find(p => p.id == id);
         if (!item) return;
 
@@ -318,7 +345,7 @@ function abrirModalPergunta(id = null, event = null) {
         document.getElementById('editQuestion').value = item.question;
         document.getElementById('editAnswer').value = item.answer || 'Resposta pendente.';
     } else {
-        // MODO CRIAÇÃO
+        // MODO CRIAÃ‡ÃƒO
         document.getElementById('modalTitulo').innerText = 'Novo Item da Base Estruturada';
         document.getElementById('editId').value = '';
         document.getElementById('editCategory').value = '';
@@ -345,7 +372,7 @@ async function salvarDadosPergunta() {
         return;
     }
 
-    // Garantir que answer não seja nulo
+    // Garantir que answer nÃ£o seja nulo
     const safeAnswer = answer || "Resposta pendente.";
 
     Swal.fire({
@@ -441,7 +468,7 @@ async function salvarDadosPergunta() {
             carregarPerguntas();
         } catch (fallbackError) {
             console.error('Erro no fallback:', fallbackError);
-            Swal.fire('Erro!', 'Não foi possível salvar a pergunta.', 'error');
+            Swal.fire('Erro!', 'NÃ£o foi possÃ­vel salvar a pergunta.', 'error');
         }
     }
 }
@@ -451,7 +478,7 @@ async function excluirPergunta(id, event) {
 
     const confirmacao = await Swal.fire({
         title: 'Tem certeza?',
-        text: "Esta ação não pode ser desfeita.",
+        text: "Esta aÃ§Ã£o nÃ£o pode ser desfeita.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -471,35 +498,35 @@ async function excluirPergunta(id, event) {
         console.error(error);
         Swal.fire('Erro!', 'Erro ao excluir: ' + error.message, 'error');
     } else {
-        Swal.fire('Excluído!', 'A pergunta foi removida.', 'success');
+        Swal.fire('ExcluÃ­do!', 'A pergunta foi removida.', 'success');
         carregarPerguntas();
     }
 }
 
-// --- 7. Funções de Embedding e Keywords ---
+// --- 7. FunÃ§Ãµes de Embedding e Keywords ---
 async function gerarEmbeddingETags(pergunta, resposta) {
     try {
         const textoCompleto = `${pergunta}\n${resposta}`;
-        console.log('🔍 Tentando gerar embedding via Supabase Edge Function...');
+        console.log('ðŸ” Tentando gerar embedding via Supabase Edge Function...');
 
-        // Verifica se o cliente Supabase está disponível
+        // Verifica se o cliente Supabase estÃ¡ disponÃ­vel
         if (!window.supabaseClient) {
-            throw new Error("Cliente Supabase não inicializado.");
+            throw new Error("Cliente Supabase nÃ£o inicializado.");
         }
 
-        // --- MUDANÇA PRINCIPAL: Chamada à Edge Function 'embed' ---
+        // --- MUDANÃ‡A PRINCIPAL: Chamada Ã  Edge Function 'embed' ---
         // Isso substitui o fetch('/api/generate-embedding')
         const { data, error } = await window.supabaseClient.functions.invoke('embed', {
             body: { 
                 text: textoCompleto,
-                school_id: sessionStorage.getItem('SCHOOL_ID') // Opcional, útil se quiser logar na function
+                school_id: sessionStorage.getItem('SCHOOL_ID') // Opcional, Ãºtil se quiser logar na function
             }
         });
 
-        // Se o Supabase retornar erro na execução da função
+        // Se o Supabase retornar erro na execuÃ§Ã£o da funÃ§Ã£o
         if (error) {
-            console.error('❌ Erro retornado pela Edge Function:', error);
-            throw error; // Força a ida para o catch (fallback)
+            console.error('âŒ Erro retornado pela Edge Function:', error);
+            throw error; // ForÃ§a a ida para o catch (fallback)
         }
 
         // Sucesso: Retorna os dados vindos da OpenAI via Supabase
@@ -509,11 +536,11 @@ async function gerarEmbeddingETags(pergunta, resposta) {
         };
 
     } catch (error) {
-        console.error('⚠️ Erro ao gerar embedding (usando fallback local):', error);
+        console.error('âš ï¸ Erro ao gerar embedding (usando fallback local):', error);
         
         // --- FALLBACK ---
-        // Se a API falhar, acabar os créditos ou der erro de rede,
-        // geramos as keywords localmente para não travar o salvamento.
+        // Se a API falhar, acabar os crÃ©ditos ou der erro de rede,
+        // geramos as keywords localmente para nÃ£o travar o salvamento.
         const keywordsSimples = extrairKeywordsSimples(`${pergunta} ${resposta}`);
         
         return {
@@ -526,10 +553,10 @@ async function gerarEmbeddingETags(pergunta, resposta) {
 function extrairKeywordsSimples(texto) {
     if (!texto) return [];
     
-    const stopwords = ['a', 'o', 'e', 'de', 'da', 'do', 'em', 'para', 'com', 'como', 'que', 'é', 'são', 'seu', 'sua', 'se', 'no', 'na'];
+    const stopwords = ['a', 'o', 'e', 'de', 'da', 'do', 'em', 'para', 'com', 'como', 'que', 'Ã©', 'sÃ£o', 'seu', 'sua', 'se', 'no', 'na'];
     
     const palavras = texto.toLowerCase()
-        .replace(/[^\w\sáàâãéèêíïóôõöúçñ]/g, ' ')
+        .replace(/[^\w\sÃ¡Ã Ã¢Ã£Ã©Ã¨ÃªÃ­Ã¯Ã³Ã´ÃµÃ¶ÃºÃ§Ã±]/g, ' ')
         .split(/\s+/)
         .filter(palavra => palavra.length > 3 && !stopwords.includes(palavra));
     
@@ -543,4 +570,5 @@ function extrairKeywordsSimples(texto) {
         .slice(0, 5)
         .map(entry => entry[0]);
 }
+
 

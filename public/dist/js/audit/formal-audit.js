@@ -1,4 +1,4 @@
-﻿let auditEvents = [];
+let auditEvents = [];
 let selectedAuditId = null;
 
 function escapeHtml(value) {
@@ -17,6 +17,13 @@ function formatDateTime(value) {
   } catch (_error) {
     return value;
   }
+}
+
+function formatConfidence(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  const number = Number(value);
+  if (Number.isNaN(number)) return String(value);
+  return number.toFixed(2);
 }
 
 function formatDate(value) {
@@ -70,6 +77,15 @@ function eventConversationLabel(event) {
   return 'Sem conversa vinculada';
 }
 
+function getReviewStatusLabel(value) {
+  const normalized = String(value || 'NOT_REQUIRED').toUpperCase();
+  if (normalized === 'PENDING_REVIEW') return 'Pendente de revisao';
+  if (normalized === 'REVIEWED') return 'Revisado';
+  if (normalized === 'KNOWLEDGE_CREATED') return 'Virou curadoria';
+  if (normalized === 'DISMISSED') return 'Descartado';
+  return 'Nao requer revisao';
+}
+
 function populateFilterOptions() {
   const setOptions = (elementId, values, defaultLabel) => {
     const element = document.getElementById(elementId);
@@ -100,6 +116,7 @@ function getFilteredEvents() {
   const assistant = String(document.getElementById('audit-assistant-filter')?.value || 'all');
   const eventType = String(document.getElementById('audit-event-filter')?.value || 'all');
   const channel = String(document.getElementById('audit-channel-filter')?.value || 'all');
+  const reviewStatus = String(document.getElementById('audit-review-filter')?.value || 'all');
   const dateFrom = String(document.getElementById('audit-date-from')?.value || '');
   const dateTo = String(document.getElementById('audit-date-to')?.value || '');
   const term = String(document.getElementById('audit-search')?.value || '').toLowerCase().trim();
@@ -110,6 +127,7 @@ function getFilteredEvents() {
     const matchesAssistant = assistant === 'all' || String(event.assistant_name || '') === assistant;
     const matchesEvent = eventType === 'all' || String(event.event_type || '') === eventType;
     const matchesChannel = channel === 'all' || String(event.channel || '') === channel;
+    const matchesReview = reviewStatus === 'all' || String(event.review_status || 'NOT_REQUIRED').toUpperCase() === reviewStatus;
     const eventDate = formatDate(event.created_at);
     const matchesDateFrom = !dateFrom || (eventDate && eventDate >= dateFrom);
     const matchesDateTo = !dateTo || (eventDate && eventDate <= dateTo);
@@ -126,11 +144,14 @@ function getFilteredEvents() {
       event.supporting_source_title,
       event.reason,
       event.original_question,
-      event.response_text
+      event.response_text,
+      event.review_status,
+      event.review_notes,
+      event.reviewed_by
     ].join(' ').toLowerCase();
     const matchesTerm = !term || searchable.includes(term);
 
-    return matchesScenario && matchesConversation && matchesAssistant && matchesEvent && matchesChannel && matchesDateFrom && matchesDateTo && matchesTerm;
+    return matchesScenario && matchesConversation && matchesAssistant && matchesEvent && matchesChannel && matchesReview && matchesDateFrom && matchesDateTo && matchesTerm;
   });
 }
 
@@ -147,6 +168,7 @@ function updateFilterSummary(rows) {
   maybePush('Assistente', document.getElementById('audit-assistant-filter')?.value);
   maybePush('Tipo', document.getElementById('audit-event-filter')?.value);
   maybePush('Canal', document.getElementById('audit-channel-filter')?.value);
+  maybePush('Tratamento', document.getElementById('audit-review-filter')?.value);
   maybePush('De', document.getElementById('audit-date-from')?.value);
   maybePush('Ate', document.getElementById('audit-date-to')?.value);
   const term = String(document.getElementById('audit-search')?.value || '').trim();
@@ -157,16 +179,74 @@ function updateFilterSummary(rows) {
     : `${rows.length} log(s) encontrados. Sem filtros ativos.`;
 }
 
+function renderRiskModule() {
+  const summaryEl = document.getElementById('audit-risk-module-summary');
+  const assistantsEl = document.getElementById('audit-risk-module-assistants');
+  const reasonsEl = document.getElementById('audit-risk-module-reasons');
+  if (!summaryEl || !assistantsEl || !reasonsEl) return;
+
+  if (!auditEvents.length) {
+    summaryEl.innerHTML = '<div class="text-muted">Sem dados de risco carregados.</div>';
+    assistantsEl.innerHTML = '<div class="text-muted">Sem assistentes avaliados.</div>';
+    reasonsEl.innerHTML = '<div class="text-muted">Sem motivos registrados.</div>';
+    return;
+  }
+
+  const high = auditEvents.filter((event) => String(event.hallucination_risk_level || 'LOW').toUpperCase() === 'HIGH').length;
+  const medium = auditEvents.filter((event) => String(event.hallucination_risk_level || 'LOW').toUpperCase() === 'MEDIUM').length;
+  const reviewRequired = auditEvents.filter((event) => event.review_required).length;
+  const abstained = auditEvents.filter((event) => event.abstained).length;
+  const evidenceValues = auditEvents.map((event) => Number(event.evidence_score || 0)).filter((value) => !Number.isNaN(value) && value > 0);
+
+  summaryEl.innerHTML = [
+    '<div class="mb-2"><strong>Logs avaliados:</strong> ' + auditEvents.length + '</div>',
+    '<div class="mb-2"><strong>Risco alto:</strong> ' + high + '</div>',
+    '<div class="mb-2"><strong>Risco medio:</strong> ' + medium + '</div>',
+    '<div class="mb-2"><strong>Revisao requerida:</strong> ' + reviewRequired + '</div>',
+    '<div class="mb-2"><strong>Respostas contidas:</strong> ' + abstained + '</div>',
+    '<div><strong>Evidencia media:</strong> ' + (evidenceValues.length ? (evidenceValues.reduce((sum, value) => sum + value, 0) / evidenceValues.length).toFixed(2) : '0.00') + '</div>'
+  ].join('');
+
+  const assistantRows = Object.values(auditEvents.reduce((acc, event) => {
+    const key = event.assistant_name || 'Assistente';
+    const current = acc[key] || { assistant_name: key, total: 0, high: 0, review: 0 };
+    current.total += 1;
+    if (String(event.hallucination_risk_level || 'LOW').toUpperCase() === 'HIGH') current.high += 1;
+    if (event.review_required) current.review += 1;
+    acc[key] = current;
+    return acc;
+  }, {})).sort((a, b) => b.review - a.review || b.high - a.high || b.total - a.total).slice(0, 5);
+
+  assistantsEl.innerHTML = assistantRows.length
+    ? assistantRows.map((row) => '<div class="mb-2"><strong>' + escapeHtml(row.assistant_name) + '</strong>: ' + row.review + ' revisoes | ' + row.high + ' alto risco</div>').join('')
+    : '<div class="text-muted">Sem assistentes avaliados.</div>';
+
+  const reasonRows = Object.entries(auditEvents.reduce((acc, event) => {
+    const key = String(event.review_reason || event.reason || 'sem_motivo').trim() || 'sem_motivo';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {})).map(([reason, total]) => ({ reason, total })).sort((a, b) => b.total - a.total).slice(0, 5);
+
+  reasonsEl.innerHTML = reasonRows.length
+    ? reasonRows.map((row) => '<div class="mb-2"><strong>' + escapeHtml(row.reason) + '</strong>: ' + row.total + '</div>').join('')
+    : '<div class="text-muted">Sem motivos registrados.</div>';
+}
+
 function updateKpis() {
   const counts = auditEvents.reduce((acc, event) => {
     acc[event.scenario_code] = (acc[event.scenario_code] || 0) + 1;
     return acc;
   }, {});
+  const pendingReviewCount = auditEvents.filter((event) => String(event.review_status || 'NOT_REQUIRED').toUpperCase() === 'PENDING_REVIEW').length;
 
   document.getElementById('kpi-case-1').textContent = counts.case_1 || 0;
   document.getElementById('kpi-case-2').textContent = counts.case_2 || 0;
   document.getElementById('kpi-case-3').textContent = counts.case_3 || 0;
   document.getElementById('kpi-case-4').textContent = counts.case_4 || 0;
+  document.getElementById('kpi-case-5').textContent = counts.case_5 || 0;
+  document.getElementById('kpi-case-6').textContent = counts.case_6 || 0;
+  document.getElementById('kpi-pending-review').textContent = pendingReviewCount;
+  renderRiskModule();
 }
 
 function renderAuditTable() {
@@ -184,8 +264,10 @@ function renderAuditTable() {
     selectedAuditId = rows[0].id;
   }
 
-  table.innerHTML = rows.map((row) => `
-    <tr class="audit-row-clickable ${row.id === selectedAuditId ? 'active' : ''}" onclick="selectAuditEvent('${escapeHtml(row.id)}')">
+  table.innerHTML = rows.map((row) => {
+    const pendingClass = String(row.review_status || '').toUpperCase() === 'PENDING_REVIEW' ? 'audit-pending' : '';
+    return `
+    <tr class="audit-row-clickable ${pendingClass} ${row.id === selectedAuditId ? 'active' : ''}" onclick="selectAuditEvent('${escapeHtml(row.id)}')">
       <td>${escapeHtml(formatDateTime(row.created_at))}</td>
       <td>${escapeHtml(eventConversationLabel(row))}</td>
       <td>${escapeHtml(row.scenario_label)}</td>
@@ -194,7 +276,8 @@ function renderAuditTable() {
       <td>${escapeHtml(row.assistant_name || '-')}</td>
       <td>${escapeHtml(row.summary || '-')}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   renderAuditDetail(rows.find((row) => row.id === selectedAuditId) || null);
 }
@@ -217,12 +300,19 @@ function renderAuditDetail(event) {
     `).join('')
     : '<div class="text-muted">Nenhuma fonte consultada registrada.</div>';
 
+  const statusOptions = [
+    { value: 'PENDING_REVIEW', label: 'Pendente de revisao' },
+    { value: 'REVIEWED', label: 'Revisado' },
+    { value: 'KNOWLEDGE_CREATED', label: 'Virou curadoria' },
+    { value: 'DISMISSED', label: 'Descartado' }
+  ].map((option) => `<option value="${option.value}" ${String(event.review_status || '').toUpperCase() === option.value ? 'selected' : ''}>${option.label}</option>`).join('');
+
   panel.innerHTML = `
     <div class="audit-detail-section">
       <div class="audit-detail-label">Caso Auditavel</div>
       <div class="audit-detail-box">
         <div class="font-weight-bold">${escapeHtml(event.scenario_label)}</div>
-        <div class="small text-muted mt-1">${escapeHtml(event.event_type || '-')} · ${escapeHtml(event.severity || '-')}</div>
+        <div class="small text-muted mt-1">${escapeHtml(event.event_type || '-')} � ${escapeHtml(event.severity || '-')}</div>
       </div>
     </div>
 
@@ -250,10 +340,38 @@ function renderAuditDetail(event) {
         <div><strong>Fonte principal:</strong> ${escapeHtml(event.supporting_source_title || '-')}</div>
         <div><strong>Versao da fonte:</strong> ${escapeHtml(event.supporting_source_version_label || '-')}</div>
         <div><strong>Trecho usado:</strong> ${escapeHtml(event.supporting_source_excerpt || '-')}</div>
+        <div><strong>Score de evidencia:</strong> ${escapeHtml(formatConfidence(event.evidence_score))}</div>
+        <div><strong>Risco de alucinacao:</strong> ${escapeHtml(event.hallucination_risk_level || '-')}</div>
+        <div><strong>Revisao requerida:</strong> ${event.review_required ? 'sim' : 'nao'}</div>
         <div><strong>Motivo:</strong> ${escapeHtml(event.reason || '-')}</div>
+        <div><strong>Motivo da revisao:</strong> ${escapeHtml(event.review_reason || '-')}</div>
         <div><strong>Fallback sugerido:</strong> ${escapeHtml(event.fallback_area || '-')}</div>
+        <div><strong>Resposta contida:</strong> ${event.abstained ? 'sim' : 'nao'}</div>
       </div>
       ${consultedSourcesHtml}
+    </div>
+
+    <div class="audit-detail-section">
+      <div class="audit-detail-label">Tratamento Humano</div>
+      <div class="audit-detail-box">
+        <div class="mb-2"><strong>Status atual:</strong> ${escapeHtml(getReviewStatusLabel(event.review_status))}</div>
+        <div class="mb-2"><strong>Ultima revisao:</strong> ${escapeHtml(formatDateTime(event.reviewed_at))}</div>
+        <div class="mb-2"><strong>Responsavel:</strong> ${escapeHtml(event.reviewed_by || '-')}</div>
+        <div class="mb-3"><strong>Notas:</strong> ${escapeHtml(event.review_notes || '-')}</div>
+        <div class="form-group mb-2">
+          <label class="small text-muted">Atualizar status</label>
+          <select class="form-control form-control-sm" id="audit-review-status">${statusOptions}</select>
+        </div>
+        <div class="form-group mb-2">
+          <label class="small text-muted">Responsavel</label>
+          <input class="form-control form-control-sm" id="audit-reviewer-name" value="${escapeHtml(event.reviewed_by && event.reviewed_by !== '-' ? event.reviewed_by : 'Operador institucional')}">
+        </div>
+        <div class="form-group mb-3">
+          <label class="small text-muted">Notas de tratamento</label>
+          <textarea class="form-control form-control-sm" id="audit-review-notes" rows="3" placeholder="Ex.: caso revisado e encaminhado para atualizar a base.">${escapeHtml(event.review_notes && event.review_notes !== '-' ? event.review_notes : '')}</textarea>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-save-audit-review" onclick="saveAuditReview('${escapeHtml(event.id)}')">Salvar tratamento</button>
+      </div>
     </div>
 
     <div class="audit-detail-section">
@@ -277,7 +395,7 @@ function renderAuditDetail(event) {
         <div class="audit-detail-box">
           <div class="audit-detail-label">Quem registrou</div>
           <div>${escapeHtml(event.actor_name || '-')}</div>
-          <div class="small text-muted">${escapeHtml(event.actor_type || '-')} · ${escapeHtml(formatDateTime(event.created_at))}</div>
+          <div class="small text-muted">${escapeHtml(event.actor_type || '-')} � ${escapeHtml(formatDateTime(event.created_at))}</div>
         </div>
       </div>
     </div>
@@ -305,7 +423,16 @@ function buildExportRows() {
     pergunta_original: event.original_question || '',
     resposta_entregue: event.response_text || '',
     resumo: event.summary || '',
+    score_evidencia: formatConfidence(event.evidence_score),
+    risco_alucinacao: event.hallucination_risk_level || '',
+    revisao_requerida: event.review_required ? 'sim' : 'nao',
+    status_tratamento: getReviewStatusLabel(event.review_status),
+    revisado_por: event.reviewed_by || '',
+    revisado_em: formatDateTime(event.reviewed_at),
+    notas_tratamento: event.review_notes || '',
     motivo: event.reason || '',
+    motivo_revisao: event.review_reason || '',
+    resposta_contida: event.abstained ? 'sim' : 'nao',
     fallback_sugerido: event.fallback_area || '',
     fonte_principal: event.supporting_source_title || '',
     versao_fonte: event.supporting_source_version_label || '',
@@ -394,6 +521,8 @@ function exportAuditPdf() {
     addLine(`Resposta: ${event.response_text}`);
     addLine(`Fonte principal: ${event.supporting_source_title} | Versao: ${event.supporting_source_version_label}`);
     addLine(`Trecho: ${event.supporting_source_excerpt}`);
+    addLine(`Status de tratamento: ${getReviewStatusLabel(event.review_status)} | Revisado por: ${event.reviewed_by || '-'}`);
+    addLine(`Notas de tratamento: ${event.review_notes || '-'}`);
     addLine(`Motivo: ${event.reason} | Fallback sugerido: ${event.fallback_area}`);
     addLine(`Resumo: ${event.summary}`);
     y += 8;
@@ -413,10 +542,51 @@ function clearAuditFilters() {
   document.getElementById('audit-assistant-filter').value = 'all';
   document.getElementById('audit-event-filter').value = 'all';
   document.getElementById('audit-channel-filter').value = 'all';
+  document.getElementById('audit-review-filter').value = 'all';
   document.getElementById('audit-date-from').value = '';
   document.getElementById('audit-date-to').value = '';
   document.getElementById('audit-search').value = '';
   renderAuditTable();
+}
+
+async function saveAuditReview(eventId) {
+  const status = String(document.getElementById('audit-review-status')?.value || 'PENDING_REVIEW');
+  const reviewedBy = String(document.getElementById('audit-reviewer-name')?.value || 'Operador institucional').trim();
+  const reviewNotes = String(document.getElementById('audit-review-notes')?.value || '').trim();
+  const button = document.getElementById('btn-save-audit-review');
+  if (button) button.disabled = true;
+
+  try {
+    const res = await fetch(`/api/audit/events/${encodeURIComponent(eventId)}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        review_status: status,
+        reviewed_by: reviewedBy,
+        review_notes: reviewNotes
+      })
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body?.error || 'Falha ao salvar tratamento.');
+
+    const index = auditEvents.findIndex((item) => item.id === eventId);
+    if (index >= 0) {
+      auditEvents[index] = {
+        ...auditEvents[index],
+        review_status: status,
+        reviewed_by: reviewedBy,
+        reviewed_at: body?.event?.details?.reviewed_at || new Date().toISOString(),
+        review_notes: reviewNotes || '-'
+      };
+    }
+
+    renderAuditTable();
+    Swal.fire('Tratamento salvo', 'O status de revisao foi atualizado na trilha de auditoria.', 'success');
+  } catch (error) {
+    Swal.fire('Erro', error.message || 'Nao foi possivel salvar o tratamento.', 'error');
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 async function loadAuditEvents() {
@@ -438,6 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'audit-assistant-filter',
     'audit-event-filter',
     'audit-channel-filter',
+    'audit-review-filter',
     'audit-date-from',
     'audit-date-to'
   ].forEach((id) => {
@@ -457,3 +628,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.selectAuditEvent = selectAuditEvent;
+window.saveAuditReview = saveAuditReview;
+
+
+
+

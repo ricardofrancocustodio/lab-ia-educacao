@@ -181,6 +181,15 @@ create table if not exists public.intelligence_snapshots (
   unique (school_id, snapshot_date)
 );
 
+create table if not exists public.ai_provider_settings (
+  school_id uuid primary key references public.schools(id) on delete cascade,
+  active_provider text not null default 'openai' check (active_provider in ('openai', 'groq', 'gemini')),
+  openai_chat_model text null,
+  groq_model text null,
+  updated_by text null,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.formal_audit_events (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -194,6 +203,51 @@ create table if not exists public.formal_audit_events (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.interaction_feedback (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  consultation_id uuid not null references public.institutional_consultations(id) on delete cascade,
+  response_id uuid not null references public.assistant_responses(id) on delete cascade,
+  feedback_type text not null check (feedback_type in ('helpful', 'not_helpful', 'incorrect')),
+  comment text null,
+  created_by text null,
+  created_at timestamptz not null default now(),
+  unique (response_id, feedback_type, created_by)
+);
+
+create table if not exists public.interaction_source_evidence (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  consultation_id uuid not null references public.institutional_consultations(id) on delete cascade,
+  response_id uuid not null references public.assistant_responses(id) on delete cascade,
+  source_document_id uuid null references public.source_documents(id) on delete set null,
+  source_version_id uuid null references public.knowledge_source_versions(id) on delete set null,
+  source_title text null,
+  source_excerpt text null,
+  relevance_score numeric(5,4) null,
+  evidence_type text not null default 'retrieval',
+  retrieval_method text null,
+  used_as_primary boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.incident_reports (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  consultation_id uuid not null references public.institutional_consultations(id) on delete cascade,
+  response_id uuid null references public.assistant_responses(id) on delete set null,
+  incident_type text not null,
+  severity text not null default 'MEDIUM' check (severity in ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+  status text not null default 'OPEN' check (status in ('OPEN', 'IN_REVIEW', 'RESOLVED', 'DISMISSED')),
+  topic text null,
+  details jsonb not null default '{}'::jsonb,
+  opened_by text null,
+  opened_at timestamptz not null default now(),
+  resolved_by text null,
+  resolved_at timestamptz null,
+  resolution_notes text null
+);
+
 create index if not exists idx_platform_members_email on public.platform_members (email);
 create index if not exists idx_platform_members_user_id on public.platform_members (user_id);
 create index if not exists idx_school_members_school_role on public.school_members (school_id, role);
@@ -203,6 +257,31 @@ create index if not exists idx_messages_consultation_created on public.consultat
 create index if not exists idx_responses_school_assistant on public.assistant_responses (school_id, assistant_key, created_at desc);
 create index if not exists idx_responses_consultation_delivered on public.assistant_responses (consultation_id, delivered_at desc);
 create index if not exists idx_audit_school_created on public.formal_audit_events (school_id, created_at desc);
+create index if not exists idx_feedback_school_created on public.interaction_feedback (school_id, created_at desc);
+create index if not exists idx_feedback_response_type on public.interaction_feedback (response_id, feedback_type);
+create index if not exists idx_evidence_response_primary on public.interaction_source_evidence (response_id, used_as_primary);
+create index if not exists idx_evidence_school_created on public.interaction_source_evidence (school_id, created_at desc);
+create index if not exists idx_incidents_school_status on public.incident_reports (school_id, status, opened_at desc);
+create index if not exists idx_incidents_response on public.incident_reports (response_id, opened_at desc);
+
+create table if not exists public.official_content_records (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  module_key text not null check (module_key in ('calendar', 'enrollment', 'faq', 'notices')),
+  scope_key text not null check (scope_key in ('network', 'school')),
+  title text null,
+  summary text null,
+  content_payload jsonb not null default '{}'::jsonb,
+  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  source_document_id uuid null references public.source_documents(id) on delete set null,
+  source_version_id uuid null references public.knowledge_source_versions(id) on delete set null,
+  updated_by text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id, module_key, scope_key)
+);
+
+create index if not exists idx_official_content_school_module on public.official_content_records (school_id, module_key, scope_key);
 
 insert into public.app_pages (key, label, menu_order, active) values
   ('dashboard', 'Dashboard de Inteligencia', 10, true),
@@ -211,7 +290,8 @@ insert into public.app_pages (key, label, menu_order, active) values
   ('audit', 'Auditoria Formal', 40, true),
   ('users', 'Usuarios', 50, true),
   ('preferences', 'Preferencias', 60, true),
-  ('knowledge', 'Base de Conhecimento', 70, true)
+  ('knowledge', 'Base de Conhecimento', 70, true),
+  ('official-content', 'Conteudo Oficial', 80, true)
 on conflict (key) do update
 set label = excluded.label,
     menu_order = excluded.menu_order,
@@ -229,28 +309,28 @@ begin
   delete from public.role_page_permissions where school_id = p_school_id;
 
   r := 'network_manager';
-  foreach p in array array['dashboard','chat-manager','reports','audit','users','preferences','knowledge'] loop
+  foreach p in array array['dashboard','chat-manager','reports','audit','users','preferences','knowledge','official-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'content_curator';
-  foreach p in array array['dashboard','reports','audit','knowledge'] loop
+  foreach p in array array['dashboard','reports','audit','knowledge','official-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'public_operator';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge'] loop
+  foreach p in array array['dashboard','chat-manager','reports','knowledge','official-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'secretariat';
-  foreach p in array array['dashboard','chat-manager','knowledge'] loop
+  foreach p in array array['dashboard','chat-manager','knowledge','official-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
@@ -271,7 +351,7 @@ begin
   end loop;
 
   r := 'direction';
-  foreach p in array array['dashboard','chat-manager','reports','audit','knowledge'] loop
+  foreach p in array array['dashboard','chat-manager','reports','audit','knowledge','official-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();

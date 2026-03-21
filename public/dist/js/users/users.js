@@ -1,4 +1,4 @@
-// users.js - Lógica completa para a página de Gestão de Usuários
+// users.js - Lï¿½gica completa para a pï¿½gina de Gestï¿½o de Usuï¿½rios
 
 let usuariosCache = [];
 let appPagesCache = [];
@@ -11,8 +11,10 @@ const fallbackPageLabels = {
     audit: 'Auditoria Formal',
     users: 'Usuarios',
     preferences: 'Preferencias',
-    knowledge: 'Base de Conhecimento'
+    knowledge: 'Base de Conhecimento',
+    'official-content': 'Conteudo Oficial'
 };
+const SANDBOX_DEFAULT_PASSWORD = '123456789';
 const roleLabelMap = {
     superadmin: 'Superadmin do Projeto',
     network_manager: 'Gestor da Rede / Institucional',
@@ -133,7 +135,7 @@ async function syncRoleSegments(role, profileId, selectedSegments = [], options 
     const table = getRoleProfileTable(role);
     const isCoordinatorSegments = segCfg.relationTable === 'coordinator_segments';
 
-    // Defesa forte: garante que o profileId exista na tabela de role antes de gravar relação.
+    // Defesa forte: garante que o profileId exista na tabela de role antes de gravar relaï¿½ï¿½o.
     if (table && schoolId) {
         const { data: byIdRow, error: byIdErr } = await window.supabaseClient
             .from(table)
@@ -146,7 +148,7 @@ async function syncRoleSegments(role, profileId, selectedSegments = [], options 
         if (!byIdRow?.id && options.email) {
             const ensured = await ensureRoleProfileByEmail(role, schoolId, options.email, options.name || '', { forceRefresh: true });
             if (!ensured?.id) {
-                throw new Error(`Perfil ${role} não encontrado para sincronizar segmentos.`);
+                throw new Error(`Perfil ${role} nï¿½o encontrado para sincronizar segmentos.`);
             }
             profileId = ensured.id;
         }
@@ -201,7 +203,7 @@ async function syncSegmentsForSchoolMemberRole({ schoolId, role, email, name = '
         forceRefresh: true
     });
     if (!roleProfile?.id) {
-        throw new Error('Perfil da função não encontrado para sincronizar segmentos.');
+        throw new Error('Perfil da funï¿½ï¿½o nï¿½o encontrado para sincronizar segmentos.');
     }
 
     await syncRoleSegments(roleNorm, roleProfile.id, selectedSegments, {
@@ -217,7 +219,7 @@ async function carregarUsuarios(schoolId) {
 
     try {
         if (!schoolId) {
-            lista.innerHTML = '<tr><td colspan="5" class="text-center text-danger">SCHOOL_ID não encontrado na sessão.</td></tr>';
+            lista.innerHTML = '<tr><td colspan="5" class="text-center text-danger">SCHOOL_ID nï¿½o encontrado na sessï¿½o.</td></tr>';
             return;
         }
 
@@ -238,7 +240,7 @@ async function carregarUsuarios(schoolId) {
                 .filter(Boolean)
         );
 
-        // Complementa com registros órfãos das tabelas de role (sem school_members)
+        // Complementa com registros ï¿½rfï¿½os das tabelas de role (sem school_members)
         const roleFetches = ROLE_TABLE_CONFIG.map(cfg =>
             window.supabaseClient
                 .from(cfg.table)
@@ -268,7 +270,7 @@ async function carregarUsuarios(schoolId) {
 
         let todosUsuarios = [...memberRows, ...orphanRows];
 
-        // Ordenação por nome
+        // Ordenaï¿½ï¿½o por nome
         todosUsuarios.sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'pt-BR', { sensitivity: 'base' }));
         usuariosCache = todosUsuarios;
 
@@ -344,7 +346,7 @@ function renderizarTabela(usuarios) {
                     <div class="d-flex align-items-center">
                         <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&size=32" class="img-circle mr-2 shadow-sm avatar">
                         <div>
-                            <span class="font-weight-bold d-block">${user.name} ${isMe ? '<small class="badge badge-warning badge-self ml-1">VOCÊ</small>' : ''}</span>
+                            <span class="font-weight-bold d-block">${user.name} ${isMe ? '<small class="badge badge-warning badge-self ml-1">VOCï¿½</small>' : ''}</span>
                             <small class="text-muted"><i class="far fa-envelope mr-1"></i>${user.email}</small>
                             ${user.phone ? `<small class="text-muted d-block"><i class="fas fa-phone-alt mr-1"></i>${applyPhoneMask(user.phone)}</small>` : ''}
                         </div>
@@ -358,7 +360,7 @@ function renderizarTabela(usuarios) {
                 <td class="text-center align-middle">${statusBadge}</td>
                 <td class="text-right align-middle">
                     <div class="btn-group">
-                        ${user.status !== 'active' ? `<button class="btn btn-success btn-sm mx-1" onclick="convidarUsuarioExistente('${user.id}')" title="Enviar Convite de Acesso"><i class="fas fa-paper-plane"></i></button>` : ''}
+                        <button class="btn btn-success btn-sm mx-1" onclick="convidarUsuarioExistente('${user.id}')" title="Reaplicar senha padrao do sandbox"><i class="fas fa-key"></i></button>
                         ${btnEditar}
                         ${btnExcluir}
                     </div>
@@ -371,7 +373,7 @@ function renderizarTabela(usuarios) {
     userCount.innerText = `Mostrando ${usuarios.length} de ${usuarios.length} registros`;
 }
 
-// Funções do Modal
+// Funï¿½ï¿½es do Modal
 function abrirModalUsuario() {
     editingUserContext = null;
     document.getElementById('userId').value = '';
@@ -382,7 +384,7 @@ function abrirModalUsuario() {
     document.getElementById('divSegments').style.display = 'none';
     togglePermissionsUIForCurrentEditor(null);
     
-    document.getElementById('modalUsuarioTitle').innerText = 'Novo Usuário';
+    document.getElementById('modalUsuarioTitle').innerText = 'Novo Usuï¿½rio';
     $('#modalUsuario').modal('show');
 }
 
@@ -390,7 +392,7 @@ async function editarUsuario(id, sourceTable = '') {
     const user = usuariosCache.find(u => String(u.id) === String(id) && (!sourceTable || String(u.source_table || '') === String(sourceTable)))
         || usuariosCache.find(u => String(u.id) === String(id));
     if (!user) {
-        return Swal.fire('Erro', 'Usuário não encontrado para edição.', 'error');
+        return Swal.fire('Erro', 'Usuï¿½rio nï¿½o encontrado para ediï¿½ï¿½o.', 'error');
     }
 
     editingUserContext = user;
@@ -400,7 +402,7 @@ async function editarUsuario(id, sourceTable = '') {
     document.getElementById('userEmail').value = user.email || '';
     document.getElementById('userPhone').value = applyPhoneMask(user.phone || '');
     document.getElementById('userRole').value = user.role || '';
-    document.getElementById('modalUsuarioTitle').innerText = 'Editar Usuário';
+    document.getElementById('modalUsuarioTitle').innerText = 'Editar Usuï¿½rio';
 
     const divSegments = document.getElementById('divSegments');
     const container = document.getElementById('segmentsContainer');
@@ -445,7 +447,7 @@ async function editarUsuario(id, sourceTable = '') {
                 });
             }
         } catch (error) {
-            console.error('Erro ao carregar vínculos do usuário:', error);
+            console.error('Erro ao carregar vï¿½nculos do usuï¿½rio:', error);
         }
     } else {
         divSegments.style.display = 'none';
@@ -464,7 +466,7 @@ async function getAppPages(schoolId) {
             if (Array.isArray(pages) && pages.length) return pages;
         }
     } catch (err) {
-        console.warn('Não foi possível carregar app_pages:', err?.message || err);
+        console.warn('Nï¿½o foi possï¿½vel carregar app_pages:', err?.message || err);
     }
 
     const roleDefaults = window.DEFAULT_ROLE_PAGES || {};
@@ -498,7 +500,7 @@ function renderRolePermissionsCheckboxes(pages, selectedKeys = []) {
             <label class="custom-control-label" for="role_perm_${p.key}">${p.label || p.key}</label>
         </div>
     `).join('');
-    container.innerHTML = html || '<small class="text-muted">Nenhuma página cadastrada.</small>';
+    container.innerHTML = html || '<small class="text-muted">Nenhuma pï¿½gina cadastrada.</small>';
 }
 
 async function loadRolePermissionsForSelectedRole() {
@@ -508,7 +510,7 @@ async function loadRolePermissionsForSelectedRole() {
     if (!schoolId || !select || !container) return;
 
     const role = select.value;
-    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permissões da função...</small>';
+    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permissï¿½es da funï¿½ï¿½o...</small>';
 
     try {
         const pages = appPagesCache.length ? appPagesCache : await getAppPages(schoolId);
@@ -520,7 +522,7 @@ async function loadRolePermissionsForSelectedRole() {
         renderRolePermissionsCheckboxes(pages, roleAllowed);
     } catch (err) {
         console.error(err);
-        container.innerHTML = '<small class="text-danger">Falha ao carregar permissões da função.</small>';
+        container.innerHTML = '<small class="text-danger">Falha ao carregar permissï¿½es da funï¿½ï¿½o.</small>';
     }
 }
 
@@ -547,10 +549,10 @@ async function saveRolePermissionsForSelectedRole() {
             .from('role_page_permissions')
             .upsert(payload, { onConflict: 'school_id,role,page_key' });
         if (error) throw error;
-        Swal.fire('Sucesso', 'Permissões da função atualizadas.', 'success');
+        Swal.fire('Sucesso', 'Permissï¿½es da funï¿½ï¿½o atualizadas.', 'success');
     } catch (err) {
         console.error(err);
-        Swal.fire('Erro', err.message || 'Não foi possível salvar as permissões da função.', 'error');
+        Swal.fire('Erro', err.message || 'Nï¿½o foi possï¿½vel salvar as permissï¿½es da funï¿½ï¿½o.', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = original;
@@ -621,8 +623,8 @@ async function initRolePermissionsTab() {
         });
     }
 
-    // Carrega imediatamente para evitar ficar preso no placeholder "Carregando páginas..."
-    // quando a aba já abrir ativa ou sem disparo do evento shown.bs.tab.
+    // Carrega imediatamente para evitar ficar preso no placeholder "Carregando pï¿½ginas..."
+    // quando a aba jï¿½ abrir ativa ou sem disparo do evento shown.bs.tab.
     await loadRolePermissionsForSelectedRole();
 }
 
@@ -636,7 +638,7 @@ function renderPermissionsCheckboxes(pages, selectedKeys = []) {
             <label class="custom-control-label" for="perm_${p.key}">${p.label || p.key}</label>
         </div>
     `).join('');
-    container.innerHTML = html || '<small class="text-muted">Nenhuma página cadastrada.</small>';
+    container.innerHTML = html || '<small class="text-muted">Nenhuma pï¿½gina cadastrada.</small>';
 }
 
 function getSelectedPermissionKeys() {
@@ -673,7 +675,7 @@ async function togglePermissionsUIForCurrentEditor(user) {
     }
 
     div.style.display = 'block';
-    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permissões...</small>';
+    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permissï¿½es...</small>';
 
     try {
         const pages = await getAppPages(schoolId);
@@ -701,7 +703,7 @@ async function togglePermissionsUIForCurrentEditor(user) {
         setPermissionsControlsDisabled(useRoleDefault.checked);
     } catch (err) {
         console.error(err);
-        container.innerHTML = '<small class="text-danger">Falha ao carregar permissões.</small>';
+        container.innerHTML = '<small class="text-danger">Falha ao carregar permissï¿½es.</small>';
     }
 }
 
@@ -774,7 +776,7 @@ async function carregarSegmentosParaCheckboxes() {
 
     } catch (error) {
         console.error('Erro ao carregar segmentos:', error);
-        container.innerHTML = '<span class="text-danger">Erro ao carregar opções.</span>';
+        container.innerHTML = '<span class="text-danger">Erro ao carregar opï¿½ï¿½es.</span>';
     }
 }
 
@@ -798,7 +800,7 @@ function vincularLogicaDeGrupo() {
     });
 }
 
-async function salvarUsuario(enviarConvite = true) {
+async function salvarUsuario() {
     const userId = document.getElementById('userId').value;
     const nome = document.getElementById('userName').value;
     const email = document.getElementById('userEmail').value;
@@ -807,7 +809,7 @@ async function salvarUsuario(enviarConvite = true) {
     const schoolId = sessionStorage.getItem('SCHOOL_ID');
     
     if (!nome || !email || !role) {
-        return Swal.fire('Atenção', 'Preencha todos os campos obrigatórios.', 'warning');
+        return Swal.fire('Atenï¿½ï¿½o', 'Preencha todos os campos obrigatï¿½rios.', 'warning');
     }
 
     const usuarioEmEdicao = userId ? usuariosCache.find(u => String(u.id) === String(userId)) : null;
@@ -815,26 +817,20 @@ async function salvarUsuario(enviarConvite = true) {
     const previousRole = String(usuarioEmEdicao?.role || '').toLowerCase();
     const emailNorm = normalizeEmail(email);
 
-    if (usuarioEmEdicao && usuarioEmEdicao.source_table === 'school_members' && previousEmail && normalizeEmail(previousEmail) !== emailNorm) {
-        return Swal.fire('Atenção', 'Para evitar inconsistência entre tabelas, a alteração de e-mail deve ser feita criando um novo usuário.', 'warning');
-    }
-
     let selectedSegments = [];
     if (false) {
         selectedSegments = Array.from(document.querySelectorAll('.segment-checkbox:checked'))
                                 .map(cb => cb.value);
         
         if (selectedSegments.length === 0) {
-            return Swal.fire('Atenção', 'Selecione pelo menos um segmento.', 'warning');
+            return Swal.fire('Atenï¿½ï¿½o', 'Selecione pelo menos um segmento.', 'warning');
         }
     }
 
     try {
         Swal.fire({
-            title: enviarConvite ? 'Enviando convite...' : 'Salvando usuário...',
-            text: enviarConvite
-                ? 'Aguarde enquanto preparamos e enviamos o e-mail de acesso.'
-                : 'Aguarde enquanto salvamos os dados do usuário.',
+            title: usuarioEmEdicao ? 'Atualizando usuario sandbox...' : 'Criando usuario sandbox...',
+            text: 'Aguarde enquanto sincronizamos o Authentication e o perfil de acesso.',
             allowOutsideClick: false,
             allowEscapeKey: false,
             didOpen: () => {
@@ -847,10 +843,13 @@ async function salvarUsuario(enviarConvite = true) {
             nome: nome,
             role: role,
             school_id: schoolId,
-            send_invite: enviarConvite
+            send_invite: false,
+            previous_email: previousEmail || null,
+            user_id: usuarioEmEdicao?.user_id || null,
+            password: SANDBOX_DEFAULT_PASSWORD
         });
 
-        const fallbackStatus = enviarConvite ? 'invited' : 'pending';
+        const fallbackStatus = 'active';
         let memberRow = null;
 
         const isExistingSchoolMember = usuarioEmEdicao?.source_table === 'school_members';
@@ -879,8 +878,8 @@ async function salvarUsuario(enviarConvite = true) {
                 phone: phone || null,
                 user_id: inviteResult?.user_id || null,
                 status: fallbackStatus,
-                active: false,
-                invite_sent_at: enviarConvite ? new Date().toISOString() : null
+                active: true,
+                invite_sent_at: null
             };
             const { data: existingRows, error: findErr } = await window.supabaseClient
                 .from('school_members')
@@ -919,7 +918,7 @@ async function salvarUsuario(enviarConvite = true) {
             selectedSegments
         });
 
-        // Mantém telefone também no perfil da função (quando houver tabela de role).
+        // Mantï¿½m telefone tambï¿½m no perfil da funï¿½ï¿½o (quando houver tabela de role).
         const roleTable = getRoleProfileTable(role);
         if (roleTable) {
             try {
@@ -936,12 +935,12 @@ async function salvarUsuario(enviarConvite = true) {
                         { onConflict: 'school_id,email' }
                     );
             } catch (rolePhoneErr) {
-                console.warn('Aviso: não foi possível sincronizar telefone na tabela da função:', rolePhoneErr?.message || rolePhoneErr);
+                console.warn('Aviso: nï¿½o foi possï¿½vel sincronizar telefone na tabela da funï¿½ï¿½o:', rolePhoneErr?.message || rolePhoneErr);
             }
         }
 
-        // Defesa: garante que vínculos de coordenador foram persistidos.
-        // Em alguns cenários de troca de role, triggers podem limpar relações no meio do fluxo.
+        // Defesa: garante que vï¿½nculos de coordenador foram persistidos.
+        // Em alguns cenï¿½rios de troca de role, triggers podem limpar relaï¿½ï¿½es no meio do fluxo.
         if (false && selectedSegments.length > 0) {
             const roleProfile = await ensureRoleProfileByEmail('coordinator', schoolId, emailNorm, nome, { forceRefresh: true });
             if (roleProfile?.id) {
@@ -964,7 +963,7 @@ async function salvarUsuario(enviarConvite = true) {
             }
         }
 
-        // Se houve troca de role, remove overrides antigos para evitar herdar permissões de outra função.
+        // Se houve troca de role, remove overrides antigos para evitar herdar permissï¿½es de outra funï¿½ï¿½o.
         const roleChanged = !!previousRole && previousRole !== String(role || '').toLowerCase();
         const targetUserId = memberRow?.user_id || usuarioEmEdicao?.user_id || null;
         if (roleChanged && targetUserId) {
@@ -976,7 +975,7 @@ async function salvarUsuario(enviarConvite = true) {
             if (clearPermErr) throw clearPermErr;
         }
 
-        // Se estiver editando usuário real da school_members e admin logado, salva permissões customizadas
+        // Se estiver editando usuï¿½rio real da school_members e admin logado, salva permissï¿½es customizadas
         if (editingUserContext && editingUserContext.source_table === 'school_members') {
             const updatedUser = {
                 ...memberRow,
@@ -988,12 +987,12 @@ async function salvarUsuario(enviarConvite = true) {
             try {
                 await persistUserPagePermissionsIfNeeded(updatedUser);
             } catch (permErr) {
-                console.warn('Permissões não salvas:', permErr?.message || permErr);
-                Swal.fire('Aviso', 'Usuário salvo, mas não foi possível salvar permissões personalizadas.', 'warning');
+                console.warn('Permissï¿½es nï¿½o salvas:', permErr?.message || permErr);
+                Swal.fire('Aviso', 'Usuï¿½rio salvo, mas nï¿½o foi possï¿½vel salvar permissï¿½es personalizadas.', 'warning');
             }
         }
 
-        // Se o usuário editado for o próprio usuário logado e houve troca de função, atualiza cache local.
+        // Se o usuï¿½rio editado for o prï¿½prio usuï¿½rio logado e houve troca de funï¿½ï¿½o, atualiza cache local.
         const currentUserId = sessionStorage.getItem('USER_ID');
         if (roleChanged && targetUserId && String(targetUserId) === String(currentUserId)) {
             sessionStorage.setItem('USER_ROLE', role);
@@ -1003,7 +1002,7 @@ async function salvarUsuario(enviarConvite = true) {
             }
         }
 
-        Swal.fire('Sucesso!', 'Dados salvos com sucesso.', 'success');
+        Swal.fire('Sucesso!', 'Usuario salvo em modo sandbox. Senha padrao: ' + SANDBOX_DEFAULT_PASSWORD, 'success');
         carregarUsuarios(schoolId);
         $('#modalUsuario').modal('hide');
 
@@ -1013,16 +1012,15 @@ async function salvarUsuario(enviarConvite = true) {
     }
 }
 
-async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invite = true }) {
-    const authOnly = !send_invite;
+async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invite = false, previous_email = null, user_id = null, password = SANDBOX_DEFAULT_PASSWORD }) {
     const { data: sessionData, error: sessionError } = await window.supabaseClient.auth.getSession();
     if (sessionError) {
-        throw new Error(sessionError.message || 'Falha ao validar sessão atual.');
+        throw new Error(sessionError.message || 'Falha ao validar sessï¿½o atual.');
     }
 
     const accessToken = sessionData?.session?.access_token || null;
     if (!accessToken) {
-        throw new Error('Sessão expirada. Faça login novamente para convidar usuários.');
+        throw new Error('Sessao expirada. Faca login novamente para sincronizar usuarios do sandbox.');
     }
 
     const payload = {
@@ -1030,8 +1028,10 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
         nome,
         role,
         school_id,
-        send_invite,
-        auth_only: authOnly
+        send_invite: false,
+        previous_email,
+        user_id,
+        password
     };
 
     // Tentativa 1: SDK
@@ -1047,7 +1047,7 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
         return data;
     }
 
-    // Tentativa 2 (fallback): fetch explícito para garantir headers no request
+    // Tentativa 2 (fallback): fetch explï¿½cito para garantir headers no request
     const isAuthHeaderIssue = String(error?.message || '').toLowerCase().includes('non-2xx')
         || String(error?.message || '').toLowerCase().includes('authorization');
 
@@ -1059,7 +1059,7 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
             null;
 
         if (!supabaseUrl || !supabaseKey) {
-            throw new Error('Não foi possível montar fallback da Edge Function (URL/Key ausentes).');
+            throw new Error('Nï¿½o foi possï¿½vel montar fallback da Edge Function (URL/Key ausentes).');
         }
 
         const response = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
@@ -1081,7 +1081,7 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
 
         if (!response.ok) {
             const msg = json?.error || json?.message || `HTTP ${response.status}`;
-            throw new Error(`Falha no convite (fallback): ${msg}`);
+            throw new Error(`Falha ao sincronizar usuario sandbox: ${msg}`);
         }
 
         if (json?.error) {
@@ -1091,13 +1091,13 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
         return json;
     }
 
-    throw new Error(error.message || 'Falha ao invocar invite-user');
+    throw new Error(error.message || 'Falha ao invocar a Edge Function de usuarios sandbox');
 }
 
 async function deletarUsuario(id) {
     const confirm = await Swal.fire({
         title: 'Tem certeza?',
-        text: "O usuário perderá acesso ao sistema.",
+        text: "O usuï¿½rio perderï¿½ acesso ao sistema.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -1108,7 +1108,7 @@ async function deletarUsuario(id) {
         const user = usuariosCache.find(u => String(u.id) === String(id));
         try {
             if (!user) {
-                throw new Error('Usuário não encontrado.');
+                throw new Error('Usuï¿½rio nï¿½o encontrado.');
             }
 
             const schoolId = sessionStorage.getItem('SCHOOL_ID');
@@ -1128,7 +1128,7 @@ async function deletarUsuario(id) {
                     .eq('id', id);
                 if (error) throw error;
             } else {
-                // Remoção direta de registro órfão na tabela da função
+                // Remoï¿½ï¿½o direta de registro ï¿½rfï¿½o na tabela da funï¿½ï¿½o
                 if (user.source_table === 'coordinators') {
                     const { error: slotErr } = await window.supabaseClient
                         .from('visit_slots')
@@ -1161,15 +1161,15 @@ async function deletarUsuario(id) {
                 if (error) throw error;
             }
 
-            Swal.fire('Removido!', 'Usuário removido.', 'success');
+            Swal.fire('Removido!', 'Usuï¿½rio removido.', 'success');
             carregarUsuarios(schoolId);
             
         } catch (error) {
             const msg = String(error.message || '').toLowerCase();
             if (msg.includes('foreign key')) {
-                Swal.fire('Não foi possível excluir', 'Existem vínculos deste usuário em outras tabelas. Remova os vínculos e tente novamente.', 'error');
+                Swal.fire('Nï¿½o foi possï¿½vel excluir', 'Existem vï¿½nculos deste usuï¿½rio em outras tabelas. Remova os vï¿½nculos e tente novamente.', 'error');
             } else {
-                Swal.fire('Não permitido', 'Não foi possível excluir. Verifique se você tem permissão ou se está tentando excluir a si mesmo.', 'error');
+                Swal.fire('Nï¿½o permitido', 'Nï¿½o foi possï¿½vel excluir. Verifique se vocï¿½ tem permissï¿½o ou se estï¿½ tentando excluir a si mesmo.', 'error');
             }
         }
     }
@@ -1180,27 +1180,27 @@ async function convidarUsuarioExistente(id) {
     const user = usuariosCache.find(u => String(u.id) === String(id));
 
     if (!user) {
-        return Swal.fire('Erro', 'Usuário não encontrado no cache da tela.', 'error');
+        return Swal.fire('Erro', 'Usuï¿½rio nï¿½o encontrado no cache da tela.', 'error');
     }
 
     if (!user.email) {
-        return Swal.fire('Erro', 'Este usuário não possui e-mail cadastrado.', 'error');
+        return Swal.fire('Erro', 'Este usuï¿½rio nï¿½o possui e-mail cadastrado.', 'error');
     }
 
     const confirm = await Swal.fire({
-        title: 'Enviar convite?',
-        html: `Enviar convite de acesso para <b>${user.name}</b><br><small>${user.email}</small>`,
+        title: 'Reaplicar acesso sandbox?',
+        html: `Criar ou atualizar acesso sandbox para <b>${user.name}</b><br><small>${user.email}</small><br><small>Senha padrao: ${SANDBOX_DEFAULT_PASSWORD}</small>`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Enviar convite'
+        confirmButtonText: 'Reaplicar acesso' 
     });
 
     if (!confirm.isConfirmed) return;
 
     try {
         Swal.fire({
-            title: 'Enviando convite...',
-            text: 'Aguarde enquanto enviamos o convite de acesso.',
+            title: 'Aplicando acesso sandbox...',
+            text: 'Aguarde enquanto criamos ou atualizamos a conta sem envio de e-mail.',
             allowOutsideClick: false,
             allowEscapeKey: false,
             didOpen: () => {
@@ -1213,18 +1213,21 @@ async function convidarUsuarioExistente(id) {
             nome: user.name,
             role: user.role,
             school_id: schoolId,
-            send_invite: true
+            send_invite: false,
+            previous_email: user.email || null,
+            user_id: user.user_id || null,
+            password: SANDBOX_DEFAULT_PASSWORD
         });
 
-        await Swal.fire('Sucesso', `Convite enviado para ${user.email}.`, 'success');
+        await Swal.fire('Sucesso', `Acesso sandbox reaplicado para ${user.email}. Senha padr?o: ${SANDBOX_DEFAULT_PASSWORD}`, 'success');
         await carregarUsuarios(schoolId);
     } catch (err) {
-        console.error('Erro ao convidar usuário existente:', err);
-        Swal.fire('Erro', err.message || 'Não foi possível enviar o convite.', 'error');
+        console.error('Erro ao convidar usuï¿½rio existente:', err);
+        Swal.fire('Erro', err.message || 'Nao foi possivel reaplicar o acesso sandbox.', 'error');
     }
 }
 
-// Tornar funções globais para acesso via onclick
+// Tornar funï¿½ï¿½es globais para acesso via onclick
 window.abrirModalUsuario = abrirModalUsuario;
 window.editarUsuario = editarUsuario;
 window.salvarUsuario = salvarUsuario;
@@ -1254,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 roleDefault = [];
             }
 
-            // Ao ligar o padrão da função, guarda o custom atual antes de sobrescrever.
+            // Ao ligar o padrï¿½o da funï¿½ï¿½o, guarda o custom atual antes de sobrescrever.
             if (toggle.checked) {
                 toggle.dataset.customCache = JSON.stringify(getSelectedPermissionKeys());
             }
@@ -1267,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Ao desligar o padrão da função, restaura o custom anterior.
+            // Ao desligar o padrï¿½o da funï¿½ï¿½o, restaura o custom anterior.
             const rawCustom = toggle.dataset.customCache || '[]';
             let customSelection = [];
             try {
@@ -1301,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 useRoleDefault.dataset.customCache = JSON.stringify([]);
             } catch (err) {
-                console.warn('Falha ao recarregar permissões da função:', err?.message || err);
+                console.warn('Falha ao recarregar permissï¿½es da funï¿½ï¿½o:', err?.message || err);
             }
         });
     }

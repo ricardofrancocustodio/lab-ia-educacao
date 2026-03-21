@@ -1,4 +1,4 @@
--- Notice Board schema (multi-escola) + RLS
+﻿-- Notice Board schema (multi-escola) + RLS
 -- Execute no SQL Editor do Supabase.
 
 begin;
@@ -94,7 +94,7 @@ using (
   )
 );
 
--- WRITE: admin/secretary/coordinator da mesma escola
+-- WRITE: network_manager/secretariat/coordination/direction da mesma escola
 drop policy if exists "write notices by allowed roles" on public.notices;
 create policy "write notices by allowed roles"
 on public.notices
@@ -106,7 +106,7 @@ using (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = notices.school_id
-      and sm.role in ('admin', 'secretary', 'coordinator')
+      and sm.role in ('network_manager', 'secretariat', 'coordination', 'direction')
   )
 )
 with check (
@@ -115,7 +115,7 @@ with check (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = notices.school_id
-      and sm.role in ('admin', 'secretary', 'coordinator')
+      and sm.role in ('network_manager', 'secretariat', 'coordination', 'direction')
   )
 );
 
@@ -130,7 +130,7 @@ using (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = notice_attachments.school_id
-      and sm.role in ('admin', 'secretary', 'coordinator')
+      and sm.role in ('network_manager', 'secretariat', 'coordination', 'direction')
   )
 )
 with check (
@@ -139,8 +139,9 @@ with check (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = notice_attachments.school_id
-      and sm.role in ('admin', 'secretary', 'coordinator')
+      and sm.role in ('network_manager', 'secretariat', 'coordination', 'direction')
   )
 );
 
 commit;
+

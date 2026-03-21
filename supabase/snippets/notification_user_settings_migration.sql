@@ -1,4 +1,4 @@
--- Notification settings by school + user, and queue traceability by user/day
+﻿-- Notification settings by school + user, and queue traceability by user/day
 -- Execute no SQL Editor do Supabase.
 
 begin;
@@ -119,8 +119,8 @@ using (
   )
 );
 
-drop policy if exists "admin write notification settings" on public.notification_system_settings;
-create policy "admin write notification settings"
+drop policy if exists "manage notification settings by school managers" on public.notification_system_settings;
+create policy "manage notification settings by school managers"
 on public.notification_system_settings for all
 to authenticated
 using (
@@ -129,7 +129,7 @@ using (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = notification_system_settings.school_id
-      and sm.role = 'admin'
+      and sm.role in ('network_manager', 'direction')
   )
 )
 with check (
@@ -138,7 +138,7 @@ with check (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = notification_system_settings.school_id
-      and sm.role = 'admin'
+      and sm.role in ('network_manager', 'direction')
   )
 );
 
@@ -161,7 +161,7 @@ using (
     from public.school_members sm
     where sm.user_id = auth.uid()
       and sm.school_id = user_notification_settings.school_id
-      and sm.role = 'admin'
+      and sm.role in ('network_manager', 'direction')
   )
 );
 
@@ -189,4 +189,5 @@ with check (
 );
 
 commit;
+
 

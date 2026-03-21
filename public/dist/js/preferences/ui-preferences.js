@@ -19,6 +19,43 @@ function uiMostrarErro(msg) {
     }
 }
 
+function uiMostrarAviso(msg) {
+    const alerta = document.getElementById('alert-segmentos-escola');
+    if (alerta) {
+        alerta.className = 'alert alert-warning';
+        alerta.innerHTML = `<i class="fas fa-info-circle mr-1"></i> ${msg}`;
+        alerta.style.display = 'block';
+    }
+}
+
+function uiDesativarModuloLegado(msg) {
+    const card = document.getElementById('legacy-segments-card');
+    const loader = document.getElementById('segmentos-loader');
+    const container = document.getElementById('segmentos-hierarquia');
+    const btnSalvar = document.getElementById('btn-salvar-segmentos-escola');
+    const alerta = document.getElementById('alert-segmentos-escola');
+
+    if (loader) loader.style.display = 'none';
+    if (container) {
+        container.style.display = 'block';
+        container.innerHTML = '<div class="alert alert-light border mb-0"><i class="fas fa-database mr-1"></i> Este bloco depende de tabelas legadas que nao existem neste ambiente.</div>';
+    }
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.classList.remove('btn-primary');
+        btnSalvar.classList.add('btn-secondary');
+    }
+    if (alerta) {
+        alerta.className = 'alert alert-warning';
+        alerta.innerHTML = `<i class="fas fa-info-circle mr-1"></i> ${msg}`;
+        alerta.style.display = 'block';
+    }
+    if (card) {
+        card.classList.remove('card-primary');
+        card.classList.add('card-secondary');
+    }
+}
+
 function normalizarTextoSegmento(texto) {
     return String(texto || '')
         .normalize('NFD')

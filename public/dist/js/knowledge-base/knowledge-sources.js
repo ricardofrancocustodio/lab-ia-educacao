@@ -1,4 +1,4 @@
-const SOURCE_ASSISTANTS = {
+﻿const SOURCE_ASSISTANTS = {
   "public.assistant": "Assistente Publico",
   "administration.secretariat": "Assistente da Secretaria",
   "administration.treasury": "Assistente da Tesouraria",
@@ -74,12 +74,14 @@ function updateKnowledgeToolbar(activeTabId) {
 }
 
 async function apiJson(url, options = {}) {
+  const token = await window.getAccessToken();
   const response = await fetch(url, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
       ...(options.headers || {})
-    },
-    ...options
+    }
   });
   const payload = await response.json().catch(() => ({ ok: false, error: "Resposta invalida." }));
   if (!response.ok || payload.ok === false) {
@@ -97,7 +99,7 @@ async function carregarFontesOficiais(forceSelectFirst = false) {
   if (loading) loading.style.display = "block";
 
   try {
-    const payload = await apiJson(`/api/knowledge/sources?school_id=${encodeURIComponent(schoolId)}`);
+    const payload = await apiJson(`/api/knowledge/sources`);
     sourceState.allSources = payload.sources || [];
     aplicarFiltroFontes();
 
@@ -246,7 +248,7 @@ async function selecionarFonte(sourceId) {
   try {
     const [source, payload] = await Promise.all([
       Promise.resolve(sourceState.allSources.find((item) => item.id === sourceId) || null),
-      apiJson(`/api/knowledge/sources/${sourceId}/versions?school_id=${encodeURIComponent(schoolId)}`)
+      apiJson(`/api/knowledge/sources/${sourceId}/versions`)
     ]);
     renderizarPainelVersoes(source, payload.versions || []);
   } catch (error) {
@@ -518,3 +520,4 @@ if (document.readyState === "loading") {
 } else {
   inicializarFontesOficiais();
 }
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head id="component-head">
     <title>Assistente Publico | Base de Conhecimento</title>
@@ -41,11 +41,6 @@
                                             <span class="badge badge-success ml-1" id="customCount">0</span>
                                         </a>
                                     </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link" id="sources-tab" data-toggle="tab" href="#sources" role="tab">
-                                            <i class="fas fa-folder-open mr-1"></i> Fontes Oficiais
-                                        </a>
-                                    </li>
                                 </ul>
 
                                 <div class="row mt-3 align-items-center">
@@ -54,7 +49,7 @@
                                     </div>
                                     <div class="col-md-6 text-right">
                                         <button class="btn btn-success btn-sm" id="knowledgeActionButton" onclick="abrirModalPergunta()">
-                                            <i class="fas fa-plus mr-1"></i> Nova Pergunta
+                                            <i class="fas fa-plus mr-1"></i> Novo Item Estruturado
                                         </button>
                                     </div>
                                 </div>
@@ -66,9 +61,13 @@
                                     <p>Carregando dados...</p>
                                 </div>
 
+                                <div class="alert alert-info border mb-3">
+                                    <strong>Fontes oficiais:</strong> o cadastro e a manutencao de fontes oficiais agora ficam em <a href="/conteudo-oficial">Conteudo Oficial</a>, para manter o fluxo institucional em um unico lugar.
+                                </div>
+
                                 <div class="tab-content" id="knowledgeTabsContent">
                                     <div class="tab-pane fade show active" id="all" role="tabpanel">
-                                        <div class="alert alert-light border structured-kb-note mb-3"><strong>Base Estruturada:</strong> conhecimento operacional usado pela IA, preferencialmente vinculado a fonte e versao oficiais auditaveis.</div>
+                                        <div class="alert alert-light border structured-kb-note mb-3"><strong>Base Estruturada:</strong> conhecimento operacional usado pela IA. As fontes oficiais passam a ser geridas em <a href="/conteudo-oficial">Conteudo Oficial</a>, e a base daqui fica focada no consumo estruturado e nas respostas.</div>
                                         <p class="text-muted text-right mb-2" id="totalCount"></p>
                                         <div id="view-tabs">
                                             <ul class="nav nav-pills mb-4 gap-2 p-2 bg-light rounded" id="pills-tab" role="tablist"></ul>
@@ -90,74 +89,6 @@
                                             </div>
                                         </div>
                                         <div id="customQuestionsList"></div>
-                                    </div>
-
-                                    <div class="tab-pane fade" id="sources" role="tabpanel">
-                                        <div class="row mb-3">
-                                            <div class="col-lg-8 mb-3 mb-lg-0">
-                                                <div class="card card-outline card-info h-100">
-                                                    <div class="card-body">
-                                                        <h5 class="mb-2">Fontes por assistente</h5>
-                                                        <p class="text-muted mb-3">Cada versao publicada substitui a anterior na base ativa da IA, mantendo historico para rastreabilidade.</p>
-                                                        <div class="row" id="sourceAssistantStats"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg-4">
-                                                <div class="card card-outline card-secondary h-100">
-                                                    <div class="card-body">
-                                                        <h6 class="mb-2">Formatos iniciais</h6>
-                                                        <p class="text-muted small mb-2">Importacao direta para arquivos de texto: <code>.txt</code>, <code>.md</code>, <code>.csv</code>, <code>.json</code> e conteudo colado.</p>
-                                                        <p class="text-muted small mb-0">Cada arquivo gera uma fonte oficial com versao, checksum e trechos publicados para o assistente escolhido.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="row mb-3">
-                                            <div class="col-md-6 mb-2 mb-md-0">
-                                                <div class="input-group input-group-sm">
-                                                    <div class="input-group-prepend">
-                                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                                    </div>
-                                                    <input type="text" id="sourceSearchInput" class="form-control" placeholder="Buscar fonte, referencia ou assistente...">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 mb-2 mb-md-0">
-                                                <select id="sourceAreaFilter" class="form-control form-control-sm">
-                                                    <option value="all">Todos os assistentes</option>
-                                                    <option value="public.assistant">Assistente Publico</option>
-                                                    <option value="administration.secretariat">Assistente da Secretaria</option>
-                                                    <option value="administration.treasury">Assistente da Tesouraria</option>
-                                                    <option value="administration.direction">Assistente da Direcao</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3 text-right">
-                                                <button class="btn btn-primary btn-sm" id="btnImportSources" onclick="abrirModalFonte()">
-                                                    <i class="fas fa-upload mr-1"></i> Importar Fontes
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-lg-7">
-                                                <div id="sourcesLoading" class="text-center py-4" style="display:none;">
-                                                    <div class="spinner-border text-primary"></div>
-                                                    <p class="mt-2 mb-0">Carregando fontes oficiais...</p>
-                                                </div>
-                                                <div id="sourcesList"></div>
-                                            </div>
-                                            <div class="col-lg-5">
-                                                <div class="card card-outline card-primary sticky-source-panel">
-                                                    <div class="card-header">
-                                                        <h3 class="card-title">Historico da Fonte</h3>
-                                                    </div>
-                                                    <div class="card-body" id="sourceVersionsPanel">
-                                                        <p class="text-muted mb-0">Selecione uma fonte para ver as versoes publicadas e o conteudo vigente.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -211,118 +142,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalFonte" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">Importar Fontes Oficiais</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="sourceImportForm">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Assistente responsavel</label>
-                                    <select class="form-control" id="sourceOwningArea" required>
-                                        <option value="public.assistant">Assistente Publico</option>
-                                        <option value="administration.secretariat">Assistente da Secretaria</option>
-                                        <option value="administration.treasury">Assistente da Tesouraria</option>
-                                        <option value="administration.direction">Assistente da Direcao</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Tipo do documento</label>
-                                    <input type="text" class="form-control" id="sourceDocumentType" value="arquivo_oficial" placeholder="Ex: resolucao, circular, faq, normativa">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Referencia canonica</label>
-                                    <input type="text" class="form-control" id="sourceCanonicalReference" placeholder="Ex: Portaria 12/2026 ou FAQ institucional">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Rotulo inicial da versao</label>
-                                    <input type="text" class="form-control" id="sourceVersionLabel" value="v1" placeholder="Ex: v1, rev-2026-03, consolidada">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Descricao da fonte</label>
-                            <textarea class="form-control" id="sourceDescription" rows="2" placeholder="Contexto resumido para esta familia de documentos."></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Arquivos de texto</label>
-                            <div class="upload-area" onclick="document.getElementById('sourceFiles').click()">
-                                <i class="fas fa-file-upload"></i>
-                                <div class="font-weight-bold mb-1">Selecione varios arquivos de uma vez</div>
-                                <div class="text-muted small">TXT, MD, CSV e JSON. O conteudo sera publicado na base do assistente escolhido.</div>
-                            </div>
-                            <input type="file" id="sourceFiles" class="d-none" accept=".txt,.md,.csv,.json,.html,.htm" multiple>
-                            <div id="selectedFilesPreview" class="mt-3"></div>
-                        </div>
-                        <div class="form-group mb-0">
-                            <label>Ou cole um conteudo institucional manualmente</label>
-                            <textarea class="form-control" id="manualSourceContent" rows="6" placeholder="Use esta opcao para resolucao, oficio, FAQ ou texto institucional sem arquivo."></textarea>
-                            <small class="text-muted">Se preencher aqui, o sistema cria uma fonte adicional chamada "Fonte manual".</small>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-info" id="btnSubmitSourceImport" onclick="salvarFontesOficiais()">Publicar Fontes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="modalNovaVersao" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Publicar Nova Versao</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="versionSourceId" value="">
-                    <div class="alert alert-light border mb-3" id="versionSourceSummary">Nenhuma fonte selecionada.</div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Rotulo da versao</label>
-                                <input type="text" class="form-control" id="newVersionLabel" placeholder="Ex: v2, consolidada-2026-03">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Arquivo da nova versao</label>
-                                <input type="file" class="form-control-file" id="newVersionFile" accept=".txt,.md,.csv,.json,.html,.htm">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group mb-0">
-                        <label>Conteudo da nova versao</label>
-                        <textarea class="form-control" id="newVersionContent" rows="10" placeholder="Cole o texto da nova versao aqui caso nao utilize arquivo."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnPublishNewVersion" onclick="salvarNovaVersaoFonte()">Publicar Versao</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
@@ -337,6 +156,5 @@
     <script src="./js/coordinator/carregar-componentes.js"></script>
     <script src="./js/knowledge-base/knowledge-base.js"></script>
     <script src="./js/knowledge-base/knowledge-base-custom.js"></script>
-    <script src="./js/knowledge-base/knowledge-sources.js"></script>
 </body>
 </html>

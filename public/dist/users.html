@@ -102,7 +102,7 @@
                                         </div>
                                     </div>
                                     <div id="rolePermissionsContainer" class="border rounded p-2 bg-white role-perm-container">
-                                        <small class="text-muted">Carregando páginas...</small>
+                                        <small class="text-muted">Selecione um perfil e gerencie os acessos da equipe da escola.</small>
                                     </div>
                                 </div>
                             </div>
@@ -151,7 +151,7 @@
                         <div class="form-group">
                             <label for="userEmail">Email *</label>
                             <input type="email" class="form-control" id="userEmail" placeholder="email@exemplo.com" required>
-                            <small class="text-muted">Um convite de ativação será enviado para este e-mail.</small>
+                            <small class="text-muted">Modo sandbox: a conta sera criada sem envio de e-mail. Senha inicial padrao: 123456789.</small>
                         </div>
                         <div class="form-group">
                             <label for="userPhone">Telefone</label>
@@ -199,11 +199,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnSalvarDraft" onclick="salvarUsuario(false)">
-                        <i class="fas fa-save mr-1"></i> Salvar
-                    </button>
-                    <button type="button" class="btn btn-success" id="btnSalvarUsuario" onclick="salvarUsuario(true)">
-                        <i class="fas fa-paper-plane mr-1"></i> Enviar Convite
+                    <button type="button" class="btn btn-success" id="btnSalvarUsuario" onclick="salvarUsuario()">
+                        <i class="fas fa-key mr-1"></i> Salvar usuario sandbox
                     </button>
                 </div>
             </div>

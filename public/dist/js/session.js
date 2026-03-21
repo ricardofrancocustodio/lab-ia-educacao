@@ -73,6 +73,25 @@ async function initSession() {
   return { ...membro, platform_role: platformMember?.role || null, effective_role: effectiveRole };
 }
 
+async function getAccessToken() {
+  const client = window.supabaseClient || window._supabase || null;
+  if (!client) {
+    throw new Error('supabase_client_unavailable');
+  }
+
+  const { data: { session }, error } = await client.auth.getSession();
+  if (error) {
+    throw error;
+  }
+
+  const token = String(session?.access_token || '').trim();
+  if (!token) {
+    throw new Error('access_token_unavailable');
+  }
+
+  return token;
+}
+
 function fazerLogout() {
   const client = window.supabaseClient || window._supabase || null;
   if (!client) {
@@ -90,5 +109,5 @@ function fazerLogout() {
 }
 
 window.initSession = initSession;
+window.getAccessToken = getAccessToken;
 window.fazerLogout = fazerLogout;
-

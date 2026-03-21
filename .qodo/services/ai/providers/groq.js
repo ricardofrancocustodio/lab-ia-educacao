@@ -2,11 +2,11 @@ const OpenAI = require("openai");
 const path = require("path");
 const { checkActivityAvailability } = require(path.resolve("./.qodo/services/activities.js"));
 
-class OpenAIProvider {
+class GroqProvider {
   constructor(apiKey, options = {}) {
-    if (!apiKey) throw new Error("API Key da OpenAI nao fornecida.");
-    this.model = options.model || process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini";
-    this.client = new OpenAI({ apiKey: apiKey });
+    if (!apiKey) throw new Error("API Key da Groq nao fornecida.");
+    this.model = options.model || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+    this.client = new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" });
     this.tools = [
       {
         type: "function",
@@ -65,10 +65,10 @@ class OpenAIProvider {
 
       return responseMessage.content || "Desculpe, nao consegui gerar resposta no momento.";
     } catch (error) {
-      console.error("Erro OpenAI Provider:", error);
+      console.error("Erro Groq Provider:", error);
       throw error;
     }
   }
 }
 
-module.exports = OpenAIProvider;
+module.exports = GroqProvider;

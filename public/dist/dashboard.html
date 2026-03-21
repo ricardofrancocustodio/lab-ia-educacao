@@ -7,6 +7,7 @@
     .metric-card { min-height: 132px; }
     .assistant-bar { height: 10px; border-radius: 999px; background: #e9ecef; overflow: hidden; }
     .assistant-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #0d6efd, #20c997); }
+    .insight-card { min-height: 100%; }
   </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" data-page="dashboard">
@@ -17,10 +18,25 @@
       <section class="content-header"><div class="container-fluid"><div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3"><div><h1 class="m-0">Dashboard de Inteligencia de Atendimento</h1><small class="text-muted" id="dashboard-period-label">Visao operacional de hoje</small></div><div class="d-flex align-items-center" style="gap:8px;"><label for="dashboard-period" class="mb-0 text-muted small">Periodo</label><select id="dashboard-period" class="form-control form-control-sm" style="width:180px;"><option value="today">Hoje</option><option value="7d">Ultimos 7 dias</option><option value="30d">Ultimos 30 dias</option><option value="all">Todo o periodo</option></select></div></div></div></section>
       <section class="content">
         <div class="container-fluid">
+          <div class="alert alert-light border mb-4">
+            <strong>Impacto medido em quatro frentes:</strong> uso do sistema, qualidade da resposta, impacto operacional e governanca da IA.
+          </div>
           <div class="row" id="metrics-row"></div>
           <div class="row">
-            <div class="col-lg-7"><div class="card"><div class="card-header"><h3 class="card-title">Volume de Perguntas por Assistente</h3></div><div class="card-body" id="assistant-volume"></div></div></div>
-            <div class="col-lg-5"><div class="card"><div class="card-header"><h3 class="card-title">Ultimos Eventos Auditados</h3></div><div class="card-body" id="latest-audit-events"></div></div></div>
+            <div class="col-lg-6"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Volume de Perguntas por Assistente</h3></div><div class="card-body" id="assistant-volume"></div></div></div>
+            <div class="col-lg-6"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Top Temas Mais Perguntados</h3></div><div class="card-body" id="top-topics"></div></div></div>
+          </div>
+          <div class="row">
+            <div class="col-lg-6"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Distribuicao por Canal</h3></div><div class="card-body" id="channel-volume"></div></div></div>
+            <div class="col-lg-6"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Risco e Governanca</h3></div><div class="card-body" id="risk-overview"></div></div></div>
+          </div>
+          <div class="row">
+            <div class="col-lg-4"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Modulo de Avaliacao de Risco da Resposta</h3></div><div class="card-body" id="dashboard-risk-summary"></div></div></div>
+            <div class="col-lg-4"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Temas com Maior Risco</h3></div><div class="card-body" id="dashboard-risk-topics"></div></div></div>
+            <div class="col-lg-4"><div class="card insight-card"><div class="card-header"><h3 class="card-title">Assistentes Sob Revisao</h3></div><div class="card-body" id="dashboard-risk-assistants"></div></div></div>
+          </div>
+          <div class="row">
+            <div class="col-12"><div class="card"><div class="card-header"><h3 class="card-title">Ultimos Eventos Auditados</h3></div><div class="card-body" id="latest-audit-events"></div></div></div>
           </div>
         </div>
       </section>

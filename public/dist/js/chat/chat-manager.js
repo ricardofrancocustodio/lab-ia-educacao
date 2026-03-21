@@ -9,6 +9,49 @@ const statusLabels = {
     AI_ACTIVE: 'IA ativa',
     RESOLVED: 'Encerrada'
 };
+const CHAT_MANAGER_ROLE_CAPABILITIES = {
+    superadmin: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: true },
+    network_manager: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: true },
+    auditor: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: false },
+    content_curator: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: false },
+    direction: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: false, resolveConversation: true },
+    treasury: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: false, resolveConversation: true },
+    coordination: { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: true },
+    secretariat: { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: true },
+    public_operator: { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: true }
+};
+let chatManagerCapabilities = null;
+
+function getCurrentUserRole() {
+    return String(sessionStorage.getItem('PLATFORM_ROLE') || sessionStorage.getItem('USER_ROLE') || '').trim().toLowerCase();
+}
+
+function getChatManagerCapabilities() {
+    const role = getCurrentUserRole();
+    const defaults = { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: false };
+    if (role === 'superadmin') {
+        return { ...defaults, detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: true, role };
+    }
+    return { ...defaults, ...(CHAT_MANAGER_ROLE_CAPABILITIES[role] || {}), role };
+}
+
+function applyChatManagerPermissions() {
+    chatManagerCapabilities = getChatManagerCapabilities();
+    const canExport = Boolean(chatManagerCapabilities.export);
+    const canResolve = Boolean(chatManagerCapabilities.resolveConversation);
+
+    $('#btn-export-csv, #btn-export-xls, #btn-export-pdf').toggle(canExport);
+    $('#btn-resolve-chat').toggle(canResolve);
+}
+
+function getChatManagerRequestHeaders(extraHeaders = {}) {
+    return {
+        'x-user-role': sessionStorage.getItem('USER_ROLE') || '',
+        'x-platform-role': sessionStorage.getItem('PLATFORM_ROLE') || '',
+        'x-effective-role': sessionStorage.getItem('EFFECTIVE_ROLE') || sessionStorage.getItem('PLATFORM_ROLE') || sessionStorage.getItem('USER_ROLE') || '',
+        ...extraHeaders
+    };
+}
 
 function escapeHtml(value) {
     return String(value || '')
@@ -121,6 +164,11 @@ function getConversationExportRows(conversation = conversaAtiva) {
             }).join(' | '),
             delivered_at: audit.delivered_at || '',
             fallback_to_human: audit.fallback_to_human ? 'sim' : 'nao',
+            feedback_helpful: audit.feedback_summary?.helpful || 0,
+            feedback_not_helpful: audit.feedback_summary?.not_helpful || 0,
+            feedback_incorrect: audit.feedback_summary?.incorrect || 0,
+            incidents_open: audit.incident_summary?.open || 0,
+            incidents_total: audit.incident_summary?.total || 0,
             corrected: audit.corrected ? 'sim' : 'nao',
             corrected_at: audit.corrected_at || '',
             corrected_by: audit.corrected_by || '',
@@ -150,7 +198,8 @@ function buildConversationSummary(conversation = conversaAtiva) {
 }
 
 function updateExportButtons() {
-    const disabled = !conversaAtiva;
+    const capabilities = chatManagerCapabilities || getChatManagerCapabilities();
+    const disabled = !conversaAtiva || !capabilities.export;
     $('#btn-export-csv').prop('disabled', disabled);
     $('#btn-export-xls').prop('disabled', disabled);
     $('#btn-export-pdf').prop('disabled', disabled);
@@ -158,6 +207,10 @@ function updateExportButtons() {
 
 function exportConversationCsv() {
     if (!conversaAtiva) return;
+    if (!(chatManagerCapabilities || getChatManagerCapabilities()).export) {
+        Swal.fire('Acesso restrito', 'Seu perfil possui apenas visao operacional nesta tela e nao pode exportar a trilha completa.', 'info');
+        return;
+    }
     const rows = getConversationExportRows(conversaAtiva);
     const headers = Object.keys(rows[0] || {
         conversation_id: '',
@@ -187,6 +240,11 @@ function exportConversationCsv() {
         consulted_sources: '',
         delivered_at: '',
         fallback_to_human: '',
+        feedback_helpful: '',
+        feedback_not_helpful: '',
+        feedback_incorrect: '',
+        incidents_open: '',
+        incidents_total: '',
         corrected: '',
         corrected_at: '',
         corrected_by: '',
@@ -201,6 +259,10 @@ function exportConversationCsv() {
 
 function exportConversationXls() {
     if (!conversaAtiva) return;
+    if (!(chatManagerCapabilities || getChatManagerCapabilities()).export) {
+        Swal.fire('Acesso restrito', 'Seu perfil possui apenas visao operacional nesta tela e nao pode exportar a trilha completa.', 'info');
+        return;
+    }
     const summaryRows = buildConversationSummary(conversaAtiva);
     const dataRows = getConversationExportRows(conversaAtiva);
     const headers = Object.keys(dataRows[0] || {});
@@ -233,6 +295,10 @@ function exportConversationXls() {
 
 function exportConversationPdf() {
     if (!conversaAtiva) return;
+    if (!(chatManagerCapabilities || getChatManagerCapabilities()).export) {
+        Swal.fire('Acesso restrito', 'Seu perfil possui apenas visao operacional nesta tela e nao pode exportar a trilha completa.', 'info');
+        return;
+    }
     if (!window.jspdf || !window.jspdf.jsPDF) {
         Swal.fire('Erro', 'A biblioteca de PDF nao foi carregada nesta pagina.', 'error');
         return;
@@ -312,6 +378,7 @@ function exportConversationPdf() {
 }
 
 $(document).ready(function() {
+    applyChatManagerPermissions();
     $('#msg-input').prop('disabled', true).attr('placeholder', 'Resposta humana desabilitada neste canal');
     $('#btn-send').prop('disabled', true).hide();
     updateExportButtons();
@@ -359,7 +426,7 @@ function normalizarConversa(conversation) {
 
 async function carregarConversas() {
     try {
-        const res = await fetch('/api/webchat/conversations');
+        const res = await fetch('/api/webchat/conversations', { headers: getChatManagerRequestHeaders({}) });
         const body = await res.json();
         conversas = Array.isArray(body?.conversations) ? body.conversations.map(normalizarConversa) : [];
         updateKnownConversations(conversas, false);
@@ -376,7 +443,7 @@ async function carregarConversas() {
 
 async function carregarConversasSilencioso() {
     try {
-        const res = await fetch('/api/webchat/conversations');
+        const res = await fetch('/api/webchat/conversations', { headers: getChatManagerRequestHeaders({}) });
         const body = await res.json();
         conversas = Array.isArray(body?.conversations) ? body.conversations.map(normalizarConversa) : [];
         updateKnownConversations(conversas, true);
@@ -386,7 +453,9 @@ async function carregarConversasSilencioso() {
         if (contatoAtivoId) {
             await selecionarChat(contatoAtivoId, true);
         }
-    } catch (_) {}
+    } catch (error) {
+        console.error('Erro ao atualizar conversas silenciosamente:', error);
+    }
 }
 
 function updateKnownConversations(lista, shouldNotify) {
@@ -476,11 +545,11 @@ async function selecionarChat(id, silent = false) {
             <div>
                 <div>${escapeHtml(conversation.display_name || 'Conversa')}</div>
                 <div class="small text-muted mt-1">
-                    ${escapeHtml(conversation.area_label)} · ${escapeHtml(conversation.status_label)}
+                    ${escapeHtml(conversation.area_label)} ï¿½ ${escapeHtml(conversation.status_label)}
                 </div>
             </div>
         `);
-        $('#btn-resolve-chat').prop('disabled', conversation.status !== 'AI_ACTIVE');
+        $('#btn-resolve-chat').prop('disabled', conversation.status !== 'AI_ACTIVE' || !(chatManagerCapabilities || getChatManagerCapabilities()).resolveConversation);
         updateExportButtons();
         renderizarHistorico(conversation);
         renderizarAuditoria(conversation);
@@ -519,13 +588,19 @@ function renderizarHistorico(conversation) {
 }
 
 function renderizarAuditoria(conversation) {
+    const capabilities = chatManagerCapabilities || getChatManagerCapabilities();
     const selectedMessage = (conversation?.transcript || []).find((message) => message.id === auditMessageAtivoId && message.audit);
     const audit = selectedMessage?.audit || conversation.audit_trail || {};
     const supportingSource = audit.supporting_source || null;
     const consultedSources = Array.isArray(audit.consulted_sources) ? audit.consulted_sources : [];
+    const feedbackSummary = audit.feedback_summary || {};
+    const incidentSummary = audit.incident_summary || {};
     const events = Array.isArray(audit.formal_events) ? audit.formal_events : [];
+    const panelIntro = capabilities.governanceDetails
+        ? 'Painel completo de governanca e rastreabilidade da resposta.'
+        : 'Painel operacional resumido. Detalhes internos de risco, evidencias completas e acoes de governanca ficam restritos a perfis autorizados.';
 
-    const consultedSourcesHtml = consultedSources.length
+    const consultedSourcesHtml = capabilities.detailedEvidence && consultedSources.length
         ? consultedSources.map((source) => `
             <div class="audit-source-item">
                 <div class="font-weight-bold mb-1">${escapeHtml(source.source_title || 'Fonte institucional')}</div>
@@ -533,9 +608,9 @@ function renderizarAuditoria(conversation) {
                 <div class="small">${escapeHtml(source.source_excerpt || 'Sem trecho registrado.')}</div>
             </div>
         `).join('')
-        : '<div class="audit-empty">Nenhuma fonte consultada foi registrada para esta resposta.</div>';
+        : '<div class="audit-empty">Seu perfil ve apenas a fonte principal ou nao ha fontes detalhadas registradas.</div>';
 
-    const eventsHtml = events.length
+    const eventsHtml = capabilities.formalEvents && events.length
         ? events.map((event) => `
             <div class="audit-event-item">
                 <div class="small font-weight-bold">${escapeHtml(event.event_type || 'EVENTO')}</div>
@@ -543,13 +618,63 @@ function renderizarAuditoria(conversation) {
                 <div class="small">${escapeHtml(event.summary || '')}</div>
             </div>
         `).join('')
-        : '<div class="audit-empty">Sem eventos adicionais de auditoria.</div>';
+        : '<div class="audit-empty">Seu perfil nao visualiza os eventos formais detalhados desta conversa.</div>';
+
+    const confidenceBox = capabilities.governanceDetails
+        ? `
+                <div class="audit-box">
+                    <div class="audit-label">Confianca</div>
+                    <div>${escapeHtml(formatConfidence(audit.confidence_score))}</div>
+                    <div class="small text-muted">Entregue em ${escapeHtml(formatDateTime(audit.delivered_at))}</div>
+                </div>
+        `
+        : `
+                <div class="audit-box">
+                    <div class="audit-label">Resposta</div>
+                    <div>${escapeHtml(formatResponseMode(audit.response_mode || 'AUTOMATIC'))}</div>
+                    <div class="small text-muted">Entregue em ${escapeHtml(formatDateTime(audit.delivered_at))}</div>
+                </div>
+        `;
+
+    const governanceChips = capabilities.governanceDetails
+        ? `
+                <span class="audit-chip">Fallback humano: ${audit.fallback_to_human ? 'sim' : 'nao'}</span>
+                <span class="audit-chip">Revisao requerida: ${audit.review_required ? 'sim' : 'nao'}</span>
+                <span class="audit-chip">Risco de alucinacao: ${escapeHtml(audit.hallucination_risk_level || '-')}</span>
+                <span class="audit-chip">Score de evidencia: ${escapeHtml(formatConfidence(audit.evidence_score))}</span>
+                <span class="audit-chip">Feedback util: ${escapeHtml(String(feedbackSummary.helpful || 0))}</span>
+                <span class="audit-chip">Feedback incorreto: ${escapeHtml(String(feedbackSummary.incorrect || 0))}</span>
+                <span class="audit-chip">Incidentes abertos: ${escapeHtml(String(incidentSummary.open || 0))}</span>
+                <span class="audit-chip">Resposta corrigida depois: ${audit.corrected ? 'sim' : 'nao'}</span>
+                ${audit.abstained ? `<span class="audit-chip">Resposta contida por seguranca</span>` : ''}
+                ${audit.review_reason && audit.review_reason !== '-' ? `<span class="audit-chip">Motivo da revisao: ${escapeHtml(audit.review_reason)}</span>` : ''}
+                ${audit.corrected_at ? `<span class="audit-chip">Corrigida em: ${escapeHtml(formatDateTime(audit.corrected_at))}</span>` : ''}
+                ${audit.corrected_by ? `<span class="audit-chip">Corrigida por: ${escapeHtml(audit.corrected_by)}</span>` : ''}
+        `
+        : `
+                <span class="audit-chip">Fonte principal: ${escapeHtml(supportingSource?.source_title || 'Nao definida')}</span>
+                <span class="audit-chip">Versao: ${escapeHtml(supportingSource?.source_version_label || 'Nao definida')}</span>
+                <span class="audit-chip">Modo: ${escapeHtml(formatResponseMode(audit.response_mode || 'AUTOMATIC'))}</span>
+                ${audit.fallback_to_human ? `<span class="audit-chip">Encaminhamento recomendado</span>` : ''}
+        `;
+
+    const governanceActions = capabilities.feedbackActions
+        ? `
+            <div class="d-flex flex-wrap mt-3" style="gap: 8px;">
+                <button class="btn btn-sm btn-outline-success" onclick="registrarFeedbackAuditoria('helpful')" ${audit.response_id ? '' : 'disabled'}>Marcar util</button>
+                <button class="btn btn-sm btn-outline-warning" onclick="registrarFeedbackAuditoria('not_helpful')" ${audit.response_id ? '' : 'disabled'}>Nao util</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="registrarFeedbackAuditoria('incorrect')" ${audit.response_id ? '' : 'disabled'}>Incorreta</button>
+                <button class="btn btn-sm btn-outline-dark" onclick="registrarIncidenteAuditoria()" ${audit.response_id ? '' : 'disabled'}>Abrir incidente</button>
+            </div>
+        `
+        : '';
 
     $('#chat-audit-panel').html(`
         <div class="audit-section">
             <div class="audit-label">Pergunta Original</div>
             <div class="audit-box">${escapeHtml(audit.original_question || 'Pergunta original nao registrada.')}</div>
             <div class="small text-muted mt-2">${selectedMessage ? 'Painel vinculado a resposta clicada no historico.' : 'Selecione uma resposta da IA no historico para ver a trilha exata dela.'}</div>
+            <div class="small text-muted mt-2">${escapeHtml(panelIntro)}</div>
         </div>
 
         <div class="audit-section">
@@ -562,8 +687,8 @@ function renderizarAuditoria(conversation) {
             <div class="audit-box mb-2">
                 <div><strong>Fonte principal:</strong> ${escapeHtml(supportingSource?.source_title || 'Nao definida')}</div>
                 <div><strong>Versao:</strong> ${escapeHtml(supportingSource?.source_version_label || 'Nao definida')}</div>
-                <div><strong>Publicada em:</strong> ${escapeHtml(formatDateTime(supportingSource?.published_at))}</div>
-                <div><strong>Trecho usado:</strong> ${escapeHtml(supportingSource?.source_excerpt || 'Nao registrado')}</div>
+                <div><strong>Publicada em:</strong> ${escapeHtml(capabilities.detailedEvidence ? formatDateTime(supportingSource?.published_at) : '-')}</div>
+                <div><strong>Trecho usado:</strong> ${escapeHtml(capabilities.detailedEvidence ? (supportingSource?.source_excerpt || 'Nao registrado') : 'Visivel apenas para perfis de governanca')}</div>
             </div>
             ${consultedSourcesHtml}
         </div>
@@ -579,25 +704,19 @@ function renderizarAuditoria(conversation) {
                 <div class="audit-box">
                     <div class="audit-label">Quando e canal</div>
                     <div>${escapeHtml(formatDateTime(audit.asked_at))}</div>
-                    <div class="small text-muted">${escapeHtml(audit.channel || '-')} · ${escapeHtml(audit.requester_profile || '-')}</div>
+                    <div class="small text-muted">${escapeHtml(audit.channel || '-')} | ${escapeHtml(audit.requester_profile || '-')}</div>
                 </div>
                 <div class="audit-box">
                     <div class="audit-label">Assistente</div>
                     <div>${escapeHtml(audit.assistant_name || '-')}</div>
                     <div class="small text-muted">Tipo: ${escapeHtml(formatResponseMode(audit.response_mode || 'AUTOMATIC'))}</div>
                 </div>
-                <div class="audit-box">
-                    <div class="audit-label">Confianca</div>
-                    <div>${escapeHtml(formatConfidence(audit.confidence_score))}</div>
-                    <div class="small text-muted">Entregue em ${escapeHtml(formatDateTime(audit.delivered_at))}</div>
-                </div>
+                ${confidenceBox}
             </div>
             <div class="d-flex flex-wrap" style="gap: 8px;">
-                <span class="audit-chip">Fallback humano: ${audit.fallback_to_human ? 'sim' : 'nao'}</span>
-                <span class="audit-chip">Resposta corrigida depois: ${audit.corrected ? 'sim' : 'nao'}</span>
-                ${audit.corrected_at ? `<span class="audit-chip">Corrigida em: ${escapeHtml(formatDateTime(audit.corrected_at))}</span>` : ''}
-                ${audit.corrected_by ? `<span class="audit-chip">Corrigida por: ${escapeHtml(audit.corrected_by)}</span>` : ''}
+                ${governanceChips}
             </div>
+            ${governanceActions}
         </div>
 
         <div class="audit-section">
@@ -606,7 +725,6 @@ function renderizarAuditoria(conversation) {
         </div>
     `);
 }
-
 function selecionarAuditoriaMensagem(messageId) {
     auditMessageAtivoId = messageId;
     if (!conversaAtiva) return;
@@ -614,11 +732,107 @@ function selecionarAuditoriaMensagem(messageId) {
     renderizarAuditoria(conversaAtiva);
 }
 
+async function registrarFeedbackAuditoria(tipo) {
+    if (!(chatManagerCapabilities || getChatManagerCapabilities()).feedbackActions) {
+        Swal.fire('Acesso restrito', 'Seu perfil nao pode registrar feedback institucional nesta tela.', 'info');
+        return;
+    }
+    const audit = getSelectedAudit(conversaAtiva);
+    if (!audit?.response_id) {
+        Swal.fire('Informacao', 'Selecione uma resposta auditavel para registrar feedback.', 'info');
+        return;
+    }
+
+    let comment = '';
+    if (tipo !== 'helpful') {
+        const result = await Swal.fire({
+            title: tipo === 'incorrect' ? 'Registrar resposta incorreta' : 'Registrar feedback',
+            input: 'textarea',
+            inputLabel: 'Comentario opcional',
+            inputPlaceholder: 'Descreva o problema observado...',
+            showCancelButton: true,
+            confirmButtonText: 'Salvar',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!result.isConfirmed) return;
+        comment = String(result.value || '').trim();
+    }
+
+    const res = await fetch('/api/webchat/responses/' + encodeURIComponent(audit.response_id) + '/feedback', {
+        method: 'POST',
+        headers: getChatManagerRequestHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ feedback_type: tipo, comment, created_by: 'Operador institucional' })
+    });
+    const body = await res.json();
+    if (!res.ok) {
+        Swal.fire('Erro', body.error || 'Falha ao registrar feedback.', 'error');
+        return;
+    }
+
+    Swal.fire('Sucesso', 'Feedback registrado com sucesso.', 'success');
+    if (contatoAtivoId) await selecionarChat(contatoAtivoId, true);
+  }
+
+async function registrarIncidenteAuditoria() {
+    if (!(chatManagerCapabilities || getChatManagerCapabilities()).feedbackActions) {
+        Swal.fire('Acesso restrito', 'Seu perfil nao pode abrir incidentes a partir desta tela.', 'info');
+        return;
+    }
+    const audit = getSelectedAudit(conversaAtiva);
+    if (!audit?.response_id) {
+        Swal.fire('Informacao', 'Selecione uma resposta auditavel para registrar incidente.', 'info');
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'Registrar incidente',
+        html: '<input id="incident-type" class="swal2-input" placeholder="Tipo do incidente" value="governance_review">' +
+            '<input id="incident-severity" class="swal2-input" placeholder="Severidade: LOW, MEDIUM, HIGH, CRITICAL" value="MEDIUM">' +
+            '<textarea id="incident-description" class="swal2-textarea" placeholder="Descricao do incidente"></textarea>',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Registrar',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => ({
+            incident_type: document.getElementById('incident-type').value,
+            severity: document.getElementById('incident-severity').value,
+            description: document.getElementById('incident-description').value
+        })
+    });
+
+    if (!result.isConfirmed) return;
+
+    const payload = result.value || {};
+    const res = await fetch('/api/webchat/responses/' + encodeURIComponent(audit.response_id) + '/incident', {
+        method: 'POST',
+        headers: getChatManagerRequestHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+            incident_type: String(payload.incident_type || 'governance_review').trim(),
+            severity: String(payload.severity || 'MEDIUM').trim().toUpperCase(),
+            description: String(payload.description || '').trim(),
+            topic: audit.original_question || '',
+            opened_by: 'Operador institucional'
+        })
+    });
+    const body = await res.json();
+    if (!res.ok) {
+        Swal.fire('Erro', body.error || 'Falha ao registrar incidente.', 'error');
+        return;
+    }
+
+    Swal.fire('Sucesso', 'Incidente registrado com sucesso.', 'success');
+    if (contatoAtivoId) await selecionarChat(contatoAtivoId, true);
+  }
+
 async function enviarMensagem() {
     Swal.fire('Informacao', 'Resposta humana desabilitada. Este canal opera apenas com assistentes institucionais.', 'info');
 }
 
 async function encerrarConversaAtual() {
+    if (!(chatManagerCapabilities || getChatManagerCapabilities()).resolveConversation) {
+        Swal.fire('Acesso restrito', 'Seu perfil nao pode encerrar conversas nesta tela.', 'info');
+        return;
+    }
     if (!contatoAtivoId) return;
 
     const { value: finalText, isConfirmed } = await Swal.fire({
@@ -636,7 +850,7 @@ async function encerrarConversaAtual() {
     try {
         const res = await fetch(`/api/webchat/conversations/${encodeURIComponent(contatoAtivoId)}/resolve`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getChatManagerRequestHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 text: String(finalText || '').trim()
             })
@@ -656,3 +870,10 @@ async function encerrarConversaAtual() {
 window.selecionarChat = selecionarChat;
 window.selecionarAuditoriaMensagem = selecionarAuditoriaMensagem;
 window.enviarMensagem = enviarMensagem;
+
+
+
+
+
+
+

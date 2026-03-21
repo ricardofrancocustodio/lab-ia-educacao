@@ -1,4 +1,4 @@
-﻿// ðŸ“ .qodo/services/supabase.js
+// 📁 .qodo/services/supabase.js
 const { createClient } = require("@supabase/supabase-js");
 const { OpenAI } = require('openai'); // Precisa do OpenAI para criar embeddings
 const { standardizePhone } = require("../utils/phoneUtils");
@@ -10,7 +10,7 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseKey = supabaseServiceRoleKey || supabaseAnonKey;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn("âš ï¸ VariÃ¡veis de ambiente SUPABASE_URL ou SUPABASE_ANON_KEY nÃ£o definidas.");
+  console.warn("⚠️ Variáveis de ambiente SUPABASE_URL ou SUPABASE_ANON_KEY não definidas.");
 }
 
 if (!supabaseServiceRoleKey) {
@@ -22,13 +22,13 @@ const supabase = (supabaseUrl && supabaseKey)
   : null;
 
 // --- CLIENTE OPENAI ---
-// (NecessÃ¡rio para criar o embedding da pergunta do usuÃ¡rio em tempo real)
+// (Necessário para criar o embedding da pergunta do usuário em tempo real)
 const openai = process.env.OPENAI_API_KEY 
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
 if (!openai) {
-    console.warn("âš ï¸ OPENAI_API_KEY nÃ£o definida no .env. A busca semÃ¢ntica (FAQ) nÃ£o funcionarÃ¡.");
+    console.warn("⚠️ OPENAI_API_KEY não definida no .env. A busca semântica (FAQ) não funcionará.");
 }
 
 const ALLOWED_LEAD_STATUSES = new Set([
@@ -63,20 +63,20 @@ function isUuid(value) {
 }
 
 /**
- * Busca a configuraÃ§Ã£o completa da escola com base no nÂº do bot.
- * (Esta Ã© a funÃ§Ã£o que criÃ¡mos para a sua arquitetura multi-escola)
+ * Busca a configuração completa da escola com base no nº do bot.
+ * (Esta é a função que criámos para a sua arquitetura multi-escola)
  */
 async function loadSchoolConfig(botPhoneNumber) {
   if (!supabase) return null;
 
   const { data, error } = await supabase
     .from('schools')
-    .select('*') // Pega tudo: nome, prompt, knowledge_base (ainda nÃ£o usado), etc.
+    .select('*') // Pega tudo: nome, prompt, knowledge_base (ainda não usado), etc.
     .eq('bot_phone_number', botPhoneNumber)
     .single(); 
 
   if (error) {
-    console.error(`âŒ Erro ao carregar config da escola para o nÂº ${botPhoneNumber}:`, error.message);
+    console.error(`❌ Erro ao carregar config da escola para o nº ${botPhoneNumber}:`, error.message);
     return null;
   }
   
@@ -84,9 +84,9 @@ async function loadSchoolConfig(botPhoneNumber) {
 }
 
 /**
- * âœ… NOVO: Encontra respostas na Base de Conhecimento
- * * 1. Gera um embedding para a pergunta do usuÃ¡rio.
- * 2. Chama a funÃ§Ã£o SQL 'match_knowledge' que acabÃ¡mos de criar no Supabase.
+ * ✅ NOVO: Encontra respostas na Base de Conhecimento
+ * * 1. Gera um embedding para a pergunta do usuário.
+ * 2. Chama a função SQL 'match_knowledge' que acabámos de criar no Supabase.
  * 3. Retorna os trechos de resposta mais relevantes.
  */
 function normalizeKnowledgeCategory(value) {
@@ -103,6 +103,83 @@ function matchesKnowledgeCategory(itemCategory, allowedCategories = []) {
   return allowedCategories.some((category) => normalizeKnowledgeCategory(category) === normalizedItem);
 }
 
+function computeKeywordOverlapScore(normalizedQuestion, keywords = []) {
+  if (!Array.isArray(keywords) || !keywords.length) return 0;
+  const matched = keywords.filter((keyword) => {
+    const value = String(keyword || '').toLowerCase().trim();
+    return value && normalizedQuestion.includes(value);
+  });
+  return Math.min(1, matched.length / Math.min(keywords.length, 4));
+}
+
+function computeTextOverlapScore(normalizedQuestion, item = {}) {
+  const question = String(item.question || '').toLowerCase();
+  const answer = String(item.answer || '').toLowerCase();
+
+  if (!normalizedQuestion) return 0;
+  if (question && (normalizedQuestion.includes(question) || question.includes(normalizedQuestion))) {
+    return 1;
+  }
+  if (answer && answer.includes(normalizedQuestion)) {
+    return 0.92;
+  }
+
+  const tokens = [...new Set(normalizedQuestion.split(/\s+/).filter((token) => token.length >= 4))];
+  if (!tokens.length) return 0;
+  const corpus = `${question} ${answer}`;
+  const matchedTokens = tokens.filter((token) => corpus.includes(token));
+  return Math.min(1, matchedTokens.length / Math.min(tokens.length, 6));
+}
+
+function mergeEntryEvidence(baseItem = {}, incoming = {}) {
+  const currentScore = Number(baseItem.evidence_score || 0);
+  const incomingScore = Number(incoming.evidence_score || 0);
+  const best = incomingScore >= currentScore ? incoming : {};
+  const methods = new Set([
+    ...String(baseItem.retrieval_method || '').split('+').filter(Boolean),
+    ...String(incoming.retrieval_method || '').split('+').filter(Boolean)
+  ]);
+
+  return {
+    ...baseItem,
+    ...best,
+    retrieval_method: methods.size ? [...methods].join('+') : (baseItem.retrieval_method || incoming.retrieval_method || 'metadata'),
+    evidence_score: Math.max(currentScore, incomingScore),
+    semantic_score: Math.max(Number(baseItem.semantic_score || 0), Number(incoming.semantic_score || 0)),
+    keyword_score: Math.max(Number(baseItem.keyword_score || 0), Number(incoming.keyword_score || 0)),
+    text_score: Math.max(Number(baseItem.text_score || 0), Number(incoming.text_score || 0))
+  };
+}
+
+function normalizeMatchedKnowledgeRow(item = {}, normalizedQuestion) {
+  const keywordScore = computeKeywordOverlapScore(normalizedQuestion, item.keywords);
+  const textScore = computeTextOverlapScore(normalizedQuestion, item);
+  const semanticScore = Number(item.similarity || item.semantic_score || 0);
+  const evidenceScore = Math.max(
+    semanticScore ? Math.min(0.95, semanticScore) : 0,
+    keywordScore * 0.65 + textScore * 0.35,
+    textScore * 0.8
+  );
+
+  return {
+    id: item.id,
+    category: item.category,
+    question: item.question,
+    answer: item.answer,
+    source_document_id: item.source_document_id || null,
+    source_title: item.source_title || null,
+    source_version_id: item.source_version_id || null,
+    source_version_label: item.source_version_label || item.source_version_number || null,
+    source_version_number: item.source_version_number || null,
+    keywords: Array.isArray(item.keywords) ? item.keywords : [],
+    retrieval_method: item.retrieval_method || (semanticScore ? 'semantic' : 'metadata'),
+    semantic_score: semanticScore,
+    keyword_score: keywordScore,
+    text_score: textScore,
+    evidence_score: Number(evidenceScore.toFixed(3))
+  };
+}
+
 async function findMatchingAnswers(userQuestion, school_id, options = {}) {
   if (!supabase) return [];
 
@@ -112,7 +189,7 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     : [];
 
   //
-  // 1ï¸âƒ£ BUSCA POR KEYWORDS â€” SUPER RÃPIDA E DIRETA
+  // 1️⃣ BUSCA POR KEYWORDS — SUPER RÁPIDA E DIRETA
   //
   const { data: keywordMatch, error: kwError } = await supabase
     .from("knowledge_base")
@@ -123,7 +200,7 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     console.error("KW ERROR:", kwError.message);
   }
 
-  // Filtra no Node.js porque keywords Ã© um array
+  // Filtra no Node.js porque keywords é um array
   const kwResults =
     keywordMatch?.filter(item =>
       matchesKnowledgeCategory(item.category, allowedCategories) &&
@@ -131,7 +208,7 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     ) || [];
 
   if (kwResults.length > 0) {
-    console.log("ðŸ”Ž MATCH POR KEYWORDS ENCONTRADO!");
+    console.log("🔎 MATCH POR KEYWORDS ENCONTRADO!");
     return kwResults.map(r => r.answer);
   }
 
@@ -145,13 +222,13 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
       }) || [];
 
     if (categoryTextResults.length > 0) {
-      console.log("ðŸ”Ž MATCH POR TEXTO E CATEGORIA ENCONTRADO!");
+      console.log("🔎 MATCH POR TEXTO E CATEGORIA ENCONTRADO!");
       return categoryTextResults.slice(0, 3).map((item) => item.answer);
     }
   }
 
   //
-  // 2ï¸âƒ£ SENÃƒO, USA EMBEDDINGS NORMALMENTE
+  // 2️⃣ SENÃO, USA EMBEDDINGS NORMALMENTE
   //
   if (!openai) return [];
 
@@ -171,7 +248,7 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     });
 
     if (error) {
-      console.error("âŒ Erro em match_knowledge:", error.message);
+      console.error("❌ Erro em match_knowledge:", error.message);
       return [];
     }
 
@@ -183,7 +260,7 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     return finalAnswers.map(a => a.answer) || [];
 
   } catch (err) {
-    console.error("âŒ Erro no embedding:", err.message);
+    console.error("❌ Erro no embedding:", err.message);
     return [];
   }
 }
@@ -197,7 +274,7 @@ async function upsertLead(leadData) {
   // Garante school_id sempre definido (evita quebra no trigger lead_status_history.school_id NOT NULL).
   cleanLeadData.school_id = cleanLeadData.school_id || process.env.SCHOOL_ID || null;
   if (!cleanLeadData.school_id) {
-    console.error('âŒ upsertLead abortado: school_id ausente no payload e no ambiente.');
+    console.error('❌ upsertLead abortado: school_id ausente no payload e no ambiente.');
     return null;
   }
   const rawRequestedStatus = cleanLeadData.status;
@@ -232,7 +309,7 @@ async function upsertLead(leadData) {
       }
     }
   } catch (e) {
-    console.warn('âš ï¸ Falha ao ler status anterior do lead:', e.message || e);
+    console.warn('⚠️ Falha ao ler status anterior do lead:', e.message || e);
   }
 
   const payloadForWrite = { ...cleanLeadData };
@@ -275,17 +352,17 @@ async function upsertLead(leadData) {
   });
 
   // leadData deve conter: { name, phone, email, children_details, segment, status, wpp_id, school_id }
-  // âœ… Fluxo principal: usa UPSERT com conflito por WhatsApp + escola
+  // ✅ Fluxo principal: usa UPSERT com conflito por WhatsApp + escola
   let response = await supabase
     .from('leads')
     .upsert(payloadForWrite, { onConflict: 'wpp_id,school_id' })
     .select()
     .single();
 
-  // âœ… Fallback seguro: se nÃ£o existir constraint UNIQUE para o ON CONFLICT,
-  // faz UPDATE/INSERT manual para nÃ£o travar o agendamento.
+  // ✅ Fallback seguro: se não existir constraint UNIQUE para o ON CONFLICT,
+  // faz UPDATE/INSERT manual para não travar o agendamento.
   if (response.error?.message?.includes('no unique or exclusion constraint matching the ON CONFLICT specification')) {
-    console.warn('âš ï¸ Constraint de upsert ausente para (wpp_id, school_id). Aplicando fallback manual.');
+    console.warn('⚠️ Constraint de upsert ausente para (wpp_id, school_id). Aplicando fallback manual.');
 
     const { data: existingLead, error: findError } = await supabase
       .from('leads')
@@ -297,7 +374,7 @@ async function upsertLead(leadData) {
       .maybeSingle();
 
     if (findError) {
-      console.error('âŒ Erro ao buscar lead existente no fallback:', findError.message);
+      console.error('❌ Erro ao buscar lead existente no fallback:', findError.message);
       return null;
     }
 
@@ -385,7 +462,7 @@ async function upsertLead(leadData) {
         );
       }
     } catch (e) {
-      console.warn('âš ï¸ Falha ao registrar status intermediario em lead_bot_events:', e.message || e);
+      console.warn('⚠️ Falha ao registrar status intermediario em lead_bot_events:', e.message || e);
     }
   }
 
@@ -512,7 +589,7 @@ async function upsertLead(leadData) {
       }
     }
   } catch (e) {
-    console.warn('âš ï¸ Falha ao disparar notificacao para responsavel:', e.message || e);
+    console.warn('⚠️ Falha ao disparar notificacao para responsavel:', e.message || e);
   }
 
   return response.data;
@@ -582,7 +659,7 @@ async function upsertParentWithChildren({ school_id, name, phone, email, childre
   const safeTargetSegment = isUuid(target_segment) ? target_segment : null;
 
   if (!school_id || !cleanName || !cleanPhone) {
-    console.warn('âš ï¸ upsertParentWithChildren ignorado: school_id, name ou phone ausente.');
+    console.warn('⚠️ upsertParentWithChildren ignorado: school_id, name ou phone ausente.');
     return null;
   }
 
@@ -603,7 +680,7 @@ async function upsertParentWithChildren({ school_id, name, phone, email, childre
     .maybeSingle();
 
   if (findError) {
-    console.error('âŒ Erro ao buscar responsÃ¡vel:', findError.message);
+    console.error('❌ Erro ao buscar responsável:', findError.message);
     return null;
   }
 
@@ -625,7 +702,7 @@ async function upsertParentWithChildren({ school_id, name, phone, email, childre
   }
 
   if (parentResponse.error) {
-    console.error('âŒ Erro ao salvar responsÃ¡vel:', parentResponse.error.message);
+    console.error('❌ Erro ao salvar responsável:', parentResponse.error.message);
     return null;
   }
 
@@ -650,7 +727,7 @@ async function upsertParentWithChildren({ school_id, name, phone, email, childre
       .insert(childrenPayload);
 
     if (childError) {
-      console.error('âŒ Erro ao salvar filhos:', childError.message);
+      console.error('❌ Erro ao salvar filhos:', childError.message);
     }
   }
 
@@ -658,7 +735,7 @@ async function upsertParentWithChildren({ school_id, name, phone, email, childre
 }
 
 /**
- * Encontra o ID da Escola pelo nÃºmero do bot
+ * Encontra o ID da Escola pelo número do bot
  */
 async function getSchoolIdByBotNumber(botNumber) {
   if (!supabase) return null;
@@ -677,10 +754,10 @@ async function getLeadStatus(phone) {
         const schoolId = process.env.SCHOOL_ID;
         const cleanPhone = standardizePhone(phone);
 
-        // 2. Gera variaÃ§Ãµes possÃ­veis para vencer o "Caos do WhatsApp no Brasil"
+        // 2. Gera variações possíveis para vencer o "Caos do WhatsApp no Brasil"
         const variations = [];
         
-        // VariaÃ§Ã£o A: O prÃ³prio nÃºmero limpo (Ex: 55618259...)
+        // Variação A: O próprio número limpo (Ex: 55618259...)
         variations.push(cleanPhone);
         
         let legacyVersion = cleanPhone; 
@@ -688,19 +765,19 @@ async function getLeadStatus(phone) {
             legacyVersion = cleanPhone.substring(2); // Ex: vira "619..."
         }
 
-        // VariaÃ§Ã£o B: Se tem 12 dÃ­gitos (55 + 2 DDD + 8 num), tenta adicionar o 9
+        // Variação B: Se tem 12 dígitos (55 + 2 DDD + 8 num), tenta adicionar o 9
         if (cleanPhone.length === 12 && cleanPhone.startsWith("55")) {
             const withNine = cleanPhone.slice(0, 4) + "9" + cleanPhone.slice(4);
             variations.push(withNine); // Ex: 556198259...
         }
 
-        // VariaÃ§Ã£o C: Se tem 13 dÃ­gitos (55 + 2 DDD + 9 num), tenta tirar o 9
+        // Variação C: Se tem 13 dígitos (55 + 2 DDD + 9 num), tenta tirar o 9
         if (cleanPhone.length === 13 && cleanPhone.startsWith("55")) {
             const withoutNine = cleanPhone.slice(0, 4) + cleanPhone.slice(5);
             variations.push(withoutNine); // Ex: 55618259...
         }
 
-        // VariaÃ§Ã£o D: Sem o 55 (Legado)
+        // Variação D: Sem o 55 (Legado)
         if (cleanPhone.startsWith("55")) {
             variations.push(cleanPhone.substring(2)); // Remove o 55
         }
@@ -710,7 +787,7 @@ async function getLeadStatus(phone) {
        let query = supabase
             .from('leads')
             .select('id, status, metadata, phone, source')
-            .or(orQuery) // ðŸ‘ˆ O Pulo do Gato
+            .or(orQuery) // 👈 O Pulo do Gato
             .order('updated_at', { ascending: false })
             .limit(1);
 
@@ -745,12 +822,12 @@ async function logLeadBotEvent(leadId, eventType, eventDetails = null, schoolId 
       .single();
 
     if (error) {
-      console.error("âŒ Erro ao salvar log do bot:", error.message);
+      console.error("❌ Erro ao salvar log do bot:", error.message);
       return null;
     }
     return data;
   } catch (err) {
-    console.error("âŒ ExceÃ§Ã£o ao salvar log do bot:", err);
+    console.error("❌ Exceção ao salvar log do bot:", err);
     return null;
   }
 }
@@ -777,17 +854,57 @@ async function findMatchingEntries(userQuestion, schoolId, options = {}) {
     return [];
   }
 
-  return (data || [])
-    .filter((item) => {
-      const categoryMatches = !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories);
-      const keywordMatches = Array.isArray(item.keywords)
-        ? item.keywords.some((keyword) => normalized.includes(String(keyword || '').toLowerCase()))
-        : false;
-      const textMatches =
-        normalized.includes(String(item.question || '').toLowerCase()) ||
-        String(item.answer || '').toLowerCase().includes(normalized);
+  const candidateMap = new Map();
+  const filteredRows = (data || []).filter((item) => {
+    return !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories);
+  });
 
-      return categoryMatches && (keywordMatches || textMatches);
+  filteredRows.forEach((item) => {
+    const normalizedItem = normalizeMatchedKnowledgeRow(item, normalized);
+    if (normalizedItem.keyword_score > 0 || normalizedItem.text_score > 0.25) {
+      candidateMap.set(normalizedItem.id, normalizedItem);
+    }
+  });
+
+  if (openai) {
+    try {
+      const embeddingResponse = await openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: userQuestion,
+      });
+
+      const query_embedding = embeddingResponse.data[0].embedding;
+      const { data: semanticMatches, error: semanticError } = await supabase.rpc('match_knowledge', {
+        query_embedding,
+        match_threshold: 0.45,
+        match_count: Math.max(limit * 2, 6),
+        p_school_id: schoolId
+      });
+
+      if (semanticError) {
+        console.warn('Falha ao consultar match_knowledge, mantendo busca textual:', semanticError.message);
+      } else {
+        (semanticMatches || [])
+          .filter((item) => !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories))
+          .forEach((item) => {
+            const normalizedItem = normalizeMatchedKnowledgeRow({
+              ...item,
+              retrieval_method: 'semantic'
+            }, normalized);
+            const current = candidateMap.get(normalizedItem.id);
+            candidateMap.set(normalizedItem.id, current ? mergeEntryEvidence(current, normalizedItem) : normalizedItem);
+          });
+      }
+    } catch (embeddingError) {
+      console.warn('Falha ao gerar embedding para busca hibrida:', embeddingError.message || embeddingError);
+    }
+  }
+
+  return [...candidateMap.values()]
+    .sort((a, b) => {
+      const scoreDiff = Number(b.evidence_score || 0) - Number(a.evidence_score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return String(b.source_version_id || '').localeCompare(String(a.source_version_id || ''));
     })
     .slice(0, limit);
 }
@@ -932,13 +1049,34 @@ async function recordConsultationEvent(payload = {}) {
         console.error('Erro ao registrar resposta do assistente:', responseError.message);
       } else {
         assistantResponse = insertedResponse;
+
+        if (consultedSources.length) {
+          const evidenceRows = consultedSources.map((source, index) => ({
+            school_id: payload.school_id,
+            consultation_id: consultation.id,
+            response_id: insertedResponse.id,
+            source_document_id: source?.source_document_id || null,
+            source_version_id: source?.source_version_id || null,
+            source_title: source?.source_title || null,
+            source_excerpt: source?.source_excerpt || source?.excerpt || null,
+            relevance_score: source?.evidence_score ?? source?.similarity ?? null,
+            evidence_type: index === 0 ? 'primary_support' : 'retrieval',
+            retrieval_method: source?.retrieval_method || null,
+            used_as_primary: index === 0
+          }));
+
+          const { error: evidenceError } = await supabase.from('interaction_source_evidence').insert(evidenceRows);
+          if (evidenceError && !String(evidenceError.message || '').toLowerCase().includes('does not exist')) {
+            console.error('Erro ao registrar evidencias estruturadas:', evidenceError.message);
+          }
+        }
       }
 
       await supabase.from('formal_audit_events').insert({
         school_id: payload.school_id,
         consultation_id: consultation.id,
         event_type: payload.audit_event_type || 'ASSISTANT_RESPONSE',
-        severity: 'INFO',
+        severity: payload.audit_severity || 'INFO',
         actor_type: 'ASSISTANT',
         actor_name: payload.assistant_name || payload.assigned_assistant_key || 'Assistente',
         summary: payload.audit_summary || 'Resposta emitida no atendimento institucional.',
@@ -951,6 +1089,12 @@ async function recordConsultationEvent(payload = {}) {
           source_version_id: payload.source_version_id || supportingSource?.source_version_id || null,
           supporting_source_title: payload.supporting_source_title || supportingSource?.source_title || null,
           consulted_sources: consultedSources,
+          evidence_score: payload.evidence_score ?? null,
+          hallucination_risk_level: payload.hallucination_risk_level || null,
+          review_required: Boolean(payload.review_required),
+          review_reason: payload.review_reason || null,
+          abstained: Boolean(payload.abstained),
+          confidence_score: payload.confidence_score ?? null,
           delivered_at: deliveredAt,
           period_marker: new Date().toISOString()
         }
@@ -1048,5 +1192,8 @@ module.exports = {
   recordConsultationEvent,
   closeConsultationEvent
 };
+
+
+
 
 

@@ -1,4 +1,4 @@
-﻿const path = require("path");
+const path = require("path");
 const receptionist = require(path.resolve("./.qodo/core/receptionist.js"));
 const agents = require(path.resolve("./.qodo/agents/index.js"));
 const {
@@ -6,6 +6,17 @@ const {
   appendConversationMessage
 } = require(path.resolve("./.qodo/services/chat/handoffStore.js"));
 const { recordConsultationEvent } = require(path.resolve("./.qodo/services/supabase.js"));
+
+const ASSISTANT_LABELS = {
+  "public.assistant": "Assistente Publico",
+  "administration.secretariat": "Assistente da Secretaria",
+  "administration.treasury": "Assistente da Tesouraria",
+  "administration.direction": "Assistente da Direcao"
+};
+
+function getAssistantLabel(key) {
+  return ASSISTANT_LABELS[key] || key || "Assistente Publico";
+}
 
 function normalizeAgentKey(value) {
   return String(value || "")
@@ -52,10 +63,15 @@ function normalizeReply(result, fallbackAgent) {
         assistant_key: result.audit?.assistant_key || fallbackAgent?.agentKey || "public.assistant",
         assistant_name: result.audit?.assistant_name || fallbackAgent?.name || "Assistente Publico",
         confidence_score: result.audit?.confidence_score ?? null,
+        evidence_score: result.audit?.evidence_score ?? null,
+        hallucination_risk_level: result.audit?.hallucination_risk_level || null,
+        review_required: Boolean(result.audit?.review_required),
+        review_reason: result.audit?.review_reason || null,
         response_mode: result.audit?.response_mode || "AUTOMATIC",
         consulted_sources: Array.isArray(result.audit?.consulted_sources) ? result.audit.consulted_sources : [],
         supporting_source: result.audit?.supporting_source || null,
-        fallback_to_human: Boolean(result.audit?.fallback_to_human)
+        fallback_to_human: Boolean(result.audit?.fallback_to_human),
+        abstained: Boolean(result.audit?.abstained)
       }
     };
   }
@@ -66,11 +82,66 @@ function normalizeReply(result, fallbackAgent) {
       assistant_key: fallbackAgent?.agentKey || "public.assistant",
       assistant_name: fallbackAgent?.name || "Assistente Publico",
       confidence_score: null,
+      evidence_score: null,
+      hallucination_risk_level: null,
+      review_required: false,
+      review_reason: null,
       response_mode: "AUTOMATIC",
       consulted_sources: [],
       supporting_source: null,
-      fallback_to_human: false
+      fallback_to_human: false,
+      abstained: false
     }
+  };
+}
+
+function buildAuditEnvelope(normalizedAudit = {}, resolvedAgent) {
+  const supportingSource = normalizedAudit.supporting_source || null;
+  const consultedSources = Array.isArray(normalizedAudit.consulted_sources) ? normalizedAudit.consulted_sources : [];
+  const hasReliableBase = Boolean(supportingSource?.source_version_id || consultedSources[0]?.source_version_id);
+  const evidenceScore = Number(normalizedAudit.evidence_score || 0);
+  const abstained = Boolean(normalizedAudit.abstained);
+  const reviewRequired = Boolean(normalizedAudit.review_required || abstained || !hasReliableBase);
+  const riskLevel = normalizedAudit.hallucination_risk_level || (abstained || !hasReliableBase ? 'HIGH' : evidenceScore >= 0.78 ? 'LOW' : 'MEDIUM');
+
+  let auditEventType = 'AUTOMATIC_RESPONSE_WITH_EVIDENCE';
+  let auditSeverity = 'INFO';
+  let auditReason = 'source_evidence_found';
+  let auditSummary = `Resposta fundamentada registrada para ${normalizedAudit.assistant_name || resolvedAgent?.name || 'Assistente Publico'}.`;
+  let fallbackArea = null;
+
+  if (abstained) {
+    auditEventType = 'HALLUCINATION_MITIGATED_ABSTENTION';
+    auditSeverity = 'HIGH';
+    auditReason = normalizedAudit.review_reason || 'insufficient_institutional_evidence';
+    auditSummary = 'Resposta contida por mitigacao de alucinacao: sem base institucional suficiente para responder com seguranca.';
+    fallbackArea = 'Curadoria institucional';
+  } else if (!hasReliableBase) {
+    auditEventType = 'NO_CONFIDENT_BASIS';
+    auditSeverity = 'HIGH';
+    auditReason = normalizedAudit.review_reason || 'no_reliable_source_found';
+    auditSummary = 'Base institucional insuficiente para resposta plenamente auditavel. Revisao humana recomendada.';
+    fallbackArea = 'Secretaria';
+  } else if (reviewRequired || riskLevel === 'MEDIUM') {
+    auditEventType = 'AUTOMATIC_RESPONSE_REQUIRES_REVIEW';
+    auditSeverity = 'MEDIUM';
+    auditReason = normalizedAudit.review_reason || 'weak_evidence_requires_follow_up';
+    auditSummary = `Resposta automatica emitida com evidencia parcial para ${normalizedAudit.assistant_name || resolvedAgent?.name || 'Assistente Publico'}.`;
+  }
+
+  return {
+    supportingSource,
+    consultedSources,
+    hasReliableBase,
+    evidenceScore,
+    abstained,
+    reviewRequired,
+    riskLevel,
+    auditEventType,
+    auditSeverity,
+    auditReason,
+    auditSummary,
+    fallbackArea
   };
 }
 
@@ -92,6 +163,7 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
 
   const rawResult = await handler.handleMessage(userId, userText);
   const normalizedResult = normalizeReply(rawResult, resolvedAgent);
+  const auditEnvelope = buildAuditEnvelope(normalizedResult.audit, resolvedAgent);
   const finalReply = isHumanHandoffRequest(text)
     ? `Este atendimento funciona com assistentes institucionais especializados, sem transferencia para humano neste canal. ${normalizedResult.text}`.trim()
     : normalizedResult.text;
@@ -113,15 +185,6 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
     };
   }
 
-  const supportingSource = normalizedResult.audit.supporting_source || null;
-  const consultedSources = Array.isArray(normalizedResult.audit.consulted_sources) ? normalizedResult.audit.consulted_sources : [];
-  const hasReliableBase = Boolean(supportingSource?.source_version_id || consultedSources[0]?.source_version_id);
-  const fallbackArea = hasReliableBase ? null : 'Secretaria';
-  const auditEventType = hasReliableBase ? 'AUTOMATIC_RESPONSE_WITH_EVIDENCE' : 'NO_CONFIDENT_BASIS';
-  const auditSummary = hasReliableBase
-    ? `Resposta fundamentada registrada para ${normalizedResult.audit.assistant_name || resolvedAgent?.name || 'Assistente Publico'}.`
-    : 'Base institucional insuficiente para resposta plenamente auditavel. Encaminhamento sugerido para a Secretaria.';
-
   await recordConsultationEvent({
     school_id: metadata.school_id || process.env.SCHOOL_ID || null,
     channel: String(channel || "webchat"),
@@ -133,24 +196,30 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
     assistant_name: normalizedResult.audit.assistant_name || resolvedAgent?.name || 'Assistente Publico',
     user_text: text,
     response_text: finalReply,
-    source_version_id: supportingSource?.source_version_id || null,
-    supporting_source_title: supportingSource?.source_title || null,
-    supporting_source_excerpt: supportingSource?.source_excerpt || null,
-    supporting_source_version_label: supportingSource?.source_version_label || null,
-    consulted_sources: consultedSources,
+    source_version_id: auditEnvelope.supportingSource?.source_version_id || null,
+    supporting_source_title: auditEnvelope.supportingSource?.source_title || null,
+    supporting_source_excerpt: auditEnvelope.supportingSource?.source_excerpt || null,
+    supporting_source_version_label: auditEnvelope.supportingSource?.source_version_label || null,
+    consulted_sources: auditEnvelope.consultedSources,
     confidence_score: normalizedResult.audit.confidence_score,
+    evidence_score: auditEnvelope.evidenceScore,
+    hallucination_risk_level: auditEnvelope.riskLevel,
+    review_required: auditEnvelope.reviewRequired,
+    review_reason: auditEnvelope.auditReason,
     response_mode: normalizedResult.audit.response_mode || 'AUTOMATIC',
-    fallback_to_human: Boolean(normalizedResult.audit.fallback_to_human),
+    fallback_to_human: Boolean(normalizedResult.audit.fallback_to_human || auditEnvelope.reviewRequired),
     delivered_at: new Date().toISOString(),
-    audit_event_type: auditEventType,
-    audit_reason: hasReliableBase ? 'source_evidence_found' : 'no_reliable_source_found',
-    suggested_fallback_area: fallbackArea,
+    audit_event_type: auditEnvelope.auditEventType,
+    audit_severity: auditEnvelope.auditSeverity,
+    audit_reason: auditEnvelope.auditReason,
+    suggested_fallback_area: auditEnvelope.fallbackArea,
+    abstained: auditEnvelope.abstained,
     metadata: {
       ...(metadata || {}),
       requester_profile: metadata.entrypoint || metadata.profile || metadata.channel_profile || channel || 'webchat',
       routed_agent: normalizedResult.audit.assistant_key || resolvedAgent?.agentKey || 'public.assistant'
     },
-    audit_summary: auditSummary
+    audit_summary: auditEnvelope.auditSummary
   });
 
   return {
@@ -166,4 +235,3 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
 }
 
 module.exports = { handleInboundChat };
-
