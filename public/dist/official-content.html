@@ -15,7 +15,34 @@
         .official-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
         .official-template { border: 1px solid #d9e6f5; background: #f7fbff; border-radius: 12px; padding: 14px; margin-bottom: 1rem; }
         .official-template code { color: #174a7a; background: rgba(23, 74, 122, 0.08); padding: 2px 6px; border-radius: 6px; }
-        @media (max-width: 991px) { .official-grid { grid-template-columns: 1fr; } }
+        .official-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 1rem; }
+        .official-flow-step { border: 1px solid #d8e5d8; background: #f7fbf7; border-radius: 12px; padding: 12px; }
+        .official-flow-step strong { display: block; margin-bottom: 4px; }
+        .official-version-box { border: 1px solid #dbe7f5; background: #f8fbff; border-radius: 12px; padding: 14px; margin-bottom: 1rem; }
+        .official-version-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+        .official-version-item { background: #fff; border: 1px solid #e6edf5; border-radius: 10px; padding: 10px; }
+        .official-version-label { font-size: .78rem; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+        .official-version-value { font-weight: 600; color: #17324d; word-break: break-word; }
+        .official-calendar-preview { border: 1px solid #dfe7d8; background: linear-gradient(180deg, #f4fbf4 0%, #ffffff 100%); border-radius: 14px; padding: 16px; }
+        .official-calendar-preview-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .official-calendar-preview-title { font-size: 1.1rem; font-weight: 700; color: #14532d; }
+        .official-calendar-preview-subtitle { color: #536471; font-size: .92rem; }
+        .official-calendar-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .official-calendar-legend span { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; background: #fff; border: 1px solid #dfe7d8; font-size: .8rem; }
+        .official-calendar-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+        .official-calendar-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        .official-calendar-month { border: 1px solid #dbe7d8; border-radius: 12px; background: #fff; overflow: hidden; }
+        .official-calendar-month-head { background: #1f7a3e; color: #fff; font-weight: 700; padding: 8px 10px; font-size: .88rem; }
+        .official-calendar-month-body { padding: 10px; min-height: 132px; }
+        .official-calendar-event { border-left: 4px solid #1f7a3e; background: #f7fbf7; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+        .official-calendar-event:last-child { margin-bottom: 0; }
+        .official-calendar-event-date { font-size: .77rem; color: #4b5563; margin-bottom: 3px; }
+        .official-calendar-event-title { font-weight: 600; color: #17324d; line-height: 1.25; }
+        .official-calendar-event-meta { font-size: .78rem; color: #667085; margin-top: 4px; }
+        .official-calendar-empty { color: #94a3b8; font-size: .84rem; }
+        .official-calendar-preview-note { margin-top: 12px; color: #5f6b7a; font-size: .88rem; }
+        @media (max-width: 1199px) { .official-calendar-months { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 991px) { .official-grid { grid-template-columns: 1fr; } .official-flow { grid-template-columns: 1fr; } .official-version-grid { grid-template-columns: 1fr; } .official-calendar-months { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" data-page="official-content">
@@ -59,10 +86,25 @@
                             <div class="tab-content">
                                 <div class="tab-pane fade show active" id="official-calendar" role="tabpanel">
                                     <div class="official-grid">
-                                        <div class="official-card card">
+                                                                                <div class="official-card card">
                                             <div class="card-header"><h3 class="card-title">Calendario da Rede / Secretaria</h3></div>
                                             <div class="card-body">
                                                 <p class="official-help">Calendario-base oficial da rede, com eventos que se aplicam de forma ampla.</p>
+                                                <div class="official-flow">
+                                                    <div class="official-flow-step"><strong>1. Importe ou preencha</strong><span class="official-help">Use o CSV para estruturar os eventos e evitar ambiguidade para a IA.</span></div>
+                                                    <div class="official-flow-step"><strong>2. Revise a apresentacao</strong><span class="official-help">Confira abaixo como o calendario ficara organizado antes de publicar.</span></div>
+                                                    <div class="official-flow-step"><strong>3. Salve a versao oficial</strong><span class="official-help">Ao salvar, o sistema gera uma versao rastreavel para consulta humana e uso da IA.</span></div>
+                                                </div>
+                                                <div class="official-version-box">
+                                                    <div class="d-flex justify-content-between align-items-start flex-wrap">
+                                                        <div>
+                                                            <strong>Estado da publicacao</strong>
+                                                            <p class="official-help mb-0 mt-1">Este quadro mostra qual e a versao publicada hoje e o que acontece quando voce salva uma nova atualizacao.</p>
+                                                        </div>
+                                                        <span class="badge badge-light border" id="calendar-network-status-badge">Aguardando carregamento</span>
+                                                    </div>
+                                                    <div class="official-version-grid" id="calendar-network-version-grid"></div><div class="official-toolbar mt-3 mb-2"><select id="calendar-network-status-select" class="form-control form-control-sm" style="max-width:220px;"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="archived">Arquivado</option></select><button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateCalendarStatus('network')">Atualizar status</button></div><div id="calendar-network-history" class="official-list"></div>
+                                                </div>
                                                 <div class="official-template">
                                                     <strong>Template recomendado para leitura pela IA</strong>
                                                     <p class="official-help mb-2 mt-2">Use CSV com uma linha por evento. O usuario preenche em portugues e o sistema converte internamente sem depender do layout visual do PDF.</p>
@@ -78,6 +120,23 @@
                                                     </label>
                                                 </div>
                                                 <div class="form-group"><label>Eventos em CSV (modelo em portugues)</label><textarea id="calendar-network-lines" class="form-control" rows="12" placeholder='data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia&#10;2026-02-09,2026-02-09,Inicio do ano letivo,letivo,Rede inteira,,todos,Comparecimento obrigatorio,Primeiro dia com estudantes,Calendario oficial 2026'></textarea></div>
+                                                <div class="official-calendar-preview">
+                                                    <div class="official-calendar-preview-header">
+                                                        <div>
+                                                            <div class="official-calendar-preview-title">Previa de apresentacao do calendario</div>
+                                                            <div class="official-calendar-preview-subtitle">Esqueleto visual para a tela publica e para revisao interna antes da publicacao.</div>
+                                                        </div>
+                                                        <div class="small text-muted" id="calendar-network-preview-count">0 eventos</div>
+                                                    </div>
+                                                    <div class="official-calendar-legend">
+                                                        <span><i class="official-calendar-dot" style="background:#1f7a3e;"></i>Letivo</span>
+                                                        <span><i class="official-calendar-dot" style="background:#d97706;"></i>Reuniao / Conselho</span>
+                                                        <span><i class="official-calendar-dot" style="background:#b91c1c;"></i>Suspensao / Recesso</span>
+                                                        <span><i class="official-calendar-dot" style="background:#2563eb;"></i>Evento institucional</span>
+                                                    </div>
+                                                    <div class="official-calendar-months" id="calendar-network-preview"></div>
+                                                    <div class="official-calendar-preview-note" id="calendar-network-preview-note"></div>
+                                                </div>
                                                 <div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('network')">Salvar calendario da rede</button></div>
                                             </div>
                                         </div>
@@ -85,6 +144,21 @@
                                             <div class="card-header"><h3 class="card-title">Complementos da Escola</h3></div>
                                             <div class="card-body">
                                                 <p class="official-help">Complementos especificos da unidade: reunioes locais, eventos internos e avisos da escola.</p>
+                                                <div class="official-flow">
+                                                    <div class="official-flow-step"><strong>1. Separe o que e local</strong><span class="official-help">Inclua apenas eventos da unidade, sem repetir o calendario da rede.</span></div>
+                                                    <div class="official-flow-step"><strong>2. Revise a leitura</strong><span class="official-help">A previa ajuda a conferir se as datas ficaram claras para escola, familia e IA.</span></div>
+                                                    <div class="official-flow-step"><strong>3. Publique o complemento</strong><span class="official-help">O sistema preserva o historico e distingue rede de escola automaticamente.</span></div>
+                                                </div>
+                                                <div class="official-version-box">
+                                                    <div class="d-flex justify-content-between align-items-start flex-wrap">
+                                                        <div>
+                                                            <strong>Estado da publicacao</strong>
+                                                            <p class="official-help mb-0 mt-1">Use este quadro para saber se a escola ja tem uma versao publicada e qual sera a proxima atualizacao.</p>
+                                                        </div>
+                                                        <span class="badge badge-light border" id="calendar-school-status-badge">Aguardando carregamento</span>
+                                                    </div>
+                                                    <div class="official-version-grid" id="calendar-school-version-grid"></div><div class="official-toolbar mt-3 mb-2"><select id="calendar-school-status-select" class="form-control form-control-sm" style="max-width:220px;"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="archived">Arquivado</option></select><button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateCalendarStatus('school')">Atualizar status</button></div><div id="calendar-school-history" class="official-list"></div>
+                                                </div>
                                                 <div class="official-template">
                                                     <strong>Quando usar este bloco</strong>
                                                     <p class="official-help mb-0 mt-2">Cadastre apenas eventos locais da unidade. O calendario da rede fica ao lado, separado, para a IA diferenciar o que vale para toda a rede do que vale so para esta escola.</p>
@@ -99,9 +173,26 @@
                                                     </label>
                                                 </div>
                                                 <div class="form-group"><label>Eventos em CSV (modelo em portugues)</label><textarea id="calendar-school-lines" class="form-control" rows="12" placeholder='data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia&#10;2026-03-12,2026-03-12,Reuniao de pais,reuniao,Familias,Auditorio da escola,noite,Comparecer no horario informado,Evento local da unidade,Agenda escolar 2026'></textarea></div>
+                                                <div class="official-calendar-preview">
+                                                    <div class="official-calendar-preview-header">
+                                                        <div>
+                                                            <div class="official-calendar-preview-title">Previa de apresentacao do complemento local</div>
+                                                            <div class="official-calendar-preview-subtitle">Visualizacao em formato de agenda escolar, pronta para a tela publica da unidade.</div>
+                                                        </div>
+                                                        <div class="small text-muted" id="calendar-school-preview-count">0 eventos</div>
+                                                    </div>
+                                                    <div class="official-calendar-legend">
+                                                        <span><i class="official-calendar-dot" style="background:#1f7a3e;"></i>Atividade escolar</span>
+                                                        <span><i class="official-calendar-dot" style="background:#d97706;"></i>Reuniao / Conselho</span>
+                                                        <span><i class="official-calendar-dot" style="background:#b91c1c;"></i>Suspensao / Recesso</span>
+                                                        <span><i class="official-calendar-dot" style="background:#2563eb;"></i>Evento da comunidade</span>
+                                                    </div>
+                                                    <div class="official-calendar-months" id="calendar-school-preview"></div>
+                                                    <div class="official-calendar-preview-note" id="calendar-school-preview-note"></div>
+                                                </div>
                                                 <div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('school')">Salvar complementos da escola</button></div>
                                             </div>
-                                        </div>
+                                        </div></div>
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="official-enrollment" role="tabpanel">

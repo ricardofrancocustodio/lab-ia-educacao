@@ -573,5 +573,45 @@
       ],
       "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
     }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:131225c4-fcf0-4fb4-ade9-7b7f38e73af1",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:131225c4-fcf0-4fb4-ade9-7b7f38e73af1",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:131225c4-fcf0-4fb4-ade9-7b7f38e73af1",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola Piloto",
+        "school_id": "",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento"
+      },
+      "summary": "",
+      "created_at": "2026-03-22T03:12:37.435Z",
+      "updated_at": "2026-03-22T03:12:39.133Z",
+      "transcript": [
+        {
+          "id": "46aa0e2a-2833-4aaa-af5a-650e31b8aa96",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá",
+          "created_at": "2026-03-22T03:12:37.438Z"
+        },
+        {
+          "id": "9d9eac46-5200-4b3c-9301-0885cc6d4b9f",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
+          "created_at": "2026-03-22T03:12:39.133Z"
+        }
+      ],
+      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
+    }
   ]
 ]

@@ -21,7 +21,9 @@
         .contact-item { cursor: pointer; padding: 15px; border-bottom: 1px solid #eee; transition: 0.2s; }
         .contact-item:hover { background: #f0f7ff; }
         .contact-item.active { background: #e7f3ff; border-left: 4px solid #007bff; }
-        .origin-badge { font-size: 0.7rem; }
+        .contact-item.governance-flagged { background: #fff8e8; border-left: 4px solid #f59e0b; }
+        .contact-item.governance-flagged.active { background: #fff1f1; border-left-color: #dc3545; }
+        .origin-badge, .governance-badge { font-size: 0.7rem; }
         .header-actions { margin-left: auto; display: flex; gap: 8px; }
         .audit-section { margin-bottom: 20px; }
         .audit-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6c757d; margin-bottom: 6px; }
@@ -121,5 +123,7 @@
 <script src="./js//chat/chat-manager.js"></script>
 </body>
 </html>
+
+
 
 

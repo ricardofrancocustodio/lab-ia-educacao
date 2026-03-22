@@ -1,8 +1,9 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head id="component-head">
-    <title>Assistente Publico | Gestao de Usuarios</title>
-    
+    <meta charset="UTF-8">
+    <title>Assistente Público | Gestão de Usuários</title>
+
     <!-- CSS específico da página users -->
     <link rel="stylesheet" href="./css/users/users.css">
 </head>
@@ -118,7 +119,7 @@
                             <div class="col-sm-12 col-md-7">
                                 <div class="dataTables_paginate paging_simple_numbers float-right">
                                     <ul class="pagination" id="userPagination">
-                                        <!-- PaginaÃ§Ã£o serÃ¡ gerada dinamicamente -->
+                                        <!-- Paginação será gerada dinamicamente -->
                                     </ul>
                                 </div>
                             </div>
@@ -131,7 +132,7 @@
 
     <div id="component-footer"></div>
 
-    <!-- Modal para Novo/Editar UsuÃ¡rio -->
+    <!-- Modal para Novo/Editar Usuário -->
     <div class="modal fade" id="modalUsuario" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -151,7 +152,7 @@
                         <div class="form-group">
                             <label for="userEmail">Email *</label>
                             <input type="email" class="form-control" id="userEmail" placeholder="email@exemplo.com" required>
-                            <small class="text-muted">Modo sandbox: a conta sera criada sem envio de e-mail. Senha inicial padrao: 123456789.</small>
+                            <small class="text-muted">Modo sandbox: a conta será criada sem envio de e-mail. Senha inicial padrão: 123456789.</small>
                         </div>
                         <div class="form-group">
                             <label for="userPhone">Telefone</label>
@@ -162,14 +163,13 @@
                             <label for="userRole">Perfil de Acesso *</label>
                             <select class="form-control" id="userRole" required>
                                 <option value="">Selecione...</option>
-                                <option value="network_manager">Gestor da Rede / Institucional</option>
-                                <option value="content_curator">Curador de Conteudo</option>
-                                <option value="public_operator">Operador de Atendimento Publico</option>
-                                <option value="secretariat">Servidor da Secretaria</option>
-                                <option value="coordination">Servidor da Coordenacao</option>
-                                <option value="treasury">Servidor da Tesouraria</option>
-                                <option value="direction">Servidor da Direcao</option>
-                                <option value="auditor">Auditor / Compliance</option>
+                                <option value="network_manager">Gestão da Rede</option>
+                                <option value="content_curator">Curadoria de Conteúdo</option>
+                                <option value="public_operator">Atendimento Público</option>
+                                <option value="secretariat">Secretaria</option>
+                                <option value="coordination">Coordenação</option>
+                                <option value="direction">Direção</option>
+                                <option value="auditor">Auditoria e Compliance</option>
                                 <option value="observer">Observador Externo</option>
                             </select>
                         </div>
@@ -200,7 +200,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-success" id="btnSalvarUsuario" onclick="salvarUsuario()">
-                        <i class="fas fa-key mr-1"></i> Salvar usuario sandbox
+                        <i class="fas fa-key mr-1"></i> Salvar usuário sandbox
                     </button>
                 </div>
             </div>
@@ -216,7 +216,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Scripts da aplicaÃ§Ã£o -->
+<!-- Scripts da aplicação -->
 <script src="../js/supabaseConfig.js"></script>
 <script src="./js/session.js"></script>
 <script src="./js/permissions.js"></script>
@@ -225,27 +225,24 @@
 <!-- Component loader -->
 <script src="./js/coordinator/carregar-componentes.js"></script>
 
-<!-- Script especÃ­fico da pÃ¡gina users -->
+<!-- Script específico da página Usuários -->
 <script src="./js/users/users.js"></script>
 
-<!-- Script de inicializaÃ§Ã£o e eventos da pÃ¡gina -->
+<!-- Script de inicialização e eventos da página -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Inicializar a pÃ¡gina
         if (typeof initPage === 'function') {
             initPage();
         }
 
-        // Script para tornar a tabela responsiva em mobile
         function makeTableResponsive() {
             const table = document.querySelector('.table');
             if (!table) return;
-            
+
             if (window.innerWidth <= 768) {
-                // Adiciona labels aos dados para mobile
                 const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
                 const rows = table.querySelectorAll('tbody tr');
-                
+
                 rows.forEach(row => {
                     const cells = row.querySelectorAll('td');
                     cells.forEach((cell, index) => {
@@ -256,12 +253,10 @@
                 });
             }
         }
-        
-        // Executa ao carregar e ao redimensionar
+
         makeTableResponsive();
         window.addEventListener('resize', makeTableResponsive);
-        
-        // Busca de usuÃ¡rios
+
         const searchInput = document.getElementById('searchUser');
         if (searchInput) {
             searchInput.value = '';
@@ -274,7 +269,6 @@
             });
         }
 
-        // Monitorar a seleÃ§Ã£o da funÃ§Ã£o
         const userRoleSelect = document.getElementById('userRole');
         if (userRoleSelect) {
             userRoleSelect.addEventListener('change', function() {
@@ -290,7 +284,6 @@
             });
         }
     });
-
 </script>
 
 </body>

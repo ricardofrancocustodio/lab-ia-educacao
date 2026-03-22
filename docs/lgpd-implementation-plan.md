@@ -456,3 +456,23 @@ Objetivo:
 - preservar imutabilidade operacional da trilha de auditoria
 - separar leitura humana de registro tecnico
 - reduzir risco de alteracao indevida de evidencia
+## Bloco 2 - Isolamento Entre Secretarias e Escolas
+
+Para validar isolamento real entre Escola A e Escola B, o sistema precisa suportar multi-instituicao de forma explicita.
+
+Diretriz tecnica:
+
+- `schools` passa a representar instituicoes do tipo `education_department` ou `school_unit`
+- `school_unit` deve apontar para sua secretaria/rede em `parent_school_id`
+- `school_members` passa a registrar `member_scope`
+- perfis internos e externos deixam de depender apenas do nome da funcao
+
+Artefatos desta etapa:
+
+- `supabase/snippets/institution_affiliation_hardening.sql`
+- `docs/institution-affiliation-model.md`
+
+Observacao:
+
+- com apenas uma instituicao em `schools`, o Bloco 2 nao exercita isolamento real
+- para homologacao, criar ao menos 1 secretaria e 2 unidades escolares vinculadas

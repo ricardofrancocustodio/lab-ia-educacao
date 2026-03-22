@@ -1,4 +1,4 @@
-﻿{
+{
   "hosting": [
     {
       "target": "labia",
@@ -15,6 +15,7 @@
         { "source": "/dashboard", "destination": "/dist/dashboard.html", "type": 302 },
         { "source": "/audit", "destination": "/dist/audit.html", "type": 302 },
         { "source": "/atendimento", "destination": "/dist/chat-manager.html", "type": 302 },
+        { "source": "/simulador-chat.html", "destination": "/simulador-chat", "type": 301 },
         { "source": "/conhecimento", "destination": "/dist/knowledge-base.html", "type": 302 },
         { "source": "/relatorios", "destination": "/dist/reports.html", "type": 302 },
         { "source": "/usuarios", "destination": "/dist/users.html", "type": 302 },
@@ -36,3 +37,6 @@
     }
   ]
 }
+
+
+

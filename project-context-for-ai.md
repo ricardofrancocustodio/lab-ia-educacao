@@ -33,7 +33,7 @@ qnexy
 |   +-- .github
 |   +-- dist
 |   +-- js
-|   +-- omnichannel
+|   +-- simulador-chat.html
 |   +-- src
 |   +-- .browserslistrc
 |   +-- .bundlewatch.config.json
@@ -434,4 +434,5 @@ dist
 3. Reproduzir o frontend por dominio funcional em `public\dist`, mantendo o padrao `pagina.html` + `js/modulo/*.js`.
 4. Garantir RBAC e carregamento de componentes compartilhados antes de montar os modulos especificos.
 5. Validar principalmente os fluxos criticos: evento publico, financiamento publico, mural, permissoes e monitor social.
+
 

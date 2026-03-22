@@ -61,13 +61,15 @@ async function initSession() {
   }
 
   const effectiveRole = platformMember?.role || membro.role;
+  const effectiveName = membro.name || platformMember?.name || user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : 'Usuario');
+  const effectiveEmail = membro.email || platformMember?.email || user.email || '';
 
   sessionStorage.setItem('SCHOOL_ID', membro.school_id || '');
-  sessionStorage.setItem('USER_ROLE', membro.role || '');
+  sessionStorage.setItem('USER_ROLE', effectiveRole || membro.role || '');
   sessionStorage.setItem('PLATFORM_ROLE', platformMember?.role || '');
   sessionStorage.setItem('USER_ID', user.id);
-  sessionStorage.setItem('USER_EMAIL', membro.email || platformMember?.email || user.email || '');
-  sessionStorage.setItem('USER_NAME', membro.name || platformMember?.name || user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : 'Usuario'));
+  sessionStorage.setItem('USER_EMAIL', effectiveEmail);
+  sessionStorage.setItem('USER_NAME', effectiveName);
   sessionStorage.setItem('EFFECTIVE_ROLE', effectiveRole || '');
 
   return { ...membro, platform_role: platformMember?.role || null, effective_role: effectiveRole };
@@ -111,3 +113,5 @@ function fazerLogout() {
 window.initSession = initSession;
 window.getAccessToken = getAccessToken;
 window.fazerLogout = fazerLogout;
+
+

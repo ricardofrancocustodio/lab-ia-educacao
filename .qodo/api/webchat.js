@@ -173,10 +173,86 @@ router.get("/conversations", async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
+    const consultationIds = [...new Set((data || []).map((row) => row.id).filter(Boolean))];
+    const governanceSummaryDefaults = {
+      feedback_summary: { total: 0, helpful: 0, not_helpful: 0, incorrect: 0 },
+      incident_summary: { total: 0, open: 0 },
+      flagged: false
+    };
+    const cloneGovernanceSummaryDefaults = () => JSON.parse(JSON.stringify(governanceSummaryDefaults));
+    let governanceSummaryByConsultationId = {};
+
+    if (consultationIds.length) {
+      const { data: responseRows, error: responseError } = await supabase
+        .from("assistant_responses")
+        .select("id, consultation_id")
+        .in("consultation_id", consultationIds);
+
+      if (responseError && !isMissingRelationError(responseError)) {
+        throw responseError;
+      }
+
+      const safeResponseRows = responseError ? [] : (responseRows || []);
+      const responseIds = [...new Set(safeResponseRows.map((row) => row.id).filter(Boolean))];
+      const consultationIdByResponseId = safeResponseRows.reduce((acc, row) => {
+        acc[row.id] = row.consultation_id;
+        return acc;
+      }, {});
+
+      consultationIds.forEach((consultationId) => {
+        governanceSummaryByConsultationId[consultationId] = cloneGovernanceSummaryDefaults();
+      });
+
+      if (responseIds.length) {
+        const [feedbackResult, incidentResult] = await Promise.all([
+          supabase.from("interaction_feedback").select("response_id, feedback_type").in("response_id", responseIds),
+          supabase.from("incident_reports").select("response_id, status").in("response_id", responseIds)
+        ]);
+
+        if (feedbackResult.error && !isMissingRelationError(feedbackResult.error)) {
+          throw feedbackResult.error;
+        }
+        if (incidentResult.error && !isMissingRelationError(incidentResult.error)) {
+          throw incidentResult.error;
+        }
+
+        (feedbackResult.error ? [] : (feedbackResult.data || [])).forEach((item) => {
+          const consultationId = consultationIdByResponseId[item.response_id];
+          if (!consultationId) return;
+          const summary = governanceSummaryByConsultationId[consultationId] || cloneGovernanceSummaryDefaults();
+          summary.feedback_summary.total += 1;
+          if (item.feedback_type === "helpful") summary.feedback_summary.helpful += 1;
+          if (item.feedback_type === "not_helpful") summary.feedback_summary.not_helpful += 1;
+          if (item.feedback_type === "incorrect") summary.feedback_summary.incorrect += 1;
+          governanceSummaryByConsultationId[consultationId] = summary;
+        });
+
+        (incidentResult.error ? [] : (incidentResult.data || [])).forEach((item) => {
+          const consultationId = consultationIdByResponseId[item.response_id];
+          if (!consultationId) return;
+          const summary = governanceSummaryByConsultationId[consultationId] || cloneGovernanceSummaryDefaults();
+          summary.incident_summary.total += 1;
+          if (item.status === "OPEN" || item.status === "IN_REVIEW") {
+            summary.incident_summary.open += 1;
+          }
+          governanceSummaryByConsultationId[consultationId] = summary;
+        });
+      }
+
+      Object.values(governanceSummaryByConsultationId).forEach((summary) => {
+        summary.flagged = Boolean(
+          (summary.feedback_summary.not_helpful || 0) > 0 ||
+          (summary.feedback_summary.incorrect || 0) > 0 ||
+          (summary.incident_summary.open || 0) > 0
+        );
+      });
+    }
+
     const capabilities = getRoleCapabilities(req);
     const conversations = (data || []).map((row) => ({
       ...mapConversationRow(row, []),
-      access_profile: capabilities.governanceDetails ? 'governance' : 'operational'
+      access_profile: capabilities.governanceDetails ? 'governance' : 'operational',
+      governance_summary: governanceSummaryByConsultationId[row.id] || cloneGovernanceSummaryDefaults()
     }));
     return res.status(200).json({ ok: true, conversations });
   } catch (err) {

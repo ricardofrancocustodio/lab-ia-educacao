@@ -1,38 +1,109 @@
-// users.js - L�gica completa para a p�gina de Gest�o de Usu�rios
+// // users.js - Logica completa para a pagina de Gestao de Usuarios
 
 let usuariosCache = [];
 let appPagesCache = [];
 let editingUserContext = null;
 let roleProfilesCacheByEmail = {};
 const fallbackPageLabels = {
-    dashboard: 'Dashboard de Inteligencia',
+    dashboard: 'Dashboard de Inteligência',
     'chat-manager': 'Atendimento',
-    reports: 'Relatorios',
+    reports: 'Relatórios',
     audit: 'Auditoria Formal',
-    users: 'Usuarios',
-    preferences: 'Preferencias',
+    users: 'Usuários',
+    preferences: 'Preferências',
     knowledge: 'Base de Conhecimento',
-    'official-content': 'Conteudo Oficial'
+    'official-content': 'Conteúdo Oficial'
 };
 const SANDBOX_DEFAULT_PASSWORD = '123456789';
 const roleLabelMap = {
     superadmin: 'Superadmin do Projeto',
-    network_manager: 'Gestor da Rede / Institucional',
-    content_curator: 'Curador de Conteudo',
-    public_operator: 'Operador de Atendimento Publico',
-    secretariat: 'Servidor da Secretaria',
-    coordination: 'Servidor da Coordenacao',
-    treasury: 'Servidor da Tesouraria',
-    direction: 'Servidor da Direcao',
-    auditor: 'Auditor / Compliance',
+    network_manager: 'Gestão da Rede',
+    content_curator: 'Curadoria de Conteúdo',
+    public_operator: 'Atendimento Público',
+    secretariat: 'Secretaria',
+    coordination: 'Coordenação',
+    treasury: 'Tesouraria',
+    direction: 'Direção',
+    auditor: 'Auditoria e Compliance',
     observer: 'Observador Externo'
 };
+const roleVisualMap = {
+    superadmin: { label: 'Superadmin do Projeto', class: 'role-superadmin', icon: 'fa-crown' },
+    network_manager: { label: 'Gestão da Rede', class: 'role-network', icon: 'fa-sitemap' },
+    content_curator: { label: 'Curadoria de Conteúdo', class: 'role-content', icon: 'fa-book-medical' },
+    public_operator: { label: 'Atendimento Público', class: 'role-service', icon: 'fa-comments' },
+    secretariat: { label: 'Secretaria', class: 'role-secretariat', icon: 'fa-folder-open' },
+    coordination: { label: 'Coordenação', class: 'role-coordination', icon: 'fa-project-diagram' },
+    treasury: { label: 'Tesouraria', class: 'role-treasury', icon: 'fa-wallet' },
+    direction: { label: 'Direção', class: 'role-direction', icon: 'fa-user-tie' },
+    auditor: { label: 'Auditoria e Compliance', class: 'role-auditor', icon: 'fa-clipboard-check' },
+    observer: { label: 'Observador Externo', class: 'role-observer', icon: 'fa-eye' }
+};
+const USERS_LOWERCASE_PARTICLES = new Set(['da', 'de', 'do', 'das', 'dos', 'e']);
+const memberScopeLabelMap = {
+    department_staff: 'Vínculo interno da secretaria/rede',
+    school_staff: 'Vínculo interno da unidade escolar',
+    external_auditor: 'Vínculo externo de auditoria',
+    external_observer: 'Vínculo externo de observação'
+};
 
-function initPage() {
+function getMemberScopeLabel(memberScope = '') {
+    return memberScopeLabelMap[String(memberScope || '').toLowerCase()] || '';
+}
+
+function userEscapeHtml(value = '') {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function userNormalizeDisplayName(name = '', email = '') {
+    const fallback = String(email || '').split('@')[0] || 'Usuário';
+    const source = String(name || '').trim() || fallback;
+    const normalized = source
+        .replace(/[._-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    return normalized
+        .split(' ')
+        .filter(Boolean)
+        .map((part, index) => {
+            const lower = part.toLowerCase();
+            if (index > 0 && USERS_LOWERCASE_PARTICLES.has(lower)) return lower;
+            if (part.length <= 2 && part === part.toUpperCase()) return part;
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+        })
+        .join(' ');
+}
+
+function getUserDisplayInitials(name = '', email = '') {
+    const displayName = userNormalizeDisplayName(name, email);
+    const parts = displayName.split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'US';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0] || ''}${parts[parts.length - 1][0] || ''}`.toUpperCase();
+}
+
+function getUserRoleVisual(role = '') {
+    return roleVisualMap[String(role || '').toLowerCase()] || {
+        label: userNormalizeDisplayName(role || 'Membro'),
+        class: 'role-service',
+        icon: 'fa-user'
+    };
+}
+
+async function initPage() {
     const page = document.body.dataset.page;
     if (page !== 'users') return;
 
     const schoolId = sessionStorage.getItem('SCHOOL_ID');
+    await loadCurrentInstitutionContext(schoolId);
+    pruneDeprecatedRoleOptions();
+    syncUserRoleOptions();
     carregarUsuarios(schoolId);
     initRolePermissionsTab();
 }
@@ -55,6 +126,108 @@ function normalizePhoneDigits(value = '') {
     return String(value || '').replace(/\D/g, '');
 }
 
+function isPlatformSuperadmin() {
+    return String(sessionStorage.getItem('PLATFORM_ROLE') || sessionStorage.getItem('EFFECTIVE_ROLE') || '').toLowerCase() === 'superadmin';
+}
+
+let currentInstitutionContext = {
+    type: 'education_department',
+    name: '',
+    parent_school_id: null,
+    parent_name: ''
+};
+
+async function loadCurrentInstitutionContext(schoolId) {
+    if (!schoolId || !window.supabaseClient) return currentInstitutionContext;
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('schools')
+            .select('id, name, institution_type, parent_school_id')
+            .eq('id', schoolId)
+            .maybeSingle();
+        if (error) throw error;
+
+        let parentName = '';
+        if (data?.parent_school_id) {
+            const { data: parent, error: parentErr } = await window.supabaseClient
+                .from('schools')
+                .select('name')
+                .eq('id', data.parent_school_id)
+                .maybeSingle();
+            if (parentErr) throw parentErr;
+            parentName = parent?.name || '';
+        }
+
+        currentInstitutionContext = {
+            type: String(data?.institution_type || 'education_department').toLowerCase(),
+            name: data?.name || '',
+            parent_school_id: data?.parent_school_id || null,
+            parent_name: parentName
+        };
+    } catch (err) {
+        console.warn('Nao foi possivel carregar o contexto institucional atual:', err?.message || err);
+        currentInstitutionContext = {
+            type: 'education_department',
+            name: '',
+            parent_school_id: null,
+            parent_name: ''
+        };
+    }
+    return currentInstitutionContext;
+}
+
+function getAssignableRolesForCurrentInstitution() {
+    if (currentInstitutionContext.type === 'school_unit') {
+        return ['content_curator', 'public_operator', 'coordination', 'direction', 'auditor', 'observer'];
+    }
+    return getManageableRoles();
+}
+
+function pruneDeprecatedRoleOptions() {
+    const select = document.getElementById('userRole');
+    if (!select) return;
+    Array.from(select.querySelectorAll('option')).forEach(option => {
+        if (String(option.value || '').toLowerCase() === 'treasury') {
+            option.remove();
+        }
+    });
+}
+function syncUserRoleOptions() {
+    const select = document.getElementById('userRole');
+    if (!select) return;
+    const currentValue = select.value;
+    const allowedRoles = getAssignableRolesForCurrentInstitution();
+    const placeholder = '<option value="">Selecione...</option>';
+    select.innerHTML = placeholder + allowedRoles
+        .map(role => `<option value="${role}">${roleLabelMap[role] || role}</option>`)
+        .join('');
+
+    if (allowedRoles.includes(currentValue)) {
+        select.value = currentValue;
+    }
+    pruneDeprecatedRoleOptions();
+}
+
+function buildAffiliationLabel(user = {}) {
+    const scope = String(user.member_scope || '').toLowerCase();
+    const schoolName = userNormalizeDisplayName(user.school_name || '', '');
+    const parentName = userNormalizeDisplayName(user.parent_school_name || '', '');
+
+    if (scope === 'department_staff') {
+        return 'Vínculo interno da secretaria/rede: ' + (parentName || schoolName || 'Secretaria/Rede');
+    }
+    if (scope === 'school_staff') {
+        if (schoolName && parentName) return 'Vínculo interno da unidade escolar: ' + schoolName + ' | Secretaria: ' + parentName;
+        return 'Vínculo interno da unidade escolar: ' + (schoolName || 'Unidade escolar');
+    }
+    if (scope === 'external_auditor') {
+        return parentName ? ('Vínculo externo de auditoria para ' + parentName) : 'Vínculo externo de auditoria';
+    }
+    if (scope === 'external_observer') {
+        return parentName ? ('Vínculo externo de observação para ' + parentName) : 'Vínculo externo de observação';
+    }
+    return getMemberScopeLabel(scope);
+}
 function applyPhoneMask(value = '') {
     const digits = normalizePhoneDigits(value).slice(0, 11);
     if (digits.length <= 2) return digits;
@@ -135,7 +308,7 @@ async function syncRoleSegments(role, profileId, selectedSegments = [], options 
     const table = getRoleProfileTable(role);
     const isCoordinatorSegments = segCfg.relationTable === 'coordinator_segments';
 
-    // Defesa forte: garante que o profileId exista na tabela de role antes de gravar rela��o.
+    // Defesa forte: garante que o profileId exista na tabela de role antes de gravar relacao.
     if (table && schoolId) {
         const { data: byIdRow, error: byIdErr } = await window.supabaseClient
             .from(table)
@@ -148,7 +321,7 @@ async function syncRoleSegments(role, profileId, selectedSegments = [], options 
         if (!byIdRow?.id && options.email) {
             const ensured = await ensureRoleProfileByEmail(role, schoolId, options.email, options.name || '', { forceRefresh: true });
             if (!ensured?.id) {
-                throw new Error(`Perfil ${role} n�o encontrado para sincronizar segmentos.`);
+                throw new Error(`Perfil ${role} não encontrado para sincronizar segmentos.`);
             }
             profileId = ensured.id;
         }
@@ -203,7 +376,7 @@ async function syncSegmentsForSchoolMemberRole({ schoolId, role, email, name = '
         forceRefresh: true
     });
     if (!roleProfile?.id) {
-        throw new Error('Perfil da fun��o n�o encontrado para sincronizar segmentos.');
+        throw new Error('Perfil da função não encontrado para sincronizar segmentos.');
     }
 
     await syncRoleSegments(roleNorm, roleProfile.id, selectedSegments, {
@@ -219,28 +392,54 @@ async function carregarUsuarios(schoolId) {
 
     try {
         if (!schoolId) {
-            lista.innerHTML = '<tr><td colspan="5" class="text-center text-danger">SCHOOL_ID n�o encontrado na sess�o.</td></tr>';
+            lista.innerHTML = '<tr><td colspan="5" class="text-center text-danger">SCHOOL_ID não encontrado na sessão.</td></tr>';
             return;
         }
 
         clearRoleProfilesCache();
 
         // Fonte oficial
-        const { data: members, error: memErr } = await window.supabaseClient
+        let membersQuery = window.supabaseClient
             .from('school_members')
-            .select('*')
-            .eq('school_id', schoolId);
+            .select('*');
+
+        if (!isPlatformSuperadmin()) {
+            membersQuery = membersQuery.eq('school_id', schoolId);
+        }
+
+        const { data: members, error: memErr } = await membersQuery;
 
         if (memErr) throw memErr;
 
-        const memberRows = [...(members || [])].map(u => ({ ...u, source_table: 'school_members' }));
+        const schoolIds = [...new Set((members || []).map(m => m.school_id).filter(Boolean))];
+        let schoolsById = {};
+        if (schoolIds.length) {
+            const { data: schools, error: schoolsErr } = await window.supabaseClient
+                .from('schools')
+                .select('id, name, institution_type, parent_school_id')
+                .in('id', schoolIds);
+            if (schoolsErr) throw schoolsErr;
+            schoolsById = Object.fromEntries((schools || []).map(row => [row.id, row]));
+        }
+
+        const memberRows = [...(members || [])].map(u => {
+            const school = schoolsById[u.school_id] || null;
+            const parent = school?.parent_school_id ? schoolsById[school.parent_school_id] : null;
+            return {
+                ...u,
+                school_name: school?.name || '',
+                school_institution_type: school?.institution_type || '',
+                parent_school_name: parent?.name || '',
+                source_table: 'school_members'
+            };
+        });
         const seen = new Set(
             memberRows
                 .map(m => normalizeEmail(m.email))
                 .filter(Boolean)
         );
 
-        // Complementa com registros �rf�os das tabelas de role (sem school_members)
+        // Complementa com registros orfaos das tabelas de role (sem school_members)
         const roleFetches = ROLE_TABLE_CONFIG.map(cfg =>
             window.supabaseClient
                 .from(cfg.table)
@@ -270,7 +469,7 @@ async function carregarUsuarios(schoolId) {
 
         let todosUsuarios = [...memberRows, ...orphanRows];
 
-        // Ordena��o por nome
+        // Ordenação por nome
         todosUsuarios.sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'pt-BR', { sensitivity: 'base' }));
         usuariosCache = todosUsuarios;
 
@@ -294,7 +493,16 @@ function buscarUsuarios(termo = '') {
         const email = String(u?.email || '').toLowerCase();
         const role = String(u?.role || '').toLowerCase();
         const status = String(u?.status || '').toLowerCase();
-        return nome.includes(q) || email.includes(q) || role.includes(q) || status.includes(q);
+        const memberScope = String(u?.member_scope || '').toLowerCase();
+        const schoolName = String(u?.school_name || '').toLowerCase();
+        const parentSchoolName = String(u?.parent_school_name || '').toLowerCase();
+        return nome.includes(q)
+            || email.includes(q)
+            || role.includes(q)
+            || status.includes(q)
+            || memberScope.includes(q)
+            || schoolName.includes(q)
+            || parentSchoolName.includes(q);
     });
 
     renderizarTabela(filtrados);
@@ -305,19 +513,6 @@ function renderizarTabela(usuarios) {
     const userCount = document.getElementById('userCount');
     const myId = sessionStorage.getItem('USER_ID');
 
-        const roleConfig = {
-        'superadmin':      { label: 'Superadmin do Projeto', class: 'role-admin', icon: 'fa-crown' },
-        'network_manager': { label: 'Gestor da Rede', class: 'role-admin', icon: 'fa-sitemap' },
-        'content_curator': { label: 'Curador de Conteudo', class: 'role-secretary', icon: 'fa-book-medical' },
-        'public_operator': { label: 'Atendimento Publico', class: 'role-support', icon: 'fa-comments' },
-        'secretariat':     { label: 'Secretaria', class: 'role-secretary', icon: 'fa-folder-open' },
-        'coordination':    { label: 'Coordenacao', class: 'role-coordinator', icon: 'fa-project-diagram' },
-        'treasury':        { label: 'Tesouraria', class: 'role-finance', icon: 'fa-wallet' },
-        'direction':       { label: 'Direcao', class: 'role-admin', icon: 'fa-user-tie' },
-        'auditor':         { label: 'Auditoria / Compliance', class: 'role-it', icon: 'fa-clipboard-check' },
-        'observer':        { label: 'Observador Externo', class: 'role-teacher', icon: 'fa-eye' }
-    };
-
     if (usuarios.length === 0) {
         lista.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhum membro encontrado.</td></tr>';
         userCount.innerText = 'Mostrando 0 de 0 registros';
@@ -325,42 +520,52 @@ function renderizarTabela(usuarios) {
     }
 
     const rowsHtml = usuarios.map(user => {
-        const config = roleConfig[user.role] || { label: user.role, class: 'badge-dark', icon: 'fa-user' };
+        const config = getUserRoleVisual(user.role);
         const isMe = user.user_id === myId;
-        
+        const displayName = userNormalizeDisplayName(user.name, user.email);
+        const displayEmail = userEscapeHtml(user.email || '-');
+        const displayPhone = user.phone ? userEscapeHtml(applyPhoneMask(user.phone)) : '';
+        const initials = getUserDisplayInitials(displayName, user.email);
+        const memberScopeLabel = buildAffiliationLabel(user);
+
         let statusBadge = '';
         if (user.status === 'pending') {
-            statusBadge = '<span class="badge status-pending"><i class="fas fa-clock mr-1"></i>Pendente</span>';
+            statusBadge = '<span class="badge status-pending"><i class="fas fa-clock"></i>Pendente</span>';
         } else if (user.status === 'invited') {
-            statusBadge = '<span class="badge status-pending"><i class="fas fa-paper-plane mr-1"></i>Convidado</span>';
+            statusBadge = '<span class="badge status-pending"><i class="fas fa-paper-plane"></i>Convidado</span>';
         } else {
-            statusBadge = '<span class="badge status-active"><i class="fas fa-check-circle mr-1"></i>Ativo</span>';
+            statusBadge = '<span class="badge status-active"><i class="fas fa-check-circle"></i>Ativo</span>';
         }
 
         const btnEditar = `<button class="btn btn-info btn-sm mx-1" onclick="editarUsuario('${user.id}', '${user.source_table || ''}')"><i class="fas fa-pencil-alt"></i></button>`;
-        const btnExcluir = (isMe) ? '' : `<button class="btn btn-danger btn-sm mx-1" onclick="deletarUsuario('${user.id}')"><i class="fas fa-trash"></i></button>`;
+        const btnExcluir = isMe ? '' : `<button class="btn btn-danger btn-sm mx-1" onclick="deletarUsuario('${user.id}')"><i class="fas fa-trash"></i></button>`;
 
         return `
             <tr>
                 <td class="align-middle">
                     <div class="d-flex align-items-center">
-                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&size=32" class="img-circle mr-2 shadow-sm avatar">
+                        <span class="avatar user-avatar ${config.class} mr-3">${initials}</span>
                         <div>
-                            <span class="font-weight-bold d-block">${user.name} ${isMe ? '<small class="badge badge-warning badge-self ml-1">VOC�</small>' : ''}</span>
-                            <small class="text-muted"><i class="far fa-envelope mr-1"></i>${user.email}</small>
-                            ${user.phone ? `<small class="text-muted d-block"><i class="fas fa-phone-alt mr-1"></i>${applyPhoneMask(user.phone)}</small>` : ''}
+                            <div class="user-name-line">
+                                <span class="font-weight-bold d-block user-name-text">${userEscapeHtml(displayName)}</span>
+                                ${isMe ? '<small class="badge-self">VOCÊ</small>' : ''}
+                            </div>
+                            <small class="user-contact-line"><i class="far fa-envelope mr-1"></i>${displayEmail}</small>
+                            ${displayPhone ? `<small class="user-contact-line"><i class="fas fa-phone-alt mr-1"></i>${displayPhone}</small>` : ''}
+                            ${memberScopeLabel ? `<small class="user-contact-line"><i class="fas fa-link mr-1"></i>${userEscapeHtml(memberScopeLabel)}</small>` : ''}
                         </div>
                     </div>
                 </td>
                 <td class="align-middle">
-                    <span class="badge-role ${config.class} py-2 px-2 shadow-sm">
-                        <i class="fas ${config.icon} mr-1"></i> ${config.label}
+                    <span class="badge-role ${config.class}">
+                        <i class="fas ${config.icon}"></i>
+                        <span>${userEscapeHtml(config.label)}</span>
                     </span>
                 </td>
                 <td class="text-center align-middle">${statusBadge}</td>
                 <td class="text-right align-middle">
                     <div class="btn-group">
-                        <button class="btn btn-success btn-sm mx-1" onclick="convidarUsuarioExistente('${user.id}')" title="Reaplicar senha padrao do sandbox"><i class="fas fa-key"></i></button>
+                        <button class="btn btn-success btn-sm mx-1" onclick="convidarUsuarioExistente('${user.id}')" title="Reaplicar senha padrão do sandbox"><i class="fas fa-key"></i></button>
                         ${btnEditar}
                         ${btnExcluir}
                     </div>
@@ -373,8 +578,10 @@ function renderizarTabela(usuarios) {
     userCount.innerText = `Mostrando ${usuarios.length} de ${usuarios.length} registros`;
 }
 
-// Fun��es do Modal
+// Funções do Modal
 function abrirModalUsuario() {
+    pruneDeprecatedRoleOptions();
+    syncUserRoleOptions();
     editingUserContext = null;
     document.getElementById('userId').value = '';
     document.getElementById('userName').value = '';
@@ -384,7 +591,7 @@ function abrirModalUsuario() {
     document.getElementById('divSegments').style.display = 'none';
     togglePermissionsUIForCurrentEditor(null);
     
-    document.getElementById('modalUsuarioTitle').innerText = 'Novo Usu�rio';
+    document.getElementById('modalUsuarioTitle').innerText = 'Novo Usuário';
     $('#modalUsuario').modal('show');
 }
 
@@ -392,17 +599,19 @@ async function editarUsuario(id, sourceTable = '') {
     const user = usuariosCache.find(u => String(u.id) === String(id) && (!sourceTable || String(u.source_table || '') === String(sourceTable)))
         || usuariosCache.find(u => String(u.id) === String(id));
     if (!user) {
-        return Swal.fire('Erro', 'Usu�rio n�o encontrado para edi��o.', 'error');
+        return Swal.fire('Erro', 'Usuario não encontrado para edição.', 'error');
     }
 
     editingUserContext = user;
+    pruneDeprecatedRoleOptions();
+    syncUserRoleOptions();
 
     document.getElementById('userId').value = user.id;
     document.getElementById('userName').value = user.name || '';
     document.getElementById('userEmail').value = user.email || '';
     document.getElementById('userPhone').value = applyPhoneMask(user.phone || '');
     document.getElementById('userRole').value = user.role || '';
-    document.getElementById('modalUsuarioTitle').innerText = 'Editar Usu�rio';
+    document.getElementById('modalUsuarioTitle').innerText = 'Editar Usuario';
 
     const divSegments = document.getElementById('divSegments');
     const container = document.getElementById('segmentsContainer');
@@ -447,7 +656,7 @@ async function editarUsuario(id, sourceTable = '') {
                 });
             }
         } catch (error) {
-            console.error('Erro ao carregar v�nculos do usu�rio:', error);
+            console.error('Erro ao carregar vínculos do usuario:', error);
         }
     } else {
         divSegments.style.display = 'none';
@@ -466,7 +675,7 @@ async function getAppPages(schoolId) {
             if (Array.isArray(pages) && pages.length) return pages;
         }
     } catch (err) {
-        console.warn('N�o foi poss�vel carregar app_pages:', err?.message || err);
+        console.warn('Não foi possivel carregar app_pages:', err?.message || err);
     }
 
     const roleDefaults = window.DEFAULT_ROLE_PAGES || {};
@@ -480,7 +689,7 @@ async function getAppPages(schoolId) {
 }
 
 function getManageableRoles() {
-    return ['network_manager', 'content_curator', 'public_operator', 'secretariat', 'coordination', 'treasury', 'direction', 'auditor', 'observer'];
+    return ['network_manager', 'content_curator', 'public_operator', 'secretariat', 'coordination', 'direction', 'auditor', 'observer'];
 }
 
 function populateRolePermissionsRoleSelect() {
@@ -500,7 +709,7 @@ function renderRolePermissionsCheckboxes(pages, selectedKeys = []) {
             <label class="custom-control-label" for="role_perm_${p.key}">${p.label || p.key}</label>
         </div>
     `).join('');
-    container.innerHTML = html || '<small class="text-muted">Nenhuma p�gina cadastrada.</small>';
+    container.innerHTML = html || '<small class="text-muted">Nenhuma página cadastrada.</small>';
 }
 
 async function loadRolePermissionsForSelectedRole() {
@@ -510,7 +719,7 @@ async function loadRolePermissionsForSelectedRole() {
     if (!schoolId || !select || !container) return;
 
     const role = select.value;
-    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permiss�es da fun��o...</small>';
+    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permissões da função...</small>';
 
     try {
         const pages = appPagesCache.length ? appPagesCache : await getAppPages(schoolId);
@@ -522,7 +731,7 @@ async function loadRolePermissionsForSelectedRole() {
         renderRolePermissionsCheckboxes(pages, roleAllowed);
     } catch (err) {
         console.error(err);
-        container.innerHTML = '<small class="text-danger">Falha ao carregar permiss�es da fun��o.</small>';
+        container.innerHTML = '<small class="text-danger">Falha ao carregar permissões da função.</small>';
     }
 }
 
@@ -549,10 +758,10 @@ async function saveRolePermissionsForSelectedRole() {
             .from('role_page_permissions')
             .upsert(payload, { onConflict: 'school_id,role,page_key' });
         if (error) throw error;
-        Swal.fire('Sucesso', 'Permiss�es da fun��o atualizadas.', 'success');
+        Swal.fire('Sucesso', 'Permissoes da função atualizadas.', 'success');
     } catch (err) {
         console.error(err);
-        Swal.fire('Erro', err.message || 'N�o foi poss�vel salvar as permiss�es da fun��o.', 'error');
+        Swal.fire('Erro', err.message || 'Não foi possivel salvar as permissões da função.', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = original;
@@ -623,8 +832,8 @@ async function initRolePermissionsTab() {
         });
     }
 
-    // Carrega imediatamente para evitar ficar preso no placeholder "Carregando p�ginas..."
-    // quando a aba j� abrir ativa ou sem disparo do evento shown.bs.tab.
+    // Carrega imediatamente para evitar ficar preso no placeholder "Carregando páginas..."
+    // quando a aba já abrir ativa ou sem disparo do evento shown.bs.tab.
     await loadRolePermissionsForSelectedRole();
 }
 
@@ -638,7 +847,7 @@ function renderPermissionsCheckboxes(pages, selectedKeys = []) {
             <label class="custom-control-label" for="perm_${p.key}">${p.label || p.key}</label>
         </div>
     `).join('');
-    container.innerHTML = html || '<small class="text-muted">Nenhuma p�gina cadastrada.</small>';
+    container.innerHTML = html || '<small class="text-muted">Nenhuma página cadastrada.</small>';
 }
 
 function getSelectedPermissionKeys() {
@@ -675,7 +884,7 @@ async function togglePermissionsUIForCurrentEditor(user) {
     }
 
     div.style.display = 'block';
-    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permiss�es...</small>';
+    container.innerHTML = '<small class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando permissões...</small>';
 
     try {
         const pages = await getAppPages(schoolId);
@@ -703,7 +912,7 @@ async function togglePermissionsUIForCurrentEditor(user) {
         setPermissionsControlsDisabled(useRoleDefault.checked);
     } catch (err) {
         console.error(err);
-        container.innerHTML = '<small class="text-danger">Falha ao carregar permiss�es.</small>';
+        container.innerHTML = '<small class="text-danger">Falha ao carregar permissões.</small>';
     }
 }
 
@@ -776,7 +985,7 @@ async function carregarSegmentosParaCheckboxes() {
 
     } catch (error) {
         console.error('Erro ao carregar segmentos:', error);
-        container.innerHTML = '<span class="text-danger">Erro ao carregar op��es.</span>';
+        container.innerHTML = '<span class="text-danger">Erro ao carregar opções.</span>';
     }
 }
 
@@ -809,7 +1018,11 @@ async function salvarUsuario() {
     const schoolId = sessionStorage.getItem('SCHOOL_ID');
     
     if (!nome || !email || !role) {
-        return Swal.fire('Aten��o', 'Preencha todos os campos obrigat�rios.', 'warning');
+        return Swal.fire('Atenção', 'Preencha todos os campos obrigatórios.', 'warning');
+    }
+
+    if (!getAssignableRolesForCurrentInstitution().includes(role)) {
+        return Swal.fire('Perfil nao permitido', 'Este perfil nao pode ser criado para a instituicao atual.', 'warning');
     }
 
     const usuarioEmEdicao = userId ? usuariosCache.find(u => String(u.id) === String(userId)) : null;
@@ -823,7 +1036,7 @@ async function salvarUsuario() {
                                 .map(cb => cb.value);
         
         if (selectedSegments.length === 0) {
-            return Swal.fire('Aten��o', 'Selecione pelo menos um segmento.', 'warning');
+            return Swal.fire('Atenção', 'Selecione pelo menos um segmento.', 'warning');
         }
     }
 
@@ -917,8 +1130,7 @@ async function salvarUsuario() {
             name: nome,
             selectedSegments
         });
-
-        // Mant�m telefone tamb�m no perfil da fun��o (quando houver tabela de role).
+        // Mantem telefone tambem no perfil da funcao (quando houver tabela de role).
         const roleTable = getRoleProfileTable(role);
         if (roleTable) {
             try {
@@ -935,12 +1147,12 @@ async function salvarUsuario() {
                         { onConflict: 'school_id,email' }
                     );
             } catch (rolePhoneErr) {
-                console.warn('Aviso: n�o foi poss�vel sincronizar telefone na tabela da fun��o:', rolePhoneErr?.message || rolePhoneErr);
+                console.warn('Aviso: nao foi possivel sincronizar telefone na tabela da funcao:', rolePhoneErr?.message || rolePhoneErr);
             }
         }
 
-        // Defesa: garante que v�nculos de coordenador foram persistidos.
-        // Em alguns cen�rios de troca de role, triggers podem limpar rela��es no meio do fluxo.
+        // Defesa: garante que vínculos de coordenador foram persistidos.
+        // Em alguns cenarios de troca de role, triggers podem limpar relacoes no meio do fluxo.
         if (false && selectedSegments.length > 0) {
             const roleProfile = await ensureRoleProfileByEmail('coordinator', schoolId, emailNorm, nome, { forceRefresh: true });
             if (roleProfile?.id) {
@@ -963,7 +1175,7 @@ async function salvarUsuario() {
             }
         }
 
-        // Se houve troca de role, remove overrides antigos para evitar herdar permiss�es de outra fun��o.
+        // Se houve troca de role, remove overrides antigos para evitar herdar permissões de outra função.
         const roleChanged = !!previousRole && previousRole !== String(role || '').toLowerCase();
         const targetUserId = memberRow?.user_id || usuarioEmEdicao?.user_id || null;
         if (roleChanged && targetUserId) {
@@ -975,7 +1187,7 @@ async function salvarUsuario() {
             if (clearPermErr) throw clearPermErr;
         }
 
-        // Se estiver editando usu�rio real da school_members e admin logado, salva permiss�es customizadas
+        // Se estiver editando usuario real da school_members e admin logado, salva permissões customizadas
         if (editingUserContext && editingUserContext.source_table === 'school_members') {
             const updatedUser = {
                 ...memberRow,
@@ -987,12 +1199,12 @@ async function salvarUsuario() {
             try {
                 await persistUserPagePermissionsIfNeeded(updatedUser);
             } catch (permErr) {
-                console.warn('Permiss�es n�o salvas:', permErr?.message || permErr);
-                Swal.fire('Aviso', 'Usu�rio salvo, mas n�o foi poss�vel salvar permiss�es personalizadas.', 'warning');
+                console.warn('Permissoes não salvas:', permErr?.message || permErr);
+                Swal.fire('Aviso', 'Usuario salvo, mas não foi possivel salvar permissões personalizadas.', 'warning');
             }
         }
 
-        // Se o usu�rio editado for o pr�prio usu�rio logado e houve troca de fun��o, atualiza cache local.
+        // Se o usuario editado for o próprio usuario logado e houve troca de função, atualiza cache local.
         const currentUserId = sessionStorage.getItem('USER_ID');
         if (roleChanged && targetUserId && String(targetUserId) === String(currentUserId)) {
             sessionStorage.setItem('USER_ROLE', role);
@@ -1015,7 +1227,7 @@ async function salvarUsuario() {
 async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invite = false, previous_email = null, user_id = null, password = SANDBOX_DEFAULT_PASSWORD }) {
     const { data: sessionData, error: sessionError } = await window.supabaseClient.auth.getSession();
     if (sessionError) {
-        throw new Error(sessionError.message || 'Falha ao validar sess�o atual.');
+        throw new Error(sessionError.message || 'Falha ao validar sessão atual.');
     }
 
     const accessToken = sessionData?.session?.access_token || null;
@@ -1047,7 +1259,7 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
         return data;
     }
 
-    // Tentativa 2 (fallback): fetch expl�cito para garantir headers no request
+    // Tentativa 2 (fallback): fetch explícito para garantir headers no request
     const isAuthHeaderIssue = String(error?.message || '').toLowerCase().includes('non-2xx')
         || String(error?.message || '').toLowerCase().includes('authorization');
 
@@ -1055,11 +1267,11 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
         const supabaseUrl = window.supabaseClient?.supabaseUrl;
         const supabaseKey =
             window.supabaseClient?.supabaseKey ||
-            window.supabaseClient?.rest?.headers?.apikey ||
+            window.supabaseClient?.resta.headers?.apikey ||
             null;
 
         if (!supabaseUrl || !supabaseKey) {
-            throw new Error('N�o foi poss�vel montar fallback da Edge Function (URL/Key ausentes).');
+            throw new Error('Não foi possivel montar fallback da Edge Function (URL/Key ausentes).');
         }
 
         const response = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
@@ -1097,7 +1309,7 @@ async function sincronizarMembroAcesso({ email, nome, role, school_id, send_invi
 async function deletarUsuario(id) {
     const confirm = await Swal.fire({
         title: 'Tem certeza?',
-        text: "O usu�rio perder� acesso ao sistema.",
+        text: "O usuario perderá acesso ao sistema.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -1108,7 +1320,7 @@ async function deletarUsuario(id) {
         const user = usuariosCache.find(u => String(u.id) === String(id));
         try {
             if (!user) {
-                throw new Error('Usu�rio n�o encontrado.');
+                throw new Error('Usuario não encontrado.');
             }
 
             const schoolId = sessionStorage.getItem('SCHOOL_ID');
@@ -1128,7 +1340,7 @@ async function deletarUsuario(id) {
                     .eq('id', id);
                 if (error) throw error;
             } else {
-                // Remo��o direta de registro �rf�o na tabela da fun��o
+                // Remoção direta de registro orfao na tabela da função
                 if (user.source_table === 'coordinators') {
                     const { error: slotErr } = await window.supabaseClient
                         .from('visit_slots')
@@ -1161,15 +1373,15 @@ async function deletarUsuario(id) {
                 if (error) throw error;
             }
 
-            Swal.fire('Removido!', 'Usu�rio removido.', 'success');
+            Swal.fire('Removido!', 'Usuario removido.', 'success');
             carregarUsuarios(schoolId);
             
         } catch (error) {
             const msg = String(error.message || '').toLowerCase();
             if (msg.includes('foreign key')) {
-                Swal.fire('N�o foi poss�vel excluir', 'Existem v�nculos deste usu�rio em outras tabelas. Remova os v�nculos e tente novamente.', 'error');
+                Swal.fire('Não foi possivel excluir', 'Existem vínculos deste usuario em outras tabelas. Remova os vínculos e tente novamente.', 'error');
             } else {
-                Swal.fire('N�o permitido', 'N�o foi poss�vel excluir. Verifique se voc� tem permiss�o ou se est� tentando excluir a si mesmo.', 'error');
+                Swal.fire('Não permitido', 'Não foi possivel excluir. Verifique se voce tem permissao ou se esta tentando excluir a si mesmo.', 'error');
             }
         }
     }
@@ -1180,11 +1392,11 @@ async function convidarUsuarioExistente(id) {
     const user = usuariosCache.find(u => String(u.id) === String(id));
 
     if (!user) {
-        return Swal.fire('Erro', 'Usu�rio n�o encontrado no cache da tela.', 'error');
+        return Swal.fire('Erro', 'Usuario não encontrado no cache da tela.', 'error');
     }
 
     if (!user.email) {
-        return Swal.fire('Erro', 'Este usu�rio n�o possui e-mail cadastrado.', 'error');
+        return Swal.fire('Erro', 'Este usuario não possui e-mail cadastrado.', 'error');
     }
 
     const confirm = await Swal.fire({
@@ -1219,15 +1431,15 @@ async function convidarUsuarioExistente(id) {
             password: SANDBOX_DEFAULT_PASSWORD
         });
 
-        await Swal.fire('Sucesso', `Acesso sandbox reaplicado para ${user.email}. Senha padr?o: ${SANDBOX_DEFAULT_PASSWORD}`, 'success');
+        await Swal.fire('Sucesso', `Acesso sandbox reaplicado para ${user.email}. Senha padrão: ${SANDBOX_DEFAULT_PASSWORD}`, 'success');
         await carregarUsuarios(schoolId);
     } catch (err) {
-        console.error('Erro ao convidar usu�rio existente:', err);
+        console.error('Erro ao convidar usuario existente:', err);
         Swal.fire('Erro', err.message || 'Nao foi possivel reaplicar o acesso sandbox.', 'error');
     }
 }
 
-// Tornar fun��es globais para acesso via onclick
+// Tornar funcoes globais para acesso via onclick
 window.abrirModalUsuario = abrirModalUsuario;
 window.editarUsuario = editarUsuario;
 window.salvarUsuario = salvarUsuario;
@@ -1237,6 +1449,7 @@ window.carregarSegmentosParaCheckboxes = carregarSegmentosParaCheckboxes;
 window.buscarUsuarios = buscarUsuarios;
 
 document.addEventListener('DOMContentLoaded', () => {
+    pruneDeprecatedRoleOptions();
     const userPhoneInput = document.getElementById('userPhone');
     if (userPhoneInput && userPhoneInput.dataset.maskBound !== '1') {
         userPhoneInput.dataset.maskBound = '1';
@@ -1257,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 roleDefault = [];
             }
 
-            // Ao ligar o padr�o da fun��o, guarda o custom atual antes de sobrescrever.
+            // Ao ligar o padrão da função, guarda o custom atual antes de sobrescrever.
             if (toggle.checked) {
                 toggle.dataset.customCache = JSON.stringify(getSelectedPermissionKeys());
             }
@@ -1270,7 +1483,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Ao desligar o padr�o da fun��o, restaura o custom anterior.
+            // Ao desligar o padrão da função, restaura o custom anterior.
             const rawCustom = toggle.dataset.customCache || '[]';
             let customSelection = [];
             try {
@@ -1304,9 +1517,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 useRoleDefault.dataset.customCache = JSON.stringify([]);
             } catch (err) {
-                console.warn('Falha ao recarregar permiss�es da fun��o:', err?.message || err);
+                console.warn('Falha ao recarregar permissões da função:', err?.message || err);
             }
         });
     }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -95,6 +95,42 @@ function formatResponseMode(value) {
     return value || '-';
 }
 
+function getCurrentOperatorName() {
+    return String(
+        sessionStorage.getItem('USER_NAME') ||
+        sessionStorage.getItem('USER_EMAIL') ||
+        sessionStorage.getItem('EFFECTIVE_ROLE') ||
+        sessionStorage.getItem('PLATFORM_ROLE') ||
+        sessionStorage.getItem('USER_ROLE') ||
+        'Operador institucional'
+    ).trim();
+}
+
+function formatFeedbackTypeLabel(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'helpful') return 'Util';
+    if (normalized === 'not_helpful') return 'Nao util';
+    if (normalized === 'incorrect') return 'Incorreta';
+    return value || '-';
+}
+
+function formatIncidentStatus(value) {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'OPEN') return 'Aberto';
+    if (normalized === 'IN_REVIEW') return 'Em revisao';
+    if (normalized === 'RESOLVED') return 'Resolvido';
+    return value || '-';
+}
+
+function formatIncidentSeverity(value) {
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'LOW') return 'Baixa';
+    if (normalized === 'MEDIUM') return 'Media';
+    if (normalized === 'HIGH') return 'Alta';
+    if (normalized === 'CRITICAL') return 'Critica';
+    return value || '-';
+}
+
 function csvEscape(value) {
     const normalized = String(value ?? '').replace(/\r?\n/g, ' ').trim();
     return `"${normalized.replace(/"/g, '""')}"`;
@@ -415,15 +451,51 @@ function filtrarConversas(termo = '') {
 function normalizarConversa(conversation) {
     const metadata = conversation?.metadata || {};
     const audit = conversation?.audit_trail || {};
+    const governanceSummary = conversation?.governance_summary || {};
+    const feedbackSummary = governanceSummary.feedback_summary || audit.feedback_summary || {};
+    const incidentSummary = governanceSummary.incident_summary || audit.incident_summary || {};
+    const feedbackNotHelpful = Number(feedbackSummary.not_helpful || 0);
+    const feedbackIncorrect = Number(feedbackSummary.incorrect || 0);
+    const incidentsOpen = Number(incidentSummary.open || 0);
     return {
         ...conversation,
         display_name: conversation.display_name || metadata.parent_name || metadata.school_name || conversation.user_id,
         origin_label: conversation.channel === 'webchat' ? 'Webchat' : (conversation.channel || 'Canal'),
         area_label: audit.assistant_name || metadata.agent_title || metadata.routed_agent || metadata.agent_key || 'Assistente Publico',
-        status_label: statusLabels[conversation.status] || conversation.status || 'Sem status'
+        status_label: statusLabels[conversation.status] || conversation.status || 'Sem status',
+        governance_summary: {
+            feedback_summary: {
+                total: Number(feedbackSummary.total || 0),
+                helpful: Number(feedbackSummary.helpful || 0),
+                not_helpful: feedbackNotHelpful,
+                incorrect: feedbackIncorrect
+            },
+            incident_summary: {
+                total: Number(incidentSummary.total || 0),
+                open: incidentsOpen
+            },
+            flagged: Boolean(governanceSummary.flagged || feedbackNotHelpful > 0 || feedbackIncorrect > 0 || incidentsOpen > 0)
+        },
+        feedback_not_helpful: feedbackNotHelpful,
+        feedback_incorrect: feedbackIncorrect,
+        incidents_open: incidentsOpen,
+        governance_flagged: Boolean(governanceSummary.flagged || feedbackNotHelpful > 0 || feedbackIncorrect > 0 || incidentsOpen > 0)
     };
 }
-
+function sincronizarConversaNaLista(conversation) {
+    const normalized = normalizarConversa(conversation);
+    let found = false;
+    conversas = conversas.map((item) => {
+        if (item.id === normalized.id) {
+            found = true;
+            return { ...item, ...normalized };
+        }
+        return item;
+    });
+    if (!found) {
+        conversas = [normalized, ...conversas];
+    }
+}
 async function carregarConversas() {
     try {
         const res = await fetch('/api/webchat/conversations', { headers: getChatManagerRequestHeaders({}) });
@@ -487,7 +559,7 @@ function updateDocumentTitle() {
 }
 
 function renderizarContatos(lista = conversas) {
-    const container = $('#contact-list');
+    const container = $("#contact-list");
     container.empty();
 
     if (!lista.length) {
@@ -498,16 +570,27 @@ function renderizarContatos(lista = conversas) {
     lista.forEach((c) => {
         const badgeClass = c.origin_label === 'Webchat' ? 'badge-info' : 'badge-primary';
         const statusClass = c.status === 'AI_ACTIVE' ? 'badge-success' : 'badge-secondary';
+        const governanceBadges = [];
+        if (c.feedback_not_helpful > 0) {
+            governanceBadges.push(`<span class="badge badge-warning governance-badge">Nao util ${escapeHtml(String(c.feedback_not_helpful))}</span>`);
+        }
+        if (c.feedback_incorrect > 0) {
+            governanceBadges.push(`<span class="badge badge-danger governance-badge">Incorreta ${escapeHtml(String(c.feedback_incorrect))}</span>`);
+        }
+        if (c.incidents_open > 0) {
+            governanceBadges.push(`<span class="badge badge-dark governance-badge">Incidente ${escapeHtml(String(c.incidents_open))}</span>`);
+        }
         const html = `
-            <div class="contact-item ${contatoAtivoId === c.id ? 'active' : ''}" onclick="selecionarChat('${escapeHtml(c.id)}')">
+            <div class="contact-item ${contatoAtivoId === c.id ? 'active' : ''}${c.governance_flagged ? ' governance-flagged' : ''}" onclick="selecionarChat('${escapeHtml(c.id)}')">
                 <div class="d-flex justify-content-between align-items-start">
                     <strong>${escapeHtml(c.display_name)}</strong>
                     <span class="badge ${badgeClass} origin-badge">${escapeHtml(c.origin_label)}</span>
                 </div>
                 <div class="small text-muted mt-1">${escapeHtml(c.area_label)}</div>
                 <div class="text-muted small text-truncate mt-1">${escapeHtml(c.last_message || c.summary || 'Conversa com assistente institucional.')}</div>
-                <div class="mt-2">
+                <div class="mt-2 d-flex flex-wrap" style="gap: 6px;">
                     <span class="badge ${statusClass}">${escapeHtml(c.status_label)}</span>
+                    ${governanceBadges.join('')}
                 </div>
             </div>
         `;
@@ -532,6 +615,7 @@ async function selecionarChat(id, silent = false) {
         const body = await res.json();
         const conversation = normalizarConversa(body?.conversation || {});
         conversaAtiva = conversation;
+        sincronizarConversaNaLista(conversation);
 
         const stillExists = (conversation.transcript || []).some((message) => message.id === previousAuditMessageId && message.clickable_audit);
         if (stillExists) {
@@ -541,11 +625,11 @@ async function selecionarChat(id, silent = false) {
             auditMessageAtivoId = firstAuditableMessage?.id || null;
         }
 
-        $('#active-contact-name').html(`
+        $("#active-contact-name").html(`
             <div>
                 <div>${escapeHtml(conversation.display_name || 'Conversa')}</div>
                 <div class="small text-muted mt-1">
-                    ${escapeHtml(conversation.area_label)} ï¿½ ${escapeHtml(conversation.status_label)}
+                    ${escapeHtml(conversation.area_label)} | ${escapeHtml(conversation.status_label)}
                 </div>
             </div>
         `);
@@ -595,6 +679,8 @@ function renderizarAuditoria(conversation) {
     const consultedSources = Array.isArray(audit.consulted_sources) ? audit.consulted_sources : [];
     const feedbackSummary = audit.feedback_summary || {};
     const incidentSummary = audit.incident_summary || {};
+    const feedbackEntries = Array.isArray(audit.feedback_entries) ? audit.feedback_entries : [];
+    const incidentEntries = Array.isArray(audit.incident_entries) ? audit.incident_entries : [];
     const events = Array.isArray(audit.formal_events) ? audit.formal_events : [];
     const panelIntro = capabilities.governanceDetails
         ? 'Painel completo de governanca e rastreabilidade da resposta.'
@@ -620,6 +706,37 @@ function renderizarAuditoria(conversation) {
         `).join('')
         : '<div class="audit-empty">Seu perfil nao visualiza os eventos formais detalhados desta conversa.</div>';
 
+    const treatmentHtml = capabilities.feedbackActions
+        ? `
+            <div class="audit-box mb-2">
+                <div class="audit-label">Feedback registrado</div>
+                ${feedbackEntries.length
+                    ? feedbackEntries.map((entry) => `
+                        <div class="audit-event-item">
+                            <div class="small font-weight-bold">${escapeHtml(formatFeedbackTypeLabel(entry.feedback_type))}</div>
+                            <div class="small text-muted mb-1">${escapeHtml(entry.created_by || 'Operador institucional')} | ${escapeHtml(formatDateTime(entry.created_at))}</div>
+                            <div class="small">${escapeHtml(entry.comment || 'Sem comentario registrado.')}</div>
+                        </div>
+                    `).join('')
+                    : '<div class="audit-empty">Nenhum feedback institucional registrado para esta resposta.</div>'}
+            </div>
+            <div class="audit-box">
+                <div class="audit-label">Incidentes e tratamento</div>
+                ${incidentEntries.length
+                    ? incidentEntries.map((entry) => `
+                        <div class="audit-event-item">
+                            <div class="small font-weight-bold">${escapeHtml(entry.incident_type || 'Incidente')}</div>
+                            <div class="small text-muted mb-1">${escapeHtml(formatIncidentSeverity(entry.severity))} | ${escapeHtml(formatIncidentStatus(entry.status))}</div>
+                            <div class="small text-muted mb-1">${escapeHtml(entry.opened_by || 'Operador institucional')} | ${escapeHtml(formatDateTime(entry.opened_at))}</div>
+                            <div class="small">${escapeHtml(entry.resolution_notes || 'Sem observacoes de tratamento registradas.')}</div>
+                            ${entry.resolved_at ? `<div class="small text-muted mt-1">Resolvido em ${escapeHtml(formatDateTime(entry.resolved_at))}</div>` : ''}
+                        </div>
+                    `).join('')
+                    : '<div class="audit-empty">Nenhum incidente aberto para esta resposta.</div>'}
+            </div>
+        `
+        : '<div class="audit-empty">Seu perfil nao visualiza registros detalhados de feedback e tratamento.</div>';
+
     const confidenceBox = capabilities.governanceDetails
         ? `
                 <div class="audit-box">
@@ -643,6 +760,7 @@ function renderizarAuditoria(conversation) {
                 <span class="audit-chip">Risco de alucinacao: ${escapeHtml(audit.hallucination_risk_level || '-')}</span>
                 <span class="audit-chip">Score de evidencia: ${escapeHtml(formatConfidence(audit.evidence_score))}</span>
                 <span class="audit-chip">Feedback util: ${escapeHtml(String(feedbackSummary.helpful || 0))}</span>
+                <span class="audit-chip">Feedback nao util: ${escapeHtml(String(feedbackSummary.not_helpful || 0))}</span>
                 <span class="audit-chip">Feedback incorreto: ${escapeHtml(String(feedbackSummary.incorrect || 0))}</span>
                 <span class="audit-chip">Incidentes abertos: ${escapeHtml(String(incidentSummary.open || 0))}</span>
                 <span class="audit-chip">Resposta corrigida depois: ${audit.corrected ? 'sim' : 'nao'}</span>
@@ -720,6 +838,11 @@ function renderizarAuditoria(conversation) {
         </div>
 
         <div class="audit-section">
+            <div class="audit-label">Tratamento</div>
+            ${treatmentHtml}
+        </div>
+
+        <div class="audit-section">
             <div class="audit-label">Eventos da Trilha</div>
             <div class="audit-box">${eventsHtml}</div>
         </div>
@@ -761,7 +884,7 @@ async function registrarFeedbackAuditoria(tipo) {
     const res = await fetch('/api/webchat/responses/' + encodeURIComponent(audit.response_id) + '/feedback', {
         method: 'POST',
         headers: getChatManagerRequestHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ feedback_type: tipo, comment, created_by: 'Operador institucional' })
+        body: JSON.stringify({ feedback_type: tipo, comment, created_by: getCurrentOperatorName() })
     });
     const body = await res.json();
     if (!res.ok) {
@@ -770,7 +893,11 @@ async function registrarFeedbackAuditoria(tipo) {
     }
 
     Swal.fire('Sucesso', 'Feedback registrado com sucesso.', 'success');
-    if (contatoAtivoId) await selecionarChat(contatoAtivoId, true);
+    if (contatoAtivoId) {
+        await carregarConversasSilencioso();
+    } else {
+        await carregarConversas();
+    }
   }
 
 async function registrarIncidenteAuditoria() {
@@ -811,7 +938,7 @@ async function registrarIncidenteAuditoria() {
             severity: String(payload.severity || 'MEDIUM').trim().toUpperCase(),
             description: String(payload.description || '').trim(),
             topic: audit.original_question || '',
-            opened_by: 'Operador institucional'
+            opened_by: getCurrentOperatorName()
         })
     });
     const body = await res.json();
@@ -821,7 +948,11 @@ async function registrarIncidenteAuditoria() {
     }
 
     Swal.fire('Sucesso', 'Incidente registrado com sucesso.', 'success');
-    if (contatoAtivoId) await selecionarChat(contatoAtivoId, true);
+    if (contatoAtivoId) {
+        await carregarConversasSilencioso();
+    } else {
+        await carregarConversas();
+    }
   }
 
 async function enviarMensagem() {
@@ -870,6 +1001,11 @@ async function encerrarConversaAtual() {
 window.selecionarChat = selecionarChat;
 window.selecionarAuditoriaMensagem = selecionarAuditoriaMensagem;
 window.enviarMensagem = enviarMensagem;
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-﻿// js/coordinator/carregar-componentes.js
+// js/coordinator/carregar-componentes.js
 
 async function carregarComponente(idElemento, caminhoArquivo) {
     try {
@@ -28,25 +28,63 @@ async function carregarComponente(idElemento, caminhoArquivo) {
 function getRoleLabel(role) {
     const map = {
         superadmin: 'Superadmin do Projeto',
-        network_manager: 'Gestor da Rede / Institucional',
-        content_curator: 'Curador de Conteudo',
-        public_operator: 'Operador de Atendimento Publico',
-        secretariat: 'Servidor da Secretaria',
-        coordination: 'Servidor da Coordenacao',
-        treasury: 'Servidor da Tesouraria',
-        direction: 'Servidor da Direcao',
-        auditor: 'Auditor / Compliance',
+        network_manager: 'Gestão da Rede',
+        content_curator: 'Curadoria de Conteúdo',
+        public_operator: 'Atendimento Público',
+        secretariat: 'Secretaria',
+        coordination: 'Coordenação',
+        treasury: 'Tesouraria',
+        direction: 'Direção',
+        auditor: 'Auditoria e Compliance',
         observer: 'Observador Externo'
     };
     return map[String(role || '').toLowerCase()] || (role || 'Membro');
 }
 
-function getInitials(name = '') {
-    const clean = String(name || '').trim();
+const headerRoleTheme = {
+    superadmin: { bg: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', accent: '#4338ca', soft: '#e0e7ff' },
+    network_manager: { bg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', accent: '#dc2626', soft: '#fee2e2' },
+    content_curator: { bg: 'linear-gradient(135deg, #06b6d4 0%, #0f766e 100%)', accent: '#0891b2', soft: '#cffafe' },
+    public_operator: { bg: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', accent: '#475569', soft: '#e2e8f0' },
+    secretariat: { bg: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', accent: '#0e7490', soft: '#dbeafe' },
+    coordination: { bg: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', accent: '#6d28d9', soft: '#ede9fe' },
+    treasury: { bg: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)', accent: '#16a34a', soft: '#dcfce7' },
+    direction: { bg: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)', accent: '#e11d48', soft: '#ffe4e6' },
+    auditor: { bg: 'linear-gradient(135deg, #334155 0%, #0f172a 100%)', accent: '#1e293b', soft: '#e2e8f0' },
+    observer: { bg: 'linear-gradient(135deg, #0ea5e9 0%, #1d4ed8 100%)', accent: '#2563eb', soft: '#dbeafe' }
+};
+const lowerCaseParticles = new Set(['da', 'de', 'do', 'das', 'dos', 'e']);
+
+function normalizeDisplayName(name = '', email = '') {
+    const fallback = String(email || '').split('@')[0] || 'Usuário';
+    const source = String(name || '').trim() || fallback;
+    const normalized = source
+        .replace(/[._-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    return normalized
+        .split(' ')
+        .filter(Boolean)
+        .map((part, index) => {
+            const lower = part.toLowerCase();
+            if (index > 0 && lowerCaseParticles.has(lower)) return lower;
+            if (part.length <= 2 && part === part.toUpperCase()) return part;
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+        })
+        .join(' ');
+}
+
+function getInitials(name = '', email = '') {
+    const clean = normalizeDisplayName(name, email);
     if (!clean) return 'US';
     const parts = clean.split(/\s+/).filter(Boolean);
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return `${parts[0][0] || ''}${parts[parts.length - 1][0] || ''}`.toUpperCase();
+}
+
+function getRoleTheme(role = '') {
+    return headerRoleTheme[String(role || '').toLowerCase()] || headerRoleTheme.public_operator;
 }
 
 async function getCurrentUser() {
@@ -57,8 +95,10 @@ async function getCurrentUser() {
     return data?.user || null;
 }
 
-function setHeaderIdentity({ name, roleLabel, email }) {
-    const initials = getInitials(name);
+function setHeaderIdentity({ name, roleLabel, email, role }) {
+    const displayName = normalizeDisplayName(name, email);
+    const initials = getInitials(displayName, email);
+    const theme = getRoleTheme(role);
 
     const ids = {
         userNameNav: document.getElementById('user-name'),
@@ -70,19 +110,41 @@ function setHeaderIdentity({ name, roleLabel, email }) {
         modalName: document.getElementById('profile-modal-name'),
         modalRole: document.getElementById('profile-modal-role'),
         inputName: document.getElementById('profile-full-name'),
-        inputEmail: document.getElementById('profile-email')
+        inputEmail: document.getElementById('profile-email'),
+        menuHeader: document.getElementById('user-menu-header')
     };
 
-    if (ids.userNameNav) ids.userNameNav.textContent = name;
-    if (ids.userNameHeader) ids.userNameHeader.textContent = name;
-    if (ids.userRole) ids.userRole.textContent = roleLabel;
-    if (ids.avatarSm) ids.avatarSm.textContent = initials;
-    if (ids.avatarLg) ids.avatarLg.textContent = initials;
-    if (ids.avatarModal) ids.avatarModal.textContent = initials;
-    if (ids.modalName) ids.modalName.textContent = name;
+    if (ids.userNameNav) ids.userNameNav.textContent = displayName;
+    if (ids.userNameHeader) ids.userNameHeader.textContent = displayName;
+    if (ids.userRole) {
+        ids.userRole.textContent = roleLabel;
+        ids.userRole.style.color = 'rgba(255,255,255,0.92)';
+        ids.userRole.style.fontWeight = '600';
+    }
+    if (ids.avatarSm) {
+        ids.avatarSm.textContent = initials;
+        ids.avatarSm.style.background = theme.bg;
+        ids.avatarSm.style.color = '#ffffff';
+    }
+    if (ids.avatarLg) {
+        ids.avatarLg.textContent = initials;
+        ids.avatarLg.style.background = '#ffffff';
+        ids.avatarLg.style.color = theme.accent;
+        ids.avatarLg.style.boxShadow = '0 12px 28px rgba(15, 23, 42, 0.2)';
+    }
+    if (ids.avatarModal) {
+        ids.avatarModal.textContent = initials;
+        ids.avatarModal.style.background = theme.soft;
+        ids.avatarModal.style.color = theme.accent;
+    }
+    if (ids.modalName) ids.modalName.textContent = displayName;
     if (ids.modalRole) ids.modalRole.textContent = roleLabel;
-    if (ids.inputName) ids.inputName.value = name || '';
+    if (ids.inputName) ids.inputName.value = displayName || '';
     if (ids.inputEmail) ids.inputEmail.value = email || '';
+    if (ids.menuHeader) {
+        ids.menuHeader.style.background = theme.bg;
+        ids.menuHeader.style.boxShadow = 'inset 0 -1px 0 rgba(255,255,255,0.12)';
+    }
 }
 
 function calcPasswordStrength(password = '') {
@@ -150,7 +212,7 @@ async function saveProfileName() {
 
     if (!nameInput || !btn || !client?.auth) return;
 
-    const fullName = String(nameInput.value || '').trim();
+    const fullName = normalizeDisplayName(nameInput.value || '', sessionStorage.getItem('USER_EMAIL') || '');
     if (!fullName) {
         Swal.fire('Atencao', 'Informe um nome valido.', 'warning');
         return;
@@ -179,9 +241,10 @@ async function saveProfileName() {
         if (error) throw error;
 
         sessionStorage.setItem('USER_NAME', fullName);
-        const roleLabel = getRoleLabel(sessionStorage.getItem('USER_ROLE'));
+        const currentRole = sessionStorage.getItem('USER_ROLE') || '';
+        const roleLabel = getRoleLabel(currentRole);
         const email = sessionStorage.getItem('USER_EMAIL') || '';
-        setHeaderIdentity({ name: fullName, roleLabel, email });
+        setHeaderIdentity({ name: fullName, roleLabel, email, role: currentRole });
 
         Swal.fire('Sucesso', 'Perfil atualizado.', 'success');
     } catch (err) {
@@ -206,7 +269,7 @@ async function changePassword() {
     const p2 = confirm.value || '';
 
     if (p1.length < 8) {
-        err.textContent = 'A senha deve ter no minimo 8 caracteres.';
+        err.textContent = 'A senha deve ter no m?nimo 8 caracteres.';
         err.classList.remove('d-none');
         return;
     }
@@ -245,48 +308,68 @@ async function changePassword() {
     }
 }
 
-async function initHeaderProfile() {
+async function initHeaderProfile(sessionContext = null) {
     const modal = document.getElementById('modalProfileHeader');
     if (!modal) return;
 
     const user = await getCurrentUser();
     const client = window.supabaseClient || window._supabase || null;
+    const storedRole = sessionStorage.getItem('EFFECTIVE_ROLE') || sessionStorage.getItem('USER_ROLE') || '';
+    const storedName = sessionStorage.getItem('USER_NAME') || '';
+    const storedEmail = sessionStorage.getItem('USER_EMAIL') || '';
 
-    let role = sessionStorage.getItem('USER_ROLE') || '';
-    let memberName = '';
-    let memberEmail = '';
+    let role = sessionContext?.effective_role || sessionContext?.platform_role || storedRole;
+    let memberName = sessionContext?.memberName || storedName || '';
+    let memberEmail = sessionContext?.memberEmail || storedEmail || '';
 
-    if (client && user?.id) {
+    const needsRemoteLookup = !role || !memberName || !memberEmail;
+
+    if (needsRemoteLookup && client && user?.id) {
         try {
             const schoolId = sessionStorage.getItem('SCHOOL_ID');
+            const userEmail = String(user.email || storedEmail || '').trim().toLowerCase();
             const { data, error } = await client
                 .from('school_members')
                 .select('role, name, email')
                 .eq('user_id', user.id)
                 .eq('school_id', schoolId)
                 .maybeSingle();
+
             if (!error && data) {
-                if (data.role) {
-                    role = data.role;
-                    sessionStorage.setItem('USER_ROLE', role);
+                role = data.role || role;
+                memberName = data.name || memberName;
+                memberEmail = data.email || memberEmail;
+            } else if (userEmail) {
+                const { data: platformData, error: platformError } = await client
+                    .from('platform_members')
+                    .select('role, name, email, active')
+                    .or(`user_id.eq.${user.id},email.eq.${userEmail}`)
+                    .eq('active', true)
+                    .maybeSingle();
+                if (!platformError && platformData) {
+                    role = platformData.role || role;
+                    memberName = platformData.name || memberName;
+                    memberEmail = platformData.email || memberEmail;
                 }
-                memberName = data.name || '';
-                memberEmail = data.email || '';
             }
         } catch (e) {
-            console.warn('Nao foi possivel carregar role do usuario no header:', e?.message || e);
+            console.warn('Nao foi possivel carregar identidade do usuario no header:', e?.message || e);
         }
     }
 
-    const storedName = sessionStorage.getItem('USER_NAME') || '';
-    const email = memberEmail || user?.email || sessionStorage.getItem('USER_EMAIL') || '';
-    const name = memberName || storedName || user?.user_metadata?.full_name || (email ? email.split('@')[0] : 'Usuário');
-    const roleLabel = getRoleLabel(role);
+    const email = memberEmail || user?.email || storedEmail || '';
+    const name = normalizeDisplayName(memberName || storedName || user?.user_metadata?.full_name || user?.user_metadata?.name || '', email);
+    const effectiveRole = role || storedRole;
+    const roleLabel = getRoleLabel(effectiveRole);
 
     sessionStorage.setItem('USER_NAME', name);
     if (email) sessionStorage.setItem('USER_EMAIL', email);
+    if (effectiveRole) {
+        sessionStorage.setItem('USER_ROLE', effectiveRole);
+        sessionStorage.setItem('EFFECTIVE_ROLE', effectiveRole);
+    }
 
-    setHeaderIdentity({ name, roleLabel, email });
+    setHeaderIdentity({ name, roleLabel, email, role: effectiveRole });
 
     bindPasswordUX();
 
@@ -324,6 +407,7 @@ async function initHeaderProfile() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    let sessionContext = null;
     await Promise.all([
         carregarComponente('component-head', 'components/head.html'),
         carregarComponente('component-header', 'components/header.html'),
@@ -334,13 +418,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Garante sessao antes de aplicar permissoes (evita "Acesso negado" por USER_ROLE vazio)
     if (typeof initSession === 'function') {
         try {
-            await initSession();
+            sessionContext = await initSession();
+            window.__sessionContext = sessionContext || null;
         } catch (e) {
             console.warn('Falha ao inicializar sessao antes das permissoes:', e?.message || e);
         }
     }
 
-    await initHeaderProfile();
+    await initHeaderProfile(sessionContext || window.__sessionContext || null);
 
     if (typeof window.applyPermissions === 'function') {
         window.applyPermissions();
@@ -348,3 +433,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.body.style.opacity = '1';
 });
+
+
+
+
+
+
+
+
+
+
