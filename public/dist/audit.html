@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head id="component-head">
   <meta charset="utf-8">
   <title>Assistente Público | Auditoria</title>
@@ -105,7 +105,7 @@
           <div class="card mb-3">
             <div class="card-header"><h3 class="card-title">Painel de Tratamento Humano</h3></div>
             <div class="card-body">
-              <div class="small text-muted mb-3">Acompanhe a fila de revisÃ£o, responsÃ¡veis e desfechos do tratamento humano.</div>
+              <div class="small text-muted mb-3">Acompanhe a fila de revisão, responsáveis e desfechos do tratamento humano.</div>
               <div class="treatment-kpis">
                 <div class="treatment-kpi"><div class="treatment-kpi-label">Em tratamento</div><div class="treatment-kpi-value" id="treatment-kpi-total">0</div><div class="small text-muted">Logs com atuação humana</div></div>
                 <div class="treatment-kpi"><div class="treatment-kpi-label">Pendentes</div><div class="treatment-kpi-value" id="treatment-kpi-pending">0</div><div class="small text-muted">Aguardando ação humana</div></div>
@@ -115,16 +115,16 @@
               </div>
               <div class="treatment-panels">
                 <section class="treatment-panel">
-                  <h4>ResponsÃ¡veis</h4>
-                  <div id="audit-treatment-by-owner" class="small text-muted">Carregando responsÃ¡veis...</div>
+                  <h4>Responsáveis</h4>
+                  <div id="audit-treatment-by-owner" class="small text-muted">Carregando responsáveis...</div>
                 </section>
                 <section class="treatment-panel">
                   <h4>Status do tratamento</h4>
                   <div id="audit-treatment-by-status" class="small text-muted">Carregando status...</div>
                 </section>
                 <section class="treatment-panel">
-                  <h4>PendÃªncias prioritÃ¡rias</h4>
-                  <div id="audit-treatment-priority" class="small text-muted">Carregando pendÃªncias...</div>
+                  <h4>Pendências prioritárias</h4>
+                  <div id="audit-treatment-priority" class="small text-muted">Carregando pendências...</div>
                 </section>
               </div>
             </div>
@@ -146,13 +146,13 @@
                 <div class="filters">
                   <select class="form-control form-control-sm" id="audit-scenario-filter">
                     <option value="all">Todos os casos</option>
-                    <option value="case_1">Caso 1 - Resposta automÃ¡tica com evidÃªncia</option>
+                    <option value="case_1">Caso 1 - Resposta automática com evidência</option>
                     <option value="case_2">Caso 2 - Sem base suficiente</option>
-                    <option value="case_3">Caso 3 - IntervenÃ§Ã£o manual</option>
+                    <option value="case_3">Caso 3 - Intervenção manual</option>
                     <option value="case_4">Caso 4 - Resposta corrigida ou fonte atualizada</option>
-                    <option value="case_5">Caso 5 - Resposta com ressalva e revisÃ£o</option>
-                    <option value="case_6">Caso 6 - Resposta contida por mitigaÃ§Ã£o</option>
-                    <option value="other">Outros eventos auditÃ¡veis</option>
+                    <option value="case_5">Caso 5 - Resposta com ressalva e revisão</option>
+                    <option value="case_6">Caso 6 - Resposta contida por mitigação</option>
+                    <option value="other">Outros eventos auditáveis</option>
                   </select>
                   <select class="form-control form-control-sm" id="audit-conversation-filter">
                     <option value="all">Todas as conversas</option>
@@ -168,11 +168,11 @@
                   </select>
                   <select class="form-control form-control-sm" id="audit-review-filter">
                     <option value="all">Todos os tratamentos</option>
-                    <option value="PENDING_REVIEW">Pendentes de revisÃ£o</option>
+                    <option value="PENDING_REVIEW">Pendentes de revisão</option>
                     <option value="REVIEWED">Revisados</option>
                     <option value="KNOWLEDGE_CREATED">Viraram curadoria</option>
                     <option value="DISMISSED">Descartados</option>
-                    <option value="NOT_REQUIRED">NÃ£o requer revisÃ£o</option>
+                    <option value="NOT_REQUIRED">Não requer revisão</option>
                   </select>
                   <input type="date" class="form-control form-control-sm" id="audit-date-from">
                   <input type="date" class="form-control form-control-sm" id="audit-date-to">

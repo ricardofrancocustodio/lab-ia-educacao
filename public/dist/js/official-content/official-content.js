@@ -1,4 +1,16 @@
 const OfficialContentPage = (() => {
+  // Funções auxiliares
+  function escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, (m) => map[m]);
+  }
+
   const state = { schoolId: null, contextSchoolId: null, records: {}, effectiveRole: '', history: {}, context: null, institutions: [], calendarImportedFileName: { network: null, school: null }, enrollmentScope: 'network' };
   const SUPPORT_MODULE_CONFIG = {
     enrollment: {
@@ -11,17 +23,6 @@ const OfficialContentPage = (() => {
       shellTarget: '#official-enrollment .card-body',
       helpTitle: 'Como publicar este modulo',
       helpText: 'Estruture regras, periodos e documentos exigidos. Ao salvar, o sistema gera uma versao tecnica rastreavel para consulta humana e uso da IA.'
-    },
-    faq: {
-      scopeKey: 'school',
-      title: 'FAQ Oficial',
-      statusSelectId: 'faq-status-select',
-      statusBadgeId: 'faq-status-badge',
-      versionGridId: 'faq-version-grid',
-      historyId: 'faq-history',
-      shellTarget: '#official-faq .card-body',
-      helpTitle: 'Como publicar este modulo',
-      helpText: 'Cadastre perguntas e respostas curtas, com linguagem institucional e pronta para consulta da comunidade e da IA.'
     },
     notices: {
       scopeKey: 'school',
@@ -695,7 +696,6 @@ const OfficialContentPage = (() => {
     const canEditSchool = canEditScope('school');
 
     setReadOnlyState('#official-enrollment input, #official-enrollment textarea', !canEditSchool);
-    setReadOnlyState('#official-faq input, #official-faq textarea', !canEditSchool);
     setReadOnlyState('#official-notices input, #official-notices textarea', !canEditSchool);
     setReadOnlyState('#calendar-network-title, #calendar-network-summary, #calendar-network-lines', !canEditNetwork);
     setReadOnlyState('#calendar-school-title, #calendar-school-summary, #calendar-school-lines', !canEditSchool);
@@ -706,7 +706,7 @@ const OfficialContentPage = (() => {
       el.disabled = !canUse;
     });
 
-    document.querySelectorAll('#official-enrollment button, #official-faq button, #official-notices button').forEach((el) => {
+    document.querySelectorAll('#official-enrollment button, #official-notices button').forEach((el) => {
       el.disabled = !canEditSchool;
     });
 
@@ -756,36 +756,14 @@ const OfficialContentPage = (() => {
   }
 
   function toggleEmpty(kind) {
-    if (kind === 'faq') {
-      const count = document.querySelectorAll('#faq-items .official-list-item').length;
-      document.getElementById('faq-empty').style.display = count ? 'none' : 'block';
-    }
     if (kind === 'notice') {
       const count = document.querySelectorAll('#notice-items .official-list-item').length;
       document.getElementById('notice-empty').style.display = count ? 'none' : 'block';
     }
-  }
-
-  function createFaqItem(item = {}) {
-    const el = document.createElement('div');
-    el.className = 'official-list-item';
-    el.innerHTML = `
-      <div class="row">
-        <div class="col-md-6 form-group mb-2"><label>Pergunta</label><input class="form-control faq-question" value="${item.question || ''}"></div>
-        <div class="col-md-3 form-group mb-2"><label>Categoria</label><input class="form-control faq-category" value="${item.category || ''}"></div>
-        <div class="col-md-3 form-group mb-2"><label>Publico-alvo</label><input class="form-control faq-audience" value="${item.audience || ''}"></div>
-        <div class="col-md-12 form-group mb-2"><label>Resposta</label><textarea class="form-control faq-answer" rows="3">${item.answer || ''}</textarea></div>
-        <div class="col-md-4 form-group mb-2"><label>Escopo</label><input class="form-control faq-scope" value="${item.scope || 'school'}"></div>
-        <div class="col-md-4 form-group mb-2"><label>Versao</label><input class="form-control faq-version" value="${item.version || ''}"></div>
-        <div class="col-md-4 form-group mb-2"><label>Fonte associada</label><input class="form-control faq-source" value="${item.source || ''}"></div>
-      </div>
-      <div class="text-right"><button type="button" class="btn btn-outline-danger btn-sm remove-item">Remover</button></div>`;
-    el.querySelector('.remove-item').addEventListener('click', () => {
-      el.remove();
-      toggleEmpty('faq');
-    });
-    document.getElementById('faq-items').appendChild(el);
-    toggleEmpty('faq');
+    if (kind === 'enrollment-faq') {
+      const count = document.querySelectorAll('#enrollment-faq-items .official-list-item').length;
+      document.getElementById('enrollment-faq-empty').style.display = count ? 'none' : 'block';
+    }
   }
 
   function createNoticeItem(item = {}) {
@@ -807,6 +785,72 @@ const OfficialContentPage = (() => {
     });
     document.getElementById('notice-items').appendChild(el);
     toggleEmpty('notice');
+  }
+
+  function createEnrollmentFaqItem(item = {}) {
+    const el = document.createElement('div');
+    el.className = 'official-list-item';
+    el.style.borderLeft = '4px solid #007bff';
+    el.style.paddingLeft = '12px';
+    el.innerHTML = `
+      <div class="row">
+        <div class="col-md-8 form-group mb-2">
+          <label><strong>Pergunta</strong></label>
+          <input class="form-control enroll-faq-question" value="${escapeHtml(item.question || '')}" placeholder="Digite a pergunta">
+        </div>
+        <div class="col-md-4 form-group mb-2">
+          <label><strong>Categoria</strong></label>
+          <select class="form-control enroll-faq-category">
+            <option value="Geral" ${item.category === 'Geral' ? 'selected' : ''}>Geral</option>
+            <option value="Administrativo" ${item.category === 'Administrativo' ? 'selected' : ''}>Administrativo</option>
+            <option value="Documentos" ${item.category === 'Documentos' ? 'selected' : ''}>Documentos</option>
+            <option value="Períodos" ${item.category === 'Períodos' ? 'selected' : ''}>Períodos</option>
+          </select>
+        </div>
+        <div class="col-md-12 form-group mb-2">
+          <label><strong>Resposta</strong></label>
+          <textarea class="form-control enroll-faq-answer" rows="3" placeholder="Digite a resposta">${escapeHtml(item.answer || '')}</textarea>
+        </div>
+      </div>
+      <div class="text-right"><button type="button" class="btn btn-outline-danger btn-sm remove-item">Remover</button></div>`;
+    el.querySelector('.remove-item').addEventListener('click', () => {
+      el.remove();
+      toggleEmpty('enrollment-faq');
+    });
+    document.getElementById('enrollment-faq-items').appendChild(el);
+    toggleEmpty('enrollment-faq');
+  }
+
+  function collectEnrollmentFaqItems() {
+    return [...document.querySelectorAll('#enrollment-faq-items .official-list-item')].map((el) => ({
+      question: el.querySelector('.enroll-faq-question').value,
+      answer: el.querySelector('.enroll-faq-answer').value,
+      category: el.querySelector('.enroll-faq-category').value
+    })).filter((item) => item.question && item.answer);
+  }
+
+  function parseCSVLineEnrollment(line) {
+    const result = [];
+    let current = '';
+    let insideQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (insideQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === ',' && !insideQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
   }
 
   function fillCalendar(scopeKey) {
@@ -852,15 +896,13 @@ const OfficialContentPage = (() => {
     document.getElementById('enrollment-document-title').textContent = record.title || 'Documento carregado';
   }
 
-  function fillFaq() {
-    const itemsEl = document.getElementById('faq-items');
+  function fillEnrollmentFaq() {
+    const scope = getCurrentEnrollmentScope();
+    const record = getRecord('enrollment', scope);
+    const itemsEl = document.getElementById('enrollment-faq-items');
     if (itemsEl) itemsEl.innerHTML = '';
-    const record = getRecord('faq', 'school');
-    (record?.content_payload?.items || []).forEach(createFaqItem);
-    const summaryEl = document.getElementById('faq-summary');
-    if (summaryEl) summaryEl.value = record?.summary || '';
-    toggleEmpty('faq');
-    renderSupportModuleVersion('faq');
+    (record?.faq_items || []).forEach(item => createEnrollmentFaqItem(item));
+    toggleEmpty('enrollment-faq');
   }
 
   function fillNotices() {
@@ -898,7 +940,7 @@ const OfficialContentPage = (() => {
       fillEnrollment('network');
       fillEnrollment('school');
       setEnrollmentScope(state.enrollmentScope);
-      fillFaq();
+      fillEnrollmentFaq();
       fillNotices();
       await loadSupportModuleHistory('enrollment', 'network');
       await loadSupportModuleHistory('enrollment', 'school');
@@ -945,18 +987,6 @@ const OfficialContentPage = (() => {
       await loadSupportModuleHistory(moduleKey);
     }
     Swal.fire('Sucesso', 'Conteudo oficial salvo com sucesso.', 'success');
-  }
-
-  function collectFaqItems() {
-    return [...document.querySelectorAll('#faq-items .official-list-item')].map((el) => ({
-      question: el.querySelector('.faq-question').value,
-      category: el.querySelector('.faq-category').value,
-      audience: el.querySelector('.faq-audience').value,
-      answer: el.querySelector('.faq-answer').value,
-      scope: el.querySelector('.faq-scope').value,
-      version: el.querySelector('.faq-version').value,
-      source: el.querySelector('.faq-source').value
-    })).filter((item) => item.question || item.answer);
   }
 
   function collectNoticeItems() {
@@ -1160,7 +1190,7 @@ const OfficialContentPage = (() => {
       document.getElementById('enrollment-summary').value = '';
       document.getElementById('enrollment-document-title').textContent = `Novo documento (${scope})`;
     },
-    addFaqItem: () => createFaqItem(),
+    addEnrollmentFaqItem: () => createEnrollmentFaqItem(),
     updateCalendarStatus: async (scopeKey) => {
       try {
         const record = getRecord('calendar', scopeKey);
@@ -1275,14 +1305,6 @@ const OfficialContentPage = (() => {
         Swal.fire('Erro', error.message, 'error');
       }
     },
-    saveFaq: async () => {
-      try {
-        const summary = document.getElementById('faq-summary')?.value || '';
-        await save('faq', 'school', 'FAQ Oficial', summary, { items: collectFaqItems() });
-      } catch (error) {
-        Swal.fire('Erro', error.message, 'error');
-      }
-    },
     saveNotices: async () => {
       try {
         const summary = document.getElementById('notices-summary')?.value || '';
@@ -1321,40 +1343,6 @@ const OfficialContentPage = (() => {
         Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
       }
     },
-    downloadFaqTemplate: () => {
-      const csv = 'question,category,audience,answer,scope,version,source\n';
-      downloadCsv('template-faq.csv', csv);
-    },
-    importFaqCsv: async (file) => {
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        if (lines.length < 2) throw new Error('CSV deve ter pelo menos uma linha de dados.');
-        const headers = lines[0].split(',').map(h => h.trim());
-        const expectedHeaders = ['question', 'category', 'audience', 'answer', 'scope', 'version', 'source'];
-        if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
-          throw new Error('Cabeçalhos do CSV não correspondem ao template esperado.');
-        }
-        document.getElementById('faq-items').innerHTML = '';
-        for (let i = 1; i < lines.length; i++) {
-          const data = lines[i].split(',').map(d => d.trim());
-          createFaqItem({
-            question: data[0] || '',
-            category: data[1] || '',
-            audience: data[2] || '',
-            answer: data[3] || '',
-            scope: data[4] || 'school',
-            version: data[5] || '',
-            source: data[6] || ''
-          });
-        }
-        document.getElementById('faq-file').value = '';
-        Swal.fire('CSV importado', `${lines.length - 1} pergunta(s) carregada(s) com sucesso.`, 'success');
-      } catch (error) {
-        Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
-      }
-    },
     downloadNoticesTemplate: () => {
       const csv = 'title,type,start_date,end_date,message,attachment_url\n';
       downloadCsv('template-comunicados.csv', csv);
@@ -1386,6 +1374,49 @@ const OfficialContentPage = (() => {
         Swal.fire('CSV importado', `${lines.length - 1} comunicado(s) carregado(s) com sucesso.`, 'success');
       } catch (error) {
         Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
+      }
+    },
+    addEnrollmentFaqItem: () => createEnrollmentFaqItem(),
+    downloadEnrollmentFaqTemplate: () => {
+      const csv = 'pergunta,resposta,categoria\n"Qual é o período de matrícula?","Fevereiro a março","Administrativo"\n';
+      downloadCsv('template-faq-matricula.csv', csv);
+    },
+    importEnrollmentFaqCsv: async (file) => {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) throw new Error('CSV deve ter pergunta e resposta.');
+        document.getElementById('enrollment-faq-items').innerHTML = '';
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const cells = parseCSVLineEnrollment(line);
+          if (cells.length >= 2) {
+            createEnrollmentFaqItem({
+              question: cells[0] || '',
+              answer: cells[1] || '',
+              category: cells[2] || 'Geral'
+            });
+          }
+        }
+        document.getElementById('enrollment-faq-file').value = '';
+        Swal.fire('CSV importado', `${lines.length - 1} pergunta(s) carregada(s).`, 'success');
+        fillEnrollmentFaq();
+      } catch (error) {
+        Swal.fire('Erro', error.message || 'Não foi possível ler o CSV.', 'error');
+      }
+    },
+    saveEnrollmentFaq: async () => {
+      try {
+        const scope = getCurrentEnrollmentScope();
+        const record = getRecord('enrollment', scope);
+        const items = collectEnrollmentFaqItems();
+        const updatedRecord = { ...record, faq_items: items };
+        setRecord(updatedRecord);
+        Swal.fire('Sucesso', 'Perguntas frequentes salvas.', 'success');
+      } catch (error) {
+        Swal.fire('Erro', error.message, 'error');
       }
     },
     getRecord,

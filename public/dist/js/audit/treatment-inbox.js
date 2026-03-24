@@ -1,7 +1,7 @@
 ﻿const AUDIT_TREATMENT_INBOX_PAGE_CONFIG = {
   audit: {
     title: 'Fila de Encaminhamentos',
-    subtitle: 'Direcao, compliance e auditoria acompanham os casos enviados para tratamento.',
+    subtitle: 'Direção, compliance e auditoria acompanham os casos enviados para tratamento.',
     destinationByRole: {
       direction: 'direction_compliance'
     },
@@ -9,7 +9,7 @@
   },
   'official-content': {
     title: 'Fila de Tratamento Institucional',
-    subtitle: 'Curadoria e secretaria recebem aqui os casos que exigem atualizacao de conteudo oficial.',
+    subtitle: 'Curadoria e secretaria recebem aqui os casos que exigem atualização de conteúdo oficial.',
     destinationByRole: {
       content_curator: 'content_curation',
       network_manager: 'network_secretariat',
@@ -18,7 +18,7 @@
     viewAllRoles: new Set(['superadmin'])
   },
   'chat-manager': {
-    title: 'Fila da Operacao de Atendimento',
+    title: 'Fila da Operação de Atendimento',
     subtitle: 'Atendimento humano acompanha aqui os casos encaminhados pela auditoria.',
     destinationByRole: {
       public_operator: 'service_operation',
@@ -31,7 +31,7 @@
 const AUDIT_TREATMENT_INBOX_STATUS_LABELS = {
   OPEN: 'Aberto',
   IN_PROGRESS: 'Em andamento',
-  COMPLETED: 'Concluido',
+  COMPLETED: 'Concluído',
   DISMISSED: 'Descartado'
 };
 
@@ -165,14 +165,14 @@ function ensureAuditTreatmentInboxMount() {
     <div class="card-header">
       <div class="audit-treatment-inbox-toolbar">
         <div>
-          <h3 class="card-title">${escapeAuditTreatmentHtml(config.title)}</h3>
+          <h3 class="card-title">${escapeAuditTreatmentHtml(config.title)}</h3><br>
           <div class="audit-treatment-box-muted mt-1">${escapeAuditTreatmentHtml(config.subtitle)}</div>
         </div>
         <div class="form-inline">
           <select class="form-control form-control-sm" id="audit-treatment-destination-filter" style="min-width:220px;display:none;"></select>
           <div class="custom-control custom-switch">
             <input type="checkbox" class="custom-control-input" id="audit-treatment-show-completed">
-            <label class="custom-control-label" for="audit-treatment-show-completed">Mostrar concluidos</label>
+            <label class="custom-control-label" for="audit-treatment-show-completed">Mostrar concluídos</label>
           </div>
           <button class="btn btn-outline-secondary btn-sm" id="audit-treatment-refresh">Atualizar</button>
         </div>
@@ -229,7 +229,7 @@ function renderAuditTreatmentDestinationFilter(destinations, pageConfig, role) {
   const forcedDestination = pageConfig.viewAllRoles?.has(role) ? '' : (pageConfig.destinationByRole?.[role] || '');
   const allowChoice = pageConfig.viewAllRoles?.has(role) || (destinations || []).length > 1;
   const currentValue = forcedDestination || auditTreatmentInboxState.destinationFilter || '';
-  const options = ['<option value="">Todos os destinos desta pagina</option>']
+  const options = ['<option value="">Todos os destinos desta página</option>']
     .concat((destinations || []).map((item) => `<option value="${escapeAuditTreatmentHtml(item.key)}">${escapeAuditTreatmentHtml(item.label)}</option>`));
 
   select.innerHTML = options.join('');
@@ -260,7 +260,7 @@ function renderAuditTreatmentInbox(items, scopeMode) {
 
   list.innerHTML = items.map((item) => {
     const statusTone = getAuditTreatmentStatusTone(item.treatment_progress_status);
-    const schoolLabel = item.school_name || 'Escola nao identificada';
+    const schoolLabel = item.school_name || 'Escola não identificada';
     const requesterLabel = item.requester_name || '-';
     const notes = item.treatment_completion_notes || item.review_notes || '';
     return `
@@ -279,9 +279,9 @@ function renderAuditTreatmentInbox(items, scopeMode) {
           <div><strong>Canal:</strong> ${escapeAuditTreatmentHtml(item.channel || '-')}</div>
           <div><strong>Assistente:</strong> ${escapeAuditTreatmentHtml(item.assistant_name || '-')}</div>
           <div><strong>Fonte:</strong> ${escapeAuditTreatmentHtml(item.supporting_source_title || '-')}</div>
-          <div><strong>Ultima atualizacao:</strong> ${escapeAuditTreatmentHtml(formatAuditTreatmentDateTime(item.treatment_last_updated_at))}</div>
+          <div><strong>Última atualização:</strong> ${escapeAuditTreatmentHtml(formatAuditTreatmentDateTime(item.treatment_last_updated_at))}</div>
         </div>
-        ${notes ? `<div class="audit-treatment-box-muted mt-2"><strong>Observacoes:</strong> ${escapeAuditTreatmentHtml(notes)}</div>` : ''}
+        ${notes ? `<div class="audit-treatment-box-muted mt-2"><strong>Observações:</strong> ${escapeAuditTreatmentHtml(notes)}</div>` : ''}
         <div class="audit-treatment-actions">
           <button class="btn btn-outline-primary btn-sm" data-treatment-action="open" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">${escapeAuditTreatmentHtml(item.treatment_action_label || 'Abrir contexto')}</button>
           ${String(item.treatment_progress_status || '').toUpperCase() === 'IN_PROGRESS' ? '' : `<button class="btn btn-outline-warning btn-sm" data-treatment-action="status" data-next-status="IN_PROGRESS" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Marcar em andamento</button>`}
@@ -334,7 +334,7 @@ async function loadAuditTreatmentInbox() {
     renderAuditTreatmentDestinationFilter(auditTreatmentInboxState.destinations, pageConfig, role);
     renderAuditTreatmentInbox(auditTreatmentInboxState.items, body.scope_mode || 'single');
   } catch (error) {
-    if (summary) summary.textContent = 'Nao foi possivel carregar a fila de tratamento.';
+    if (summary) summary.textContent = 'Não foi possível carregar a fila de tratamento.';
     if (list) list.innerHTML = `<div class="text-danger small">${escapeAuditTreatmentHtml(error.message || 'Falha ao carregar a fila.')}</div>`;
   } finally {
     auditTreatmentInboxState.loading = false;
@@ -348,12 +348,12 @@ async function requestAuditTreatmentNotes(nextStatus) {
   const modal = await window.Swal.fire({
     title: nextStatus === 'COMPLETED' ? 'Concluir tratamento' : 'Descartar demanda',
     text: nextStatus === 'COMPLETED'
-      ? 'Registre a evidencia ou a acao executada por esta area.'
+      ? 'Registre a evidência ou a ação executada por esta área.'
       : 'Explique por que esta fila esta descartando a demanda.',
     input: 'textarea',
     inputPlaceholder: nextStatus === 'COMPLETED'
-      ? 'Ex.: conteudo publicado, conversa respondida, documento revisado.'
-      : 'Ex.: caso sem acao adicional nesta fila.',
+      ? 'Ex.: conteúdo publicado, conversa respondida, documento revisado.'
+      : 'Ex.: caso sem ação adicional nesta fila.',
     inputAttributes: { rows: 4 },
     showCancelButton: true,
     confirmButtonText: 'Salvar',
@@ -441,7 +441,7 @@ function bindAuditTreatmentInboxActions() {
       }
     } catch (error) {
       if (window.Swal) {
-        await window.Swal.fire('Erro', error.message || 'Nao foi possivel atualizar a fila.', 'error');
+        await window.Swal.fire('Erro', error.message || 'Não foi possível atualizar a fila.', 'error');
       }
     } finally {
       button.disabled = false;

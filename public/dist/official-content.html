@@ -73,7 +73,6 @@
                         <ul class="nav nav-tabs" role="tablist">
                             <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#official-calendar" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-calendar')"><i class="fas fa-calendar-alt mr-1"></i> Calendario Oficial</a></li>
                             <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-enrollment" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-enrollment')"><i class="fas fa-file-signature mr-1"></i> Matricula e Documentos</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-faq" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-faq')"><i class="fas fa-question-circle mr-1"></i> FAQ Oficial</a></li>
                             <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-notices" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-notices')"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li>
                         </ul>
                     </div>
@@ -241,27 +240,12 @@
                                                 <div class="official-actions">
                                                     <button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollment()">Salvar regras de matricula</button>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="official-faq" role="tabpanel">
-                                    <div class="official-card card">
-                                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">FAQ Oficial</h3><div><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addFaqItem()"><i class="fas fa-plus mr-1"></i>Nova pergunta</button></div></div>
-                                        <div class="card-body">
-                                            <div class="official-toolbar">
-                                                <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadFaqTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
-                                                <label class="btn btn-outline-secondary btn-sm mb-0">
-                                                    <i class="fas fa-upload mr-1"></i>Importar CSV
-                                                    <input id="faq-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importFaqCsv(this.files && this.files[0])">
-                                                </label>
-                                            </div>
-                                            <div id="faq-items" class="official-list"></div>
-                                            <div id="faq-empty" class="official-empty mt-2">Nenhuma pergunta cadastrada ainda.</div>
-                                            <div class="official-actions mt-3"><button class="btn btn-primary" onclick="OfficialContentPage.saveFaq()"><i class="fas fa-save mr-1"></i>Salvar todas as alterações</button></div>
-                                        </div>
-                                    </div>
-                                </div>
+                                                <hr class="my-4">
+                                                <h5 class="mt-4 mb-3"><i class="fas fa-question-circle mr-2 text-primary"></i>Perguntas Frequentes sobre Matrícula</h5>
+                                                <div class="official-toolbar mb-3">
+                                                    <button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.addEnrollmentFaqItem()"><i class="fas fa-plus mr-1"></i>Nova pergunta</button>
+                                                    <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentFaqTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template FAQ CSV</button>
+                                                    <label class="btn btn-outline-secondary btn-sm mb-0">\n                                                        <i class="fas fa-upload mr-1"></i>Importar FAQ CSV\n                                                        <input id="enrollment-faq-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importEnrollmentFaqCsv(this.files && this.files[0])">\n                                                    </label>\n                                                </div>\n                                                <div id="enrollment-faq-items" class="official-list"></div>\n                                                <div id="enrollment-faq-empty" class="official-empty mt-2">Nenhuma pergunta cadastrada ainda.</div>\n                                                <div class="official-actions mt-3">\n                                                    <button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollmentFaq()">Salvar Perguntas Frequentes</button>\n                                                </div>\n                                            </div>\n                                        </div>\n                                    </div>\n                                </div>
                                 <div class="tab-pane fade" id="official-notices" role="tabpanel">
                                     <div class="official-card card">
                                         <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Comunicados Oficiais</h3><div><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addNoticeItem()"><i class="fas fa-plus mr-1"></i>Novo comunicado</button></div></div>
@@ -300,7 +284,6 @@
 <script src="./js/cache.js"></script>
 <script src="./js/coordinator/carregar-componentes.js"></script>
 <script src="./js/official-content/official-content.js"></script>
-<script src="./js/official-content/faq-extended.js"></script>
 <script src="./js/audit/treatment-inbox.js"></script>
 </body>
 </html>
