@@ -853,19 +853,23 @@ const OfficialContentPage = (() => {
   }
 
   function fillFaq() {
-    document.getElementById('faq-items').innerHTML = '';
+    const itemsEl = document.getElementById('faq-items');
+    if (itemsEl) itemsEl.innerHTML = '';
     const record = getRecord('faq', 'school');
     (record?.content_payload?.items || []).forEach(createFaqItem);
-    document.getElementById('faq-summary').value = record?.summary || '';
+    const summaryEl = document.getElementById('faq-summary');
+    if (summaryEl) summaryEl.value = record?.summary || '';
     toggleEmpty('faq');
     renderSupportModuleVersion('faq');
   }
 
   function fillNotices() {
-    document.getElementById('notice-items').innerHTML = '';
+    const itemsEl = document.getElementById('notice-items');
+    if (itemsEl) itemsEl.innerHTML = '';
     const record = getRecord('notices', 'school');
     (record?.content_payload?.items || []).forEach(createNoticeItem);
-    document.getElementById('notices-summary').value = record?.summary || '';
+    const summaryEl = document.getElementById('notices-summary');
+    if (summaryEl) summaryEl.value = record?.summary || '';
     toggleEmpty('notice');
     renderSupportModuleVersion('notices');
   }
@@ -1273,14 +1277,16 @@ const OfficialContentPage = (() => {
     },
     saveFaq: async () => {
       try {
-        await save('faq', 'school', 'FAQ Oficial', document.getElementById('faq-summary').value, { items: collectFaqItems() });
+        const summary = document.getElementById('faq-summary')?.value || '';
+        await save('faq', 'school', 'FAQ Oficial', summary, { items: collectFaqItems() });
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
     },
     saveNotices: async () => {
       try {
-        await save('notices', 'school', 'Comunicados Oficiais', document.getElementById('notices-summary').value, { items: collectNoticeItems() });
+        const summary = document.getElementById('notices-summary')?.value || '';
+        await save('notices', 'school', 'Comunicados Oficiais', summary, { items: collectNoticeItems() });
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
