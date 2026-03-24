@@ -16,15 +16,15 @@ function renderAuditEvents(rows) {
 function renderRiskModuleSummary(moduleData = {}) {
   const summary = moduleData.summary || {};
   if (!summary.total_assessed_responses) {
-    return '<div class="text-muted">Sem respostas avaliadas neste per?odo.</div>';
+    return '<div class="text-muted">Sem respostas avaliadas neste período.</div>';
   }
   return [
     '<div class="mb-2"><strong>Respostas avaliadas:</strong> ' + (summary.total_assessed_responses || 0) + '</div>',
     '<div class="mb-2"><strong>Risco alto:</strong> ' + (summary.high_risk_count || 0) + '</div>',
-    '<div class="mb-2"><strong>Revis?o requerida:</strong> ' + (summary.review_required_count || 0) + '</div>',
+    '<div class="mb-2"><strong>Revisão requerida:</strong> ' + (summary.review_required_count || 0) + '</div>',
     '<div class="mb-2"><strong>Respostas contidas:</strong> ' + (summary.abstained_count || 0) + '</div>',
-    '<div class="mb-2"><strong>Sem fonte v?lida:</strong> ' + (summary.no_valid_source_count || 0) + '</div>',
-    '<div><strong>Evid?ncia m?dia:</strong> ' + (summary.avg_evidence_score || 0) + '</div>'
+    '<div class="mb-2"><strong>Sem fonte válida:</strong> ' + (summary.no_valid_source_count || 0) + '</div>',
+    '<div><strong>Evidência média:</strong> ' + (summary.avg_evidence_score || 0) + '</div>'
   ].join('');
 }
 
@@ -60,12 +60,12 @@ async function loadDashboard() {
   document.getElementById('metrics-row').innerHTML = [
     metricCard('Consultas', metrics.total_consultations || 0, 'primary'),
     metricCard('Perguntas', metrics.total_questions || 0, 'info'),
-    metricCard('Usu?rios ?nicos', metrics.unique_requesters || 0, 'secondary'),
-    metricCard('Resolu??o autom?tica', (metrics.automatic_resolution_rate || 0) + '%', 'success'),
+    metricCard('Usuários únicos', metrics.unique_requesters || 0, 'secondary'),
+    metricCard('Resolução automática', (metrics.automatic_resolution_rate || 0) + '%', 'success'),
     metricCard('Fallback humano', (metrics.fallback_rate || 0) + '%', 'warning'),
     metricCard('Cobertura de fonte', (metrics.source_coverage_rate || 0) + '%', 'dark'),
-    metricCard('Tempo m?dio', (metrics.avg_response_time_seconds || 0) + 's', 'primary'),
-    metricCard('Pendentes de revis?o', metrics.pending_reviews || 0, 'danger')
+    metricCard('Tempo médio', (metrics.avg_response_time_seconds || 0) + 's', 'primary'),
+    metricCard('Pendentes de revisão', metrics.pending_reviews || 0, 'danger')
   ].join('');
 
   document.getElementById('assistant-volume').innerHTML = renderBarList(data.assistant_volume || [], 'assistant_name', 'total');
@@ -76,7 +76,7 @@ async function loadDashboard() {
   document.getElementById('dashboard-risk-topics').innerHTML = renderBarList((data.response_risk_module || {}).highest_risk_topics || [], 'topic', 'high_risk_rate', '%');
   document.getElementById('dashboard-risk-assistants').innerHTML = renderBarList((data.response_risk_module || {}).assistants_under_review || [], 'assistant_name', 'review_rate', '%');
   document.getElementById('latest-audit-events').innerHTML = renderAuditEvents(data.latest_audit_events || []);
-  document.getElementById('dashboard-period-label').textContent = 'Vis?o operacional: ' + (data.period_label || 'Hoje');
+  document.getElementById('dashboard-period-label').textContent = 'Visão operacional: ' + (data.period_label || 'Hoje');
   document.body.style.opacity = '1';
   if (window.applyPermissions) window.applyPermissions();
 }
