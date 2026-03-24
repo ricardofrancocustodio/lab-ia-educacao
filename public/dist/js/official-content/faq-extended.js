@@ -1,28 +1,34 @@
 // 📁 public/dist/js/official-content/faq-extended.js
-// Implementação robusta para garantir a renderização da FAQ e navegação correta
+// Extensão não-bloqueante para gerenciar a FAQ sem interferir nas outras abas
 
 (function() {
   const log = (msg) => console.log(`[FAQ-Extended] ${msg}`);
   
   const startModule = () => {
+    // Tenta encontrar o OfficialContentPage, mas não bloqueia a execução de outros scripts
     if (!window.OfficialContentPage) {
       setTimeout(startModule, 200);
       return;
     }
 
-    log("Módulo iniciado e integrado ao OfficialContentPage.");
+    log("Módulo de FAQ estendido iniciado.");
     const Page = window.OfficialContentPage;
 
-    // Sobrescrever funções essenciais
+    // Injetar funções apenas para a FAQ, sem sobrescrever o objeto Page inteiro
     Page.addFaqItem = () => renderFaqItemUI({});
     Page.saveFaq = async () => await saveFaqItems();
     
-    // Interceptar a função de preenchimento original
+    // Sobrescrever fillFaq de forma segura
+    const originalFillFaq = Page.fillFaq;
     Page.fillFaq = function() {
-      log("Chamando fillFaq customizado...");
+      log("Preenchendo aba FAQ...");
       const container = document.getElementById('faq-items');
-      if (container) container.innerHTML = '';
+      if (!container) {
+        if (originalFillFaq) originalFillFaq();
+        return;
+      }
       
+      container.innerHTML = '';
       const record = Page.getRecord ? Page.getRecord('faq', 'school') : null;
       const items = record?.content_payload?.items || [];
       
@@ -33,14 +39,14 @@
       updateEmptyState();
     };
 
-    // Garantir que ao clicar na aba FAQ, a renderização aconteça
-    const faqTabLink = document.querySelector('a[href="#official-faq"]');
-    if (faqTabLink) {
-      faqTabLink.addEventListener('click', () => {
-        log("Aba FAQ clicada, forçando preenchimento...");
+    // Escutar cliques na aba FAQ para renderizar sob demanda
+    document.addEventListener('click', (e) => {
+      const tabLink = e.target.closest('a[data-toggle="tab"]');
+      if (tabLink && tabLink.getAttribute('href') === '#official-faq') {
+        log("Aba FAQ selecionada, renderizando...");
         setTimeout(() => Page.fillFaq(), 50);
-      });
-    }
+      }
+    });
 
     function renderFaqItemUI(item = {}) {
       const container = document.getElementById('faq-items');
@@ -115,28 +121,29 @@
             body: JSON.stringify(payload)
           });
         }
-        Swal.fire('Sucesso', 'Alterações salvas no banco de dados.', 'success');
+        Swal.fire('Sucesso', 'Alterações salvas.', 'success');
       } catch (err) {
         Swal.fire('Erro', err.message, 'error');
       }
     }
 
-    // Injetar CSS para os cartões
-    const style = document.createElement('style');
-    style.innerHTML = `
-      .border-left-primary { border-left: 0.25rem solid #007bff !important; }
-      .faq-item-row { transition: transform 0.2s; }
-      .faq-item-row:hover { transform: translateY(-2px); }
-    `;
-    document.head.appendChild(style);
-    
-    // Forçar preenchimento inicial
-    setTimeout(() => Page.fillFaq(), 500);
+    // Injetar estilos CSS de forma segura
+    if (!document.getElementById('faq-extended-styles')) {
+      const style = document.createElement('style');
+      style.id = 'faq-extended-styles';
+      style.innerHTML = `
+        .border-left-primary { border-left: 0.25rem solid #007bff !important; }
+        .faq-item-row { transition: transform 0.2s; }
+        .faq-item-row:hover { transform: translateY(-2px); }
+      `;
+      document.head.appendChild(style);
+    }
   };
 
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  // Iniciar o módulo após o carregamento da página
+  if (document.readyState === 'complete') {
     startModule();
   } else {
-    document.addEventListener('DOMContentLoaded', startModule);
+    window.addEventListener('load', startModule);
   }
 })();
