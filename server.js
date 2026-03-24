@@ -3652,7 +3652,10 @@ app.post("/api/faq/:id/test", async (req, res) => {
   }
 });
 
-app.post("/api/faq/test-mock", async (req, res) => {\n  const score = Math.random() * 0.4 + 0.6; // Mock score entre 0.6 e 1.0\n  res.json({ ok: true, score });\n});
+app.post("/api/faq/test-mock", async (req, res) => {
+  const score = Math.random() * 0.4 + 0.6; // Mock score entre 0.6 e 1.0
+  res.json({ ok: true, score });
+});
 
 app.get("/api/faq/conflicts", async (req, res) => {
   try {
