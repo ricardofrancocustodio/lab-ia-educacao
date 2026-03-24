@@ -1387,7 +1387,9 @@ const OfficialContentPage = (() => {
       } catch (error) {
         Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
       }
-    }
+    },
+    getRecord,
+    setRecord
   };
 })();
 
