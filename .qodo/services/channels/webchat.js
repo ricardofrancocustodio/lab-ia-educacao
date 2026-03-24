@@ -22,8 +22,16 @@ function isWebchatSessionId(value) {
   return String(value || "").startsWith("webchat:");
 }
 
+function getSchoolIdFromWebchatSession(value) {
+  const sessionId = String(value || '').trim();
+  if (!isWebchatSessionId(sessionId)) return '';
+  const parts = sessionId.split(':');
+  return String(parts[1] || '').trim();
+}
+
 module.exports = {
   createWebchatSession,
   normalizeIncomingWebchat,
-  isWebchatSessionId
+  isWebchatSessionId,
+  getSchoolIdFromWebchatSession
 };

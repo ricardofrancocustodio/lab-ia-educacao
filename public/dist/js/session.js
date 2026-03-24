@@ -94,24 +94,55 @@ async function getAccessToken() {
   return token;
 }
 
-function fazerLogout() {
+async function fazerLogout() {
   const client = window.supabaseClient || window._supabase || null;
-  if (!client) {
-    sessionStorage.clear();
-    localStorage.clear();
-    window.location.href = '/login';
-    return;
-  }
 
-  client.auth.signOut().finally(() => {
+  try {
+    if (client) {
+      await client.auth.signOut();
+    }
+  } catch (error) {
+    console.warn('Logout falhou, prosseguindo com limpeza local', error);
+  } finally {
     sessionStorage.clear();
     localStorage.clear();
     window.location.href = '/login';
+  }
+}
+
+function confirmLogout(event) {
+  if (event && event.preventDefault) event.preventDefault();
+
+  Swal.fire({
+    title: 'Confirmar saída',
+    text: 'Deseja encerrar a sessão e voltar para a tela de login?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sim, sair',
+    cancelButtonText: 'Cancelar'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      fazerLogout();
+    }
   });
 }
 
-window.initSession = initSession;
-window.getAccessToken = getAccessToken;
-window.fazerLogout = fazerLogout;
+async function signInWithEmail(email, password) {
+  const client = window.supabaseClient || window._supabase || null;
+  if (!client) {
+    throw new Error('supabase_client_unavailable');
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+window.confirmLogout = confirmLogout;
+window.signInWithEmail = signInWithEmail;
 
 

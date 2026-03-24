@@ -1,4 +1,4 @@
-// // users.js - Logica completa para a pagina de Gestao de Usuarios
+﻿// // users.js - Logica completa para a pagina de Gestao de Usuarios
 
 let usuariosCache = [];
 let appPagesCache = [];
@@ -17,7 +17,7 @@ const fallbackPageLabels = {
 const SANDBOX_DEFAULT_PASSWORD = '123456789';
 const roleLabelMap = {
     superadmin: 'Superadmin do Projeto',
-    network_manager: 'Gestão da Rede',
+    network_manager: 'Gestor de Rede',
     content_curator: 'Curadoria de Conteúdo',
     public_operator: 'Atendimento Público',
     secretariat: 'Secretaria',
@@ -29,7 +29,7 @@ const roleLabelMap = {
 };
 const roleVisualMap = {
     superadmin: { label: 'Superadmin do Projeto', class: 'role-superadmin', icon: 'fa-crown' },
-    network_manager: { label: 'Gestão da Rede', class: 'role-network', icon: 'fa-sitemap' },
+    network_manager: { label: 'Gestor de Rede', class: 'role-network', icon: 'fa-sitemap' },
     content_curator: { label: 'Curadoria de Conteúdo', class: 'role-content', icon: 'fa-book-medical' },
     public_operator: { label: 'Atendimento Público', class: 'role-service', icon: 'fa-comments' },
     secretariat: { label: 'Secretaria', class: 'role-secretariat', icon: 'fa-folder-open' },
@@ -47,6 +47,395 @@ const memberScopeLabelMap = {
     external_observer: 'Vínculo externo de observação'
 };
 
+const BULK_USER_TEMPLATE_HEADERS = ['nome', 'email', 'telefone', 'perfil_acesso'];
+const BULK_USER_HEADER_ALIASES = {
+    nome: 'name',
+    nome_completo: 'name',
+    full_name: 'name',
+    email: 'email',
+    'e-mail': 'email',
+    telefone: 'phone',
+    celular: 'phone',
+    phone: 'phone',
+    perfil_acesso: 'role',
+    perfil: 'role',
+    funcao: 'role',
+    papel: 'role',
+    role: 'role'
+};
+const BULK_ROLE_INPUT_MAP = {
+    superadmin: 'superadmin',
+    'superadmin do projeto': 'superadmin',
+    network_manager: 'network_manager',
+    'gestao da rede': 'network_manager',
+    'gestor de rede': 'network_manager',
+    'gestao de rede': 'network_manager',
+    content_curator: 'content_curator',
+    'curadoria de conteudo': 'content_curator',
+    public_operator: 'public_operator',
+    'atendimento publico': 'public_operator',
+    secretariat: 'secretariat',
+    secretaria: 'secretariat',
+    coordination: 'coordination',
+    coordenacao: 'coordination',
+    treasury: 'treasury',
+    tesouraria: 'treasury',
+    direction: 'direction',
+    direcao: 'direction',
+    auditor: 'auditor',
+    'auditoria e compliance': 'auditor',
+    observer: 'observer',
+    'observador externo': 'observer'
+};
+
+function stripDiacritics(value = '') {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizeBulkHeader(value = '') {
+    return stripDiacritics(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function normalizeBulkRole(value = '') {
+    const keyWithUnderscore = normalizeBulkHeader(value);
+    const keyWithSpace = keyWithUnderscore.replace(/_/g, ' ');
+    return BULK_ROLE_INPUT_MAP[keyWithUnderscore] || BULK_ROLE_INPUT_MAP[keyWithSpace] || '';
+}
+
+function parseCsvLine(line, delimiter) {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i += 1) {
+        const char = line[i];
+        const next = line[i + 1];
+        if (char === '"') {
+            if (inQuotes && next === '"') {
+                current += '"';
+                i += 1;
+            } else {
+                inQuotes = !inQuotes;
+            }
+            continue;
+        }
+        if (char === delimiter && !inQuotes) {
+            values.push(current);
+            current = '';
+            continue;
+        }
+        current += char;
+    }
+
+    values.push(current);
+    return values.map((item) => item.trim());
+}
+
+function detectCsvDelimiter(headerLine = '') {
+    const commaCount = (headerLine.match(/,/g) || []).length;
+    const semicolonCount = (headerLine.match(/;/g) || []).length;
+    return semicolonCount > commaCount ? ';' : ',';
+}
+
+function parseBulkUsersCsv(rawText = '') {
+    const source = String(rawText || '').replace(/^\uFEFF/, '').trim();
+    if (!source) {
+        return { rows: [], errors: ['Cole o CSV ou selecione um arquivo para importar.'] };
+    }
+
+    const lines = source.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (lines.length < 2) {
+        return { rows: [], errors: ['O CSV precisa ter cabecalho e pelo menos uma linha de usuario.'] };
+    }
+
+    const delimiter = detectCsvDelimiter(lines[0]);
+    const rawHeaders = parseCsvLine(lines[0], delimiter);
+    const headers = rawHeaders.map(normalizeBulkHeader);
+    const mappedHeaders = headers.map((header) => BULK_USER_HEADER_ALIASES[header] || '');
+    const requiredHeaders = ['name', 'email', 'role'];
+    const missingHeaders = requiredHeaders.filter((field) => !mappedHeaders.includes(field));
+    if (missingHeaders.length) {
+        const labelMap = { name: 'nome', email: 'email', role: 'perfil_acesso' };
+        return { rows: [], errors: ['Colunas obrigatorias ausentes: ' + missingHeaders.map((field) => labelMap[field]).join(', ') + '.'] };
+    }
+
+    const rows = [];
+    const errors = [];
+    for (let index = 1; index < lines.length; index += 1) {
+        const values = parseCsvLine(lines[index], delimiter);
+        if (!values.some((value) => String(value || '').trim())) continue;
+        const row = { rawLine: index + 1, name: '', email: '', phone: '', role: '', originalRole: '' };
+        mappedHeaders.forEach((field, headerIndex) => {
+            if (!field) return;
+            const value = String(values[headerIndex] || '').trim();
+            if (field === 'role') {
+                row.originalRole = value;
+                row.role = normalizeBulkRole(value);
+                return;
+            }
+            row[field] = value;
+        });
+
+        if (!row.name || !row.email || !row.originalRole) {
+            errors.push('Linha ' + row.rawLine + ': preencha nome, email e perfil_acesso.');
+            continue;
+        }
+        if (!row.role) {
+            errors.push('Linha ' + row.rawLine + ': perfil ' + row.originalRole + ' nao reconhecido.');
+            continue;
+        }
+        rows.push(row);
+    }
+
+    if (!rows.length && !errors.length) {
+        errors.push('Nenhum usuario valido foi encontrado no CSV.');
+    }
+
+    return { rows, errors };
+}
+
+function renderBulkUsersPreview() {
+    const preview = document.getElementById('bulkUsersPreview');
+    const textarea = document.getElementById('bulkUsersTextarea');
+    if (!preview || !textarea) return;
+
+    const parsed = parseBulkUsersCsv(textarea.value);
+    const rows = parsed.rows;
+    const errors = parsed.errors;
+    const institutionName = currentInstitutionContext?.name || sessionStorage.getItem('SCHOOL_NAME') || 'instituicao atual';
+
+    if (!textarea.value.trim()) {
+        preview.classList.add('d-none');
+        preview.innerHTML = '';
+        return;
+    }
+
+    preview.classList.remove('d-none');
+    const allowedRoles = getAssignableRolesForCurrentInstitution().map((role) => roleLabelMap[role] || role).join(', ');
+    preview.innerHTML = `
+        <div><strong>Instituicao alvo:</strong> ${userEscapeHtml(institutionName)}</div>
+        <div><strong>Linhas validas:</strong> ${rows.length}</div>
+        <div><strong>Perfis permitidos aqui:</strong> ${userEscapeHtml(allowedRoles)}</div>
+        ${errors.length ? `<div class="mt-2 text-danger"><strong>Ajustes necessarios:</strong><br>${errors.slice(0, 6).map((item) => userEscapeHtml(item)).join('<br>')}</div>` : '<div class="mt-2 text-success"><strong>CSV pronto para importacao.</strong></div>'}
+    `;
+}
+
+function abrirModalImportacaoUsuarios() {
+    const allowedRoles = getAssignableRolesForCurrentInstitution().map((role) => roleLabelMap[role] || role).join(', ');
+    Swal.fire({
+        title: 'Importacao em lote de usuarios',
+        width: 880,
+        showConfirmButton: false,
+        showCloseButton: true,
+        html:             '<div class="text-left">' +
+                '<div class="alert alert-info py-2">Use um CSV com uma linha por usuario. O envio segue a mesma regra do cadastro sandbox individual e importa usuarios para a instituicao atual.</div>' +
+                '<div class="bulk-import-actions mb-3">' +
+                    '<button type="button" class="btn btn-outline-secondary btn-sm" id="bulkUsersDownloadTemplate">' +
+                        '<i class="fas fa-download mr-1"></i> Baixar template CSV' +
+                    '</button>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="bulkUsersFile">Arquivo CSV</label>' +
+                    '<input type="file" class="form-control-file" id="bulkUsersFile" accept=".csv,text/csv">' +
+                    '<small class="text-muted">Colunas esperadas: nome, email, telefone, perfil_acesso.</small>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="bulkUsersTextarea">Conteudo do CSV</label>' +
+                    '<textarea class="form-control" id="bulkUsersTextarea" rows="10" placeholder="Cole aqui o CSV ou selecione um arquivo."></textarea>' +
+                '</div>' +
+                '<div class="bulk-import-hints">' +
+                    '<span class="badge badge-light">Perfis aceitos aqui: ' + userEscapeHtml(allowedRoles) + '</span>' +
+                '</div>' +
+                '<div id="bulkUsersPreview" class="bulk-import-preview mt-3 d-none"></div>' +
+                '<div class="text-right mt-3">' +
+                    '<button type="button" class="btn btn-success" id="btnImportarUsuariosLoteSwal">' +
+                        '<i class="fas fa-file-import mr-1"></i> Importar usuarios' +
+                    '</button>' +
+                '</div>' +
+            '</div>',
+        didOpen: () => {
+            const downloadBtn = document.getElementById('bulkUsersDownloadTemplate');
+            const fileInput = document.getElementById('bulkUsersFile');
+            const textarea = document.getElementById('bulkUsersTextarea');
+            const importBtn = document.getElementById('btnImportarUsuariosLoteSwal');
+            if (downloadBtn) downloadBtn.addEventListener('click', baixarTemplateImportacaoUsuarios);
+            if (fileInput) fileInput.addEventListener('change', handleBulkUsersFileSelected);
+            if (textarea) textarea.addEventListener('input', renderBulkUsersPreview);
+            if (importBtn) importBtn.addEventListener('click', importarUsuariosEmLote);
+        }
+    });
+}
+
+function baixarTemplateImportacaoUsuarios() {
+    const lines = [
+        BULK_USER_TEMPLATE_HEADERS.join(','),
+        'Maria da Secretaria,secretaria.escola-a@lab-ia.gov.br,(61) 99999-1111,Secretaria',
+        'Joao da Coordenacao,coordenacao.escola-a@lab-ia.gov.br,(61) 99999-2222,Coordenacao'
+    ];
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'template_importacao_usuarios.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
+
+async function importarUsuarioSandboxEmLote(row, schoolId) {
+    const allowedRoles = getAssignableRolesForCurrentInstitution();
+    if (!allowedRoles.includes(row.role)) {
+        throw new Error('Perfil nao permitido para a instituicao atual: ' + row.originalRole + '.');
+    }
+
+    const emailNorm = normalizeEmail(row.email);
+    const nome = String(row.name || '').trim();
+    const phone = normalizePhoneDigits(row.phone || '');
+
+    const { data: existingRows, error: findErr } = await window.supabaseClient
+        .from('school_members')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('email', emailNorm)
+        .limit(1);
+    if (findErr) throw findErr;
+
+    const existing = existingRows && existingRows.length ? existingRows[0] : null;
+
+    const inviteResult = await sincronizarMembroAcesso({
+        email: emailNorm,
+        nome,
+        role: row.role,
+        school_id: schoolId,
+        send_invite: false,
+        previous_email: existing?.email || null,
+        user_id: existing?.user_id || null,
+        password: SANDBOX_DEFAULT_PASSWORD
+    });
+
+    const payload = {
+        school_id: schoolId,
+        name: nome,
+        email: emailNorm,
+        role: row.role,
+        phone: phone || null,
+        user_id: inviteResult?.user_id || existing?.user_id || null,
+        status: 'active',
+        active: true,
+        invite_sent_at: null
+    };
+
+    if (existing?.id) {
+        const { error } = await window.supabaseClient.from('school_members').update(payload).eq('id', existing.id);
+        if (error) throw error;
+    } else {
+        const { error } = await window.supabaseClient.from('school_members').insert(payload);
+        if (error) throw error;
+    }
+
+    const roleTable = getRoleProfileTable(row.role);
+    if (roleTable) {
+        try {
+            await window.supabaseClient
+                .from(roleTable)
+                .upsert({
+                    school_id: schoolId,
+                    email: emailNorm,
+                    name: nome,
+                    phone: phone || null,
+                    active: true
+                }, { onConflict: 'school_id,email' });
+        } catch (rolePhoneErr) {
+            console.warn('Aviso: nao foi possivel sincronizar telefone na tabela da funcao:', rolePhoneErr?.message || rolePhoneErr);
+        }
+    }
+
+    return { created: !existing?.id, email: emailNorm, role: row.role };
+}
+
+async function importarUsuariosEmLote() {
+    const textarea = document.getElementById('bulkUsersTextarea');
+    const schoolId = sessionStorage.getItem('SCHOOL_ID');
+    const parsed = parseBulkUsersCsv(textarea?.value || '');
+    const rows = parsed.rows;
+    const errors = parsed.errors;
+
+    if (errors.length) {
+        return Swal.fire({
+            title: 'Revise o CSV',
+            html: errors.slice(0, 8).map((item) => userEscapeHtml(item)).join('<br>'),
+            icon: 'warning'
+        });
+    }
+    if (!rows.length) {
+        return Swal.fire('CSV vazio', 'Nenhum usuario valido foi encontrado para importacao.', 'warning');
+    }
+
+    try {
+        Swal.fire({
+            title: 'Importando usuarios sandbox...',
+            html: 'Processando ' + rows.length + ' registro(s) na instituicao atual.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const results = [];
+        for (const row of rows) {
+            try {
+                const result = await importarUsuarioSandboxEmLote(row, schoolId);
+                results.push({ ok: true, row, result });
+            } catch (error) {
+                console.error('Falha ao importar linha', row.rawLine, error);
+                results.push({ ok: false, row, error: error?.message || 'Falha inesperada.' });
+            }
+        }
+
+        const successCount = results.filter((item) => item.ok).length;
+        const errorItems = results.filter((item) => !item.ok);
+        await carregarUsuarios(schoolId);
+
+        const summaryHtml = [
+            '<div><strong>Importados/atualizados:</strong> ' + successCount + '</div>',
+            '<div><strong>Com erro:</strong> ' + errorItems.length + '</div>',
+            '<div><strong>Senha sandbox:</strong> ' + SANDBOX_DEFAULT_PASSWORD + '</div>'
+        ];
+        if (errorItems.length) {
+            summaryHtml.push('<div class="mt-2 text-left"><strong>Linhas com ajuste:</strong><br>' + errorItems.slice(0, 10).map((item) => 'Linha ' + item.row.rawLine + ' (' + userEscapeHtml(item.row.email || item.row.name) + '): ' + userEscapeHtml(item.error)).join('<br>') + '</div>');
+        }
+
+        if (successCount > 0 && Swal.isVisible()) {
+            Swal.close();
+        }
+
+        await Swal.fire({
+            title: errorItems.length ? 'Importacao concluida com ajustes' : 'Importacao concluida',
+            html: summaryHtml.join(''),
+            icon: errorItems.length ? 'warning' : 'success'
+        });
+    } catch (error) {
+        console.error('Erro na importacao em lote:', error);
+        Swal.fire('Erro', error.message || 'Nao foi possivel importar os usuarios.', 'error');
+    }
+}
+
+function handleBulkUsersFileSelected(event) {
+    const file = event?.target?.files?.[0];
+    const textarea = document.getElementById('bulkUsersTextarea');
+    if (!file || !textarea) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        textarea.value = String(reader.result || '');
+        renderBulkUsersPreview();
+    };
+    reader.readAsText(file, 'utf-8');
+}
 function getMemberScopeLabel(memberScope = '') {
     return memberScopeLabelMap[String(memberScope || '').toLowerCase()] || '';
 }
@@ -137,6 +526,14 @@ let currentInstitutionContext = {
     parent_name: ''
 };
 
+function getCurrentEffectiveRole() {
+    return String(sessionStorage.getItem('EFFECTIVE_ROLE') || sessionStorage.getItem('PLATFORM_ROLE') || sessionStorage.getItem('USER_ROLE') || '').trim().toLowerCase();
+}
+
+function getTargetSchoolIdForUser(user = null, fallbackSchoolId = '') {
+    return String(user?.school_id || fallbackSchoolId || '').trim();
+}
+
 async function loadCurrentInstitutionContext(schoolId) {
     if (!schoolId || !window.supabaseClient) return currentInstitutionContext;
     try {
@@ -174,6 +571,53 @@ async function loadCurrentInstitutionContext(schoolId) {
         };
     }
     return currentInstitutionContext;
+}
+
+async function getScopedSchoolIdsForUserManagement(schoolId) {
+    const baseSchoolId = String(schoolId || '').trim();
+    if (!baseSchoolId || !window.supabaseClient) return [];
+
+    if (isPlatformSuperadmin()) {
+        const { data, error } = await window.supabaseClient
+            .from('schools')
+            .select('id');
+        if (error) throw error;
+        return [...new Set((data || []).map((item) => item.id).filter(Boolean))];
+    }
+
+    const effectiveRole = getCurrentEffectiveRole();
+    const context = currentInstitutionContext?.name ? currentInstitutionContext : await loadCurrentInstitutionContext(baseSchoolId);
+    if (effectiveRole !== 'network_manager' || String(context?.type || '').toLowerCase() === 'school_unit') {
+        return [baseSchoolId];
+    }
+
+    const { data, error } = await window.supabaseClient
+        .from('schools')
+        .select('id')
+        .eq('parent_school_id', baseSchoolId);
+    if (error) throw error;
+
+    return [...new Set([baseSchoolId, ...(data || []).map((item) => item.id).filter(Boolean)])];
+}
+
+async function fetchManagedUsersFromServer(schoolId) {
+    const baseSchoolId = String(schoolId || '').trim();
+    if (!baseSchoolId || typeof window.getAccessToken !== 'function') return null;
+
+    const token = await window.getAccessToken();
+    const response = await fetch('/api/users/managed', {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-school-id': baseSchoolId
+        }
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+        throw new Error(payload?.error || 'Nao foi possivel carregar os usuarios gerenciados.');
+    }
+
+    return Array.isArray(payload?.users) ? payload.users : [];
 }
 
 function getAssignableRolesForCurrentInstitution() {
@@ -392,37 +836,61 @@ async function carregarUsuarios(schoolId) {
 
     try {
         if (!schoolId) {
-            lista.innerHTML = '<tr><td colspan="5" class="text-center text-danger">SCHOOL_ID não encontrado na sessão.</td></tr>';
+            lista.innerHTML = '<tr><td colspan="5" class="text-center text-danger">SCHOOL_ID n??o encontrado na sess??o.</td></tr>';
             return;
         }
-
         clearRoleProfilesCache();
+        try {
+            const managedUsers = await fetchManagedUsersFromServer(schoolId);
+            if (Array.isArray(managedUsers)) {
+                usuariosCache = managedUsers
+                    .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'pt-BR', { sensitivity: 'base' }));
+                renderizarTabela(usuariosCache);
+                return;
+            }
+        } catch (serverError) {
+            console.warn('Fallback local da gestao de usuarios acionado:', serverError?.message || serverError);
+        }
 
-        // Fonte oficial
+        const scopedSchoolIds = await getScopedSchoolIdsForUserManagement(schoolId);
+
         let membersQuery = window.supabaseClient
             .from('school_members')
             .select('*');
 
         if (!isPlatformSuperadmin()) {
-            membersQuery = membersQuery.eq('school_id', schoolId);
+            if (scopedSchoolIds.length > 1) {
+                membersQuery = membersQuery.in('school_id', scopedSchoolIds);
+            } else {
+                membersQuery = membersQuery.eq('school_id', schoolId);
+            }
         }
 
         const { data: members, error: memErr } = await membersQuery;
-
         if (memErr) throw memErr;
 
-        const schoolIds = [...new Set((members || []).map(m => m.school_id).filter(Boolean))];
+        const memberSchoolIds = [...new Set((members || []).map((m) => m.school_id).filter(Boolean))];
         let schoolsById = {};
-        if (schoolIds.length) {
+        if (memberSchoolIds.length) {
             const { data: schools, error: schoolsErr } = await window.supabaseClient
                 .from('schools')
                 .select('id, name, institution_type, parent_school_id')
-                .in('id', schoolIds);
+                .in('id', memberSchoolIds);
             if (schoolsErr) throw schoolsErr;
-            schoolsById = Object.fromEntries((schools || []).map(row => [row.id, row]));
+
+            const parentSchoolIds = [...new Set((schools || []).map((row) => row.parent_school_id).filter(Boolean))];
+            const allSchoolIds = [...new Set([...(schools || []).map((row) => row.id), ...parentSchoolIds].filter(Boolean))];
+            if (allSchoolIds.length) {
+                const { data: allSchools, error: allSchoolsErr } = await window.supabaseClient
+                    .from('schools')
+                    .select('id, name, institution_type, parent_school_id')
+                    .in('id', allSchoolIds);
+                if (allSchoolsErr) throw allSchoolsErr;
+                schoolsById = Object.fromEntries((allSchools || []).map((row) => [row.id, row]));
+            }
         }
 
-        const memberRows = [...(members || [])].map(u => {
+        const memberRows = [...(members || [])].map((u) => {
             const school = schoolsById[u.school_id] || null;
             const parent = school?.parent_school_id ? schoolsById[school.parent_school_id] : null;
             return {
@@ -435,18 +903,25 @@ async function carregarUsuarios(schoolId) {
         });
         const seen = new Set(
             memberRows
-                .map(m => normalizeEmail(m.email))
+                .map((m) => normalizeEmail(m.email))
                 .filter(Boolean)
         );
 
-        // Complementa com registros orfaos das tabelas de role (sem school_members)
-        const roleFetches = ROLE_TABLE_CONFIG.map(cfg =>
-            window.supabaseClient
+        const roleFetches = ROLE_TABLE_CONFIG.map((cfg) => {
+            let query = window.supabaseClient
                 .from(cfg.table)
-                .select('id, school_id, name, email, phone, active, created_at')
-                .eq('school_id', schoolId)
-                .then(res => ({ ...res, role: cfg.role, table: cfg.table }))
-        );
+                .select('id, school_id, name, email, phone, active, created_at');
+
+            if (!isPlatformSuperadmin()) {
+                if (scopedSchoolIds.length > 1) {
+                    query = query.in('school_id', scopedSchoolIds);
+                } else {
+                    query = query.eq('school_id', schoolId);
+                }
+            }
+
+            return query.then((res) => ({ ...res, role: cfg.role, table: cfg.table }));
+        });
 
         const roleResults = await Promise.all(roleFetches);
         const orphanRows = [];
@@ -457,22 +932,24 @@ async function carregarUsuarios(schoolId) {
                 const emailNorm = normalizeEmail(row.email);
                 if (!emailNorm || seen.has(emailNorm)) continue;
                 seen.add(emailNorm);
+                const school = schoolsById[row.school_id] || null;
+                const parent = school?.parent_school_id ? schoolsById[school.parent_school_id] : null;
                 orphanRows.push({
                     ...row,
                     role: res.role,
                     status: 'draft',
                     source_table: res.table,
-                    user_id: null
+                    user_id: null,
+                    school_name: school?.name || '',
+                    school_institution_type: school?.institution_type || '',
+                    parent_school_name: parent?.name || ''
                 });
             }
         }
 
-        let todosUsuarios = [...memberRows, ...orphanRows];
-
-        // Ordenação por nome
-        todosUsuarios.sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'pt-BR', { sensitivity: 'base' }));
+        const todosUsuarios = [...memberRows, ...orphanRows]
+            .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'pt-BR', { sensitivity: 'base' }));
         usuariosCache = todosUsuarios;
-
         renderizarTabela(todosUsuarios);
 
     } catch (error) {
@@ -871,7 +1348,7 @@ async function togglePermissionsUIForCurrentEditor(user) {
     const div = document.getElementById('divPagePermissions');
     const useRoleDefault = document.getElementById('permUseRoleDefault');
     const role = sessionStorage.getItem('USER_ROLE');
-    const schoolId = sessionStorage.getItem('SCHOOL_ID');
+    const schoolId = getTargetSchoolIdForUser(user, sessionStorage.getItem('SCHOOL_ID'));
     const container = document.getElementById('permissionsContainer');
 
     if (!div || !useRoleDefault || !container) return;
@@ -919,7 +1396,7 @@ async function togglePermissionsUIForCurrentEditor(user) {
 async function persistUserPagePermissionsIfNeeded(user) {
     const div = document.getElementById('divPagePermissions');
     const useRoleDefault = document.getElementById('permUseRoleDefault');
-    const schoolId = sessionStorage.getItem('SCHOOL_ID');
+    const schoolId = getTargetSchoolIdForUser(user, sessionStorage.getItem('SCHOOL_ID'));
     if (!div || div.style.display === 'none' || !useRoleDefault || !user?.user_id || !schoolId) return;
 
     if (useRoleDefault.checked) {
@@ -1026,6 +1503,7 @@ async function salvarUsuario() {
     }
 
     const usuarioEmEdicao = userId ? usuariosCache.find(u => String(u.id) === String(userId)) : null;
+    const targetSchoolId = getTargetSchoolIdForUser(usuarioEmEdicao, schoolId);
     const previousEmail = usuarioEmEdicao?.email || null;
     const previousRole = String(usuarioEmEdicao?.role || '').toLowerCase();
     const emailNorm = normalizeEmail(email);
@@ -1055,7 +1533,7 @@ async function salvarUsuario() {
             email: emailNorm,
             nome: nome,
             role: role,
-            school_id: schoolId,
+            school_id: targetSchoolId,
             send_invite: false,
             previous_email: previousEmail || null,
             user_id: usuarioEmEdicao?.user_id || null,
@@ -1084,7 +1562,7 @@ async function salvarUsuario() {
             memberRow = data;
         } else {
             const payload = {
-                school_id: schoolId,
+                school_id: targetSchoolId,
                 name: nome,
                 email: emailNorm,
                 role,
@@ -1097,7 +1575,7 @@ async function salvarUsuario() {
             const { data: existingRows, error: findErr } = await window.supabaseClient
                 .from('school_members')
                 .select('*')
-                .eq('school_id', schoolId)
+                .eq('school_id', targetSchoolId)
                 .eq('email', emailNorm)
                 .limit(1);
             if (findErr) throw findErr;
@@ -1124,7 +1602,7 @@ async function salvarUsuario() {
         }
 
         await syncSegmentsForSchoolMemberRole({
-            schoolId,
+            schoolId: targetSchoolId,
             role,
             email: emailNorm,
             name: nome,
@@ -1138,7 +1616,7 @@ async function salvarUsuario() {
                     .from(roleTable)
                     .upsert(
                         {
-                            school_id: schoolId,
+                            school_id: targetSchoolId,
                             email: emailNorm,
                             name: nome,
                             phone: phone || null,
@@ -1182,7 +1660,7 @@ async function salvarUsuario() {
             const { error: clearPermErr } = await window.supabaseClient
                 .from('user_page_permissions')
                 .delete()
-                .eq('school_id', schoolId)
+                .eq('school_id', targetSchoolId)
                 .eq('user_id', targetUserId);
             if (clearPermErr) throw clearPermErr;
         }
@@ -1324,12 +1802,13 @@ async function deletarUsuario(id) {
             }
 
             const schoolId = sessionStorage.getItem('SCHOOL_ID');
+            const targetSchoolId = getTargetSchoolIdForUser(user, schoolId);
             if (user.source_table === 'school_members') {
                 if (user.user_id) {
                     const { error: permErr } = await window.supabaseClient
                         .from('user_page_permissions')
                         .delete()
-                        .eq('school_id', schoolId)
+                        .eq('school_id', targetSchoolId)
                         .eq('user_id', user.user_id);
                     if (permErr) throw permErr;
                 }
@@ -1346,14 +1825,14 @@ async function deletarUsuario(id) {
                         .from('visit_slots')
                         .update({ coordinator_id: null })
                         .eq('coordinator_id', id)
-                        .eq('school_id', schoolId);
+                        .eq('school_id', targetSchoolId);
                     if (slotErr) throw slotErr;
 
                     const { error: segErr } = await window.supabaseClient
                         .from('coordinator_segments')
                         .delete()
                         .eq('coordinator_id', id)
-                        .eq('school_id', schoolId);
+                        .eq('school_id', targetSchoolId);
                     if (segErr) throw segErr;
                 }
 
@@ -1369,7 +1848,7 @@ async function deletarUsuario(id) {
                     .from(user.source_table)
                     .delete()
                     .eq('id', id)
-                    .eq('school_id', schoolId);
+                    .eq('school_id', targetSchoolId);
                 if (error) throw error;
             }
 
@@ -1390,6 +1869,7 @@ async function deletarUsuario(id) {
 async function convidarUsuarioExistente(id) {
     const schoolId = sessionStorage.getItem('SCHOOL_ID');
     const user = usuariosCache.find(u => String(u.id) === String(id));
+    const targetSchoolId = getTargetSchoolIdForUser(user, schoolId);
 
     if (!user) {
         return Swal.fire('Erro', 'Usuario não encontrado no cache da tela.', 'error');
@@ -1424,7 +1904,7 @@ async function convidarUsuarioExistente(id) {
             email: user.email,
             nome: user.name,
             role: user.role,
-            school_id: schoolId,
+            school_id: targetSchoolId,
             send_invite: false,
             previous_email: user.email || null,
             user_id: user.user_id || null,
@@ -1441,6 +1921,9 @@ async function convidarUsuarioExistente(id) {
 
 // Tornar funcoes globais para acesso via onclick
 window.abrirModalUsuario = abrirModalUsuario;
+window.abrirModalImportacaoUsuarios = abrirModalImportacaoUsuarios;
+window.baixarTemplateImportacaoUsuarios = baixarTemplateImportacaoUsuarios;
+window.importarUsuariosEmLote = importarUsuariosEmLote;
 window.editarUsuario = editarUsuario;
 window.salvarUsuario = salvarUsuario;
 window.deletarUsuario = deletarUsuario;
@@ -1522,6 +2005,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
+
+
 
 
 

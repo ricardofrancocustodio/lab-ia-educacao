@@ -4,121 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simulador de Conversa com IA</title>
-  <style>
+    <style>
     :root {
-      --bg: #f3f7f2;
-      --panel: #ffffff;
-      --ink: #163124;
-      --muted: #5e7467;
-      --line: #d7e3d6;
-      --accent: #1f7a4d;
-      --accent-strong: #165d3b;
-      --accent-soft: #e8f4ed;
-      --user: #163124;
-      --shadow: 0 18px 42px rgba(22, 49, 36, 0.08);
-      --radius: 22px;
+      --gov-blue-10: #071d41;
+      --gov-blue-20: #0c326f;
+      --gov-blue-30: #1351b4;
+      --gov-blue-40: #2670e8;
+      --gov-blue-50: #dbe8fb;
+      --gov-surface: #ffffff;
+      --gov-page: #f5f7fa;
+      --gov-border: #d6dce5;
+      --gov-border-strong: #8b949e;
+      --gov-text: #1f2328;
+      --gov-muted: #505f79;
+      --gov-success: #168821;
+      --gov-warning: #ffcd07;
+      --gov-chat-user: #1351b4;
+      --gov-chat-assistant: #ffffff;
+      --gov-chat-system: #fff7d6;
+      --shadow-soft: 0 12px 28px rgba(7, 29, 65, 0.08);
+      --radius-md: 12px;
+      --radius-lg: 18px;
     }
 
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(31, 122, 77, 0.12), transparent 28%),
-        linear-gradient(180deg, #f7faf6 0%, var(--bg) 100%);
+      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+      color: var(--gov-text);
+      background: linear-gradient(180deg, #edf2f8 0%, var(--gov-page) 220px, #ffffff 221px, #ffffff 100%);
       min-height: 100vh;
     }
 
-    .page {
-      max-width: 1240px;
-      margin: 0 auto;
-      padding: 28px 18px 36px;
-    }
-
-    .hero {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-start;
-      margin-bottom: 18px;
-    }
-
-    .hero-copy h1 {
-      margin: 0;
-      font-size: clamp(1.8rem, 2.7vw, 2.6rem);
-      line-height: 1.06;
-      letter-spacing: -0.04em;
-    }
-
-    .hero-copy p {
-      margin: 10px 0 0;
-      max-width: 760px;
-      color: var(--muted);
-      font-size: 0.98rem;
-      line-height: 1.55;
-    }
-
-    .hero-tag {
-      border: 1px solid rgba(31, 122, 77, 0.18);
-      background: rgba(255, 255, 255, 0.8);
-      color: var(--accent-strong);
-      padding: 9px 13px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 350px minmax(0, 1fr);
-      gap: 18px;
-      align-items: start;
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    .setup {
-      padding: 18px;
-      position: sticky;
-      top: 18px;
-    }
-
-    .setup h2,
-    .chat-card h2 {
-      margin: 0;
-      font-size: 1rem;
-      letter-spacing: -0.02em;
-    }
-
-    .setup p,
-    .subtle {
-      color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.5;
-    }
-
-    .grid {
-      display: grid;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--muted);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
+    a { color: inherit; text-decoration: none; }
 
     input,
     select,
@@ -126,102 +45,309 @@
     button {
       font: inherit;
     }
+    .container {
+      width: min(1240px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .page {
+      padding: 28px 0 40px;
+    }
+
+    .headline-block {
+      padding: 0 0 20px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid #dfe6ef;
+    }
+
+    .headline-block h1 {
+      margin: 0;
+      color: var(--gov-blue-20);
+      font-size: clamp(2rem, 3.8vw, 3rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .headline-block p {
+      margin: 10px 0 0;
+      max-width: 940px;
+      color: var(--gov-muted);
+      font-size: 1.02rem;
+      line-height: 1.55;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px 18px;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #dfe6ef;
+      color: var(--gov-muted);
+      font-size: 0.95rem;
+    }
+
+    .meta-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--gov-border);
+      background: #fff;
+      color: var(--gov-blue-20);
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--gov-success);
+      box-shadow: 0 0 0 4px rgba(22, 136, 33, 0.14);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+      margin-top: 26px;
+    }
+
+    .card {
+      background: var(--gov-surface);
+      border: 1px solid #d0d7e2;
+      border-radius: 16px;
+      box-shadow: 0 10px 24px rgba(7, 29, 65, 0.06);
+    }
+
+    .setup {
+      position: sticky;
+      top: 20px;
+      padding: 20px;
+    }
+
+    .panel-kicker {
+      color: var(--gov-blue-20);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .setup h2,
+    .chat-card h2 {
+      margin: 0;
+      color: var(--gov-blue-10);
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+    }
+
+    .setup p,
+    .subtle {
+      color: var(--gov-muted);
+      font-size: 0.96rem;
+      line-height: 1.5;
+    }
+
+    .subtle.is-warning {
+      color: #8a5b00;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--gov-blue-20);
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
 
     input,
     select,
     textarea {
       width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #fcfefd;
-      color: var(--ink);
+      border: 1px solid var(--gov-border-strong);
+      border-radius: 8px;
       padding: 12px 14px;
+      background: #fff;
+      color: var(--gov-text);
       outline: none;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
-      border-color: rgba(31, 122, 77, 0.6);
-      box-shadow: 0 0 0 4px rgba(31, 122, 77, 0.12);
+      border-color: var(--gov-blue-30);
+      box-shadow: 0 0 0 3px rgba(19, 81, 180, 0.18);
     }
 
     .button-row {
       display: grid;
       gap: 10px;
-      margin-top: 16px;
+      margin-top: 18px;
+    }
+
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .preset-btn,
+    .btn {
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .preset-btn {
+      border: 1px solid var(--gov-blue-30);
+      background: #fff;
+      color: var(--gov-blue-30);
+      padding: 10px 14px;
+      font-size: 0.92rem;
+    }
+
+    .preset-btn:hover {
+      background: var(--gov-blue-50);
+    }
+
+    .preset-btn.is-active {
+      background: var(--gov-blue-30);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(19, 81, 180, 0.22);
+    }
+
+    .preset-btn:disabled,
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .btn {
-      border: 0;
-      border-radius: 16px;
-      padding: 12px 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+      border: 1px solid transparent;
+      padding: 12px 16px;
     }
 
     .btn:hover { transform: translateY(-1px); }
-    .btn:disabled { opacity: 0.65; cursor: wait; transform: none; }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-strong); }
+
+    .btn-primary {
+      background: var(--gov-blue-30);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #0f4aa3; }
+
     .btn-secondary {
-      background: #eff7f1;
-      color: var(--accent-strong);
-      border: 1px solid rgba(31, 122, 77, 0.16);
+      background: #fff;
+      color: var(--gov-blue-30);
+      border-color: var(--gov-blue-30);
+    }
+
+    .status,
+    .context-box {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--gov-border);
+      background: #fff;
     }
 
     .status {
-      margin-top: 16px;
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--accent-soft);
-      border: 1px solid rgba(31, 122, 77, 0.12);
+      border-left: 4px solid var(--gov-blue-30);
+      background: #f8fbff;
     }
 
-    .status strong {
+    .status strong,
+    .context-box strong {
       display: block;
-      margin-bottom: 5px;
-      font-size: 0.84rem;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--accent-strong);
+      color: var(--gov-blue-20);
     }
 
-    .status code {
+    .status code,
+    .context-item code {
       display: block;
       margin-top: 8px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.82);
-      border: 1px solid rgba(31, 122, 77, 0.14);
-      color: var(--accent-strong);
-      word-break: break-all;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--gov-border);
+      background: #fff;
+      color: var(--gov-blue-20);
       font-size: 0.8rem;
+      word-break: break-all;
+    }
+
+    .context-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .context-item {
+      padding: 12px;
+      border: 1px solid var(--gov-border);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .context-item span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--gov-muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
     }
 
     .chat-card {
       display: grid;
-      grid-template-rows: auto minmax(420px, 1fr) auto;
-      min-height: 740px;
+      grid-template-rows: auto minmax(520px, 1fr) auto;
       overflow: hidden;
+      border-radius: 18px;
     }
 
     .chat-top {
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line);
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid var(--gov-border);
       display: flex;
       justify-content: space-between;
       gap: 18px;
-      align-items: center;
-      background: linear-gradient(180deg, rgba(232, 244, 237, 0.72), rgba(255,255,255,0.94));
+      align-items: flex-start;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
     }
 
     .chat-top .meta {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+      display: grid;
+      gap: 6px;
     }
 
     .pill {
@@ -229,58 +355,119 @@
       align-items: center;
       gap: 8px;
       width: fit-content;
+      padding: 8px 12px;
       border-radius: 999px;
-      padding: 7px 11px;
-      background: #eef8f1;
-      border: 1px solid rgba(31, 122, 77, 0.12);
-      color: var(--accent-strong);
-      font-size: 0.8rem;
+      border: 1px solid var(--gov-border);
+      background: #fff;
+      color: var(--gov-blue-20);
+      font-size: 0.84rem;
       font-weight: 700;
+    }
+
+    .context-pill {
+      background: #fff8e1;
+      color: #8a5b00;
+      border-color: #f0d48a;
     }
 
     .dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: #20b463;
-      box-shadow: 0 0 0 4px rgba(32, 180, 99, 0.18);
+      background: var(--gov-success);
+      box-shadow: 0 0 0 4px rgba(22, 136, 33, 0.14);
     }
 
     .messages {
-      padding: 18px;
+      padding: 24px;
       overflow-y: auto;
       display: grid;
-      gap: 12px;
-      background: linear-gradient(180deg, rgba(247, 250, 246, 0.84), rgba(243, 247, 242, 0.92));
+      gap: 14px;
+      background:
+        radial-gradient(circle at top right, rgba(19, 81, 180, 0.05), transparent 26%),
+        linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+    }
+
+    .message-shell {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .message-shell.user,
+    .message-shell.system {
+      justify-content: flex-end;
+    }
+
+    .message-shell.assistant {
+      justify-content: flex-start;
     }
 
     .bubble {
-      max-width: min(78ch, 82%);
-      padding: 14px 16px;
+      max-width: min(74ch, 82%);
+      padding: 16px 18px;
       border-radius: 18px;
-      line-height: 1.52;
-      box-shadow: 0 10px 26px rgba(22, 49, 36, 0.06);
+      line-height: 1.62;
+      box-shadow: 0 8px 20px rgba(7, 29, 65, 0.06);
       white-space: pre-wrap;
+      border: 1px solid transparent;
+    }
+
+    .source-card {
+      width: min(260px, 32vw);
+      padding: 12px 14px;
+      border: 1px solid #c9d8ee;
+      border-radius: 16px;
+      background: #f7fbff;
+      box-shadow: 0 8px 18px rgba(7, 29, 65, 0.06);
+    }
+
+    .source-card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--gov-blue-20);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .source-card-title {
+      font-weight: 700;
+      color: var(--gov-blue-10);
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .source-card-meta {
+      color: var(--gov-muted);
+      font-size: 0.84rem;
+      margin-bottom: 8px;
+    }
+
+    .source-card-excerpt {
+      color: var(--gov-text);
+      font-size: 0.9rem;
+      line-height: 1.45;
     }
 
     .bubble.assistant {
-      background: #ffffff;
-      border: 1px solid var(--line);
+      background: var(--gov-chat-assistant);
+      border-color: var(--gov-border);
       border-top-left-radius: 6px;
       justify-self: start;
     }
 
     .bubble.user {
-      background: var(--user);
+      background: var(--gov-chat-user);
       color: #fff;
       border-top-right-radius: 6px;
       justify-self: end;
     }
 
     .bubble.system {
-      background: #fff7e8;
-      border: 1px solid #edd9a9;
-      color: #6e551c;
+      background: var(--gov-chat-system);
+      border-color: #f0d48a;
+      color: #6a4b00;
       justify-self: start;
     }
 
@@ -288,15 +475,15 @@
       display: block;
       margin-bottom: 8px;
       font-size: 0.74rem;
-      font-weight: 700;
-      opacity: 0.72;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      opacity: 0.82;
     }
 
     .composer {
-      border-top: 1px solid var(--line);
-      padding: 16px 18px 18px;
+      border-top: 1px solid var(--gov-border);
+      padding: 18px 22px 22px;
       background: #fff;
     }
 
@@ -306,134 +493,213 @@
     }
 
     .composer textarea {
-      min-height: 94px;
+      min-height: 112px;
       resize: vertical;
     }
 
     .composer-row {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       align-items: center;
     }
 
     .hint {
-      color: var(--muted);
-      font-size: 0.85rem;
+      color: var(--gov-muted);
+      font-size: 0.9rem;
     }
 
     .error {
       margin-top: 10px;
       display: none;
       padding: 12px 14px;
-      border-radius: 14px;
+      border-radius: 10px;
+      border: 1px solid #d94b4b;
       background: #fff2f2;
-      border: 1px solid #efc0c0;
-      color: #8c2b2b;
-      font-size: 0.9rem;
+      color: #a2191f;
+      font-size: 0.92rem;
     }
 
-    @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      .setup { position: static; }
-      .chat-card { min-height: 680px; }
-      .chat-top { flex-direction: column; align-items: flex-start; }
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .setup {
+        position: static;
+      }
+
+      .message-shell {
+        flex-direction: column;
+      }
+
+      .source-card {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        width: min(100vw - 20px, 1240px);
+      }
+
+      .meta-row,
+      .chat-top,
+      .composer-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .chat-card {
+        grid-template-rows: auto minmax(460px, 1fr) auto;
+      }
+
+      .messages,
+      .composer,
+      .chat-top,
+      .setup {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
     }
   </style>
 </head>
+
 <body>
   <main class="page">
-    <section class="hero">
-      <div class="hero-copy">
-        <h1>Simulador de Conversa com a IA</h1>
-        <p>Esta tela substitui o antigo bloco <code>omnichannel</code> e foi desenhada apenas para teste controlado. A conversa aberta aqui usa os endpoints reais do <code>/api/webchat</code> e pode ser acompanhada em tempo real no <code>chat-manager</code>.</p>
-      </div>
-      <div class="hero-tag">Sandbox / Piloto controlado</div>
-    </section>
+    <div class="container">
+      <section class="headline-block">
+        <div class="kicker">Simulador Institucional</div>
+        <h1>Simulador de Conversa com IA</h1>
+        <p>Ambiente de homologacao para validar respostas da IA com base no contexto ativo da escola e da respectiva rede.</p>
+      </section>
 
-    <section class="layout">
-      <aside class="card setup">
-        <h2>Configurar simulacao</h2>
-        <p class="subtle">Defina o identificador do teste, o assistente preferencial e o ponto de entrada. Depois, abra o monitoramento em <code>/atendimento</code> para acompanhar a conversa.</p>
-
-        <div class="grid">
-          <div>
-            <label for="tester-name">Nome do usuario de teste</label>
-            <input id="tester-name" type="text" value="Usuario de teste" />
-          </div>
-          <div>
-            <label for="school-name">Nome exibido da escola</label>
-            <input id="school-name" type="text" value="Escola Piloto" />
-          </div>
-          <div>
-            <label for="school-id">School ID opcional</label>
-            <input id="school-id" type="text" placeholder="Se vazio, usa o padrao do backend" />
-          </div>
-          <div>
-            <label for="entrypoint">Entrypoint</label>
-            <input id="entrypoint" type="text" value="simulador_piloto" />
-          </div>
-          <div>
-            <label for="agent-key">Assistente preferencial</label>
-            <select id="agent-key">
-              <option value="">Auto-roteamento</option>
-              <option value="public.assistant">Assistente Publico</option>
-              <option value="administration.secretariat">Assistente da Secretaria</option>
-              <option value="administration.treasury">Assistente da Tesouraria</option>
-              <option value="administration.direction">Assistente da Direcao</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="button-row">
-          <button id="btn-new-session" class="btn btn-primary" type="button">Iniciar nova conversa</button>
-          <button id="btn-open-manager" class="btn btn-secondary" type="button">Abrir acompanhamento em /atendimento</button>
-        </div>
-
-        <div class="status">
-          <strong>Status da sessao</strong>
-          <div id="status-text">Nenhuma conversa iniciada.</div>
-          <code id="session-id">session_id: nao iniciado</code>
-        </div>
-      </aside>
-
-      <section class="card chat-card">
-        <div class="chat-top">
-          <div class="meta">
-            <h2 id="chat-title">Conversa de teste</h2>
-            <div class="subtle" id="chat-subtitle">Use esta janela para conversar com a IA enquanto um operador acompanha o fluxo no chat-manager.</div>
-          </div>
-          <div class="pill"><span class="dot"></span> Fluxo real via /api/webchat</div>
-        </div>
-
-        <div id="messages" class="messages"></div>
-
-        <div class="composer">
-          <form id="chat-form">
-            <textarea id="message-input" placeholder="Escreva uma pergunta de teste, como: Quais documentos preciso para matricula?" required></textarea>
-            <div class="composer-row">
-              <div class="hint">A conversa fica disponivel para acompanhamento humano em <code>/atendimento</code>.</div>
-              <button id="btn-send" class="btn btn-primary" type="submit">Enviar mensagem</button>
-            </div>
-          </form>
-          <div id="error-box" class="error"></div>
+      <section class="meta-row">
+        <div>Uso interno em ambiente sandbox.</div>
+        <div class="meta-chips">
+          <div class="meta-chip"><span class="status-dot"></span> Fluxo real via /api/webchat</div>
+          <div class="meta-chip" id="chat-context-indicator">Escolha a escola para habilitar</div>
         </div>
       </section>
-    </section>
+
+      <section class="layout">
+        <aside class="card setup">
+          <div class="panel-kicker">Painel de Teste</div>
+          <h2>Configurar simulacao</h2>
+          <p class="subtle">Defina o identificador do teste, o assistente preferencial e o ponto de entrada. Depois, acompanhe a conversa no monitoramento institucional em <code>/atendimento</code>.</p>
+
+          <div class="grid">
+            <div>
+              <label for="tester-name">Nome do usuario de teste</label>
+              <input id="tester-name" type="text" value="Usuario de teste" />
+            </div>
+            <div>
+              <label for="school-name">Escola em teste</label>
+              <input id="school-name" type="text" value="Selecione Escola A ou Escola B" readonly />
+            </div>
+            <div>
+              <label for="school-id">School ID da escola</label>
+              <input id="school-id" type="text" placeholder="Escolha a escola pelos botoes abaixo" readonly />
+              <div class="preset-row">
+                <button class="preset-btn" id="preset-school-a" type="button">Usar Escola A</button>
+                <button class="preset-btn" id="preset-school-b" type="button">Usar Escola B</button>
+              </div>
+              <div id="school-required-note" class="subtle is-warning">Escolha a Escola A ou Escola B para habilitar o chat.</div>
+            </div>
+            <div>
+              <label for="entrypoint">Entrypoint</label>
+              <input id="entrypoint" type="text" value="simulador_piloto" />
+            </div>
+            <div>
+              <label for="agent-key">Assistente preferencial</label>
+              <select id="agent-key">
+                <option value="">Auto-roteamento</option>
+                <option value="public.assistant">Assistente Publico</option>
+                <option value="administration.secretariat">Assistente da Secretaria</option>
+                <option value="administration.treasury">Assistente da Tesouraria</option>
+                <option value="administration.direction">Assistente da Direcao</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button id="btn-new-session" class="btn btn-primary" type="button">Iniciar nova conversa</button>
+            <button id="btn-open-manager" class="btn btn-secondary" type="button">Abrir acompanhamento em /atendimento</button>
+          </div>
+
+          <div class="status">
+            <strong>Status da sessao</strong>
+            <div id="status-text">Nenhuma conversa iniciada.</div>
+            <code id="session-id">session_id: nao iniciado</code>
+          </div>
+
+          <div class="context-box">
+            <strong>Contexto resolvido do teste</strong>
+            <div class="context-grid">
+              <div class="context-item">
+                <span>Rede / Secretaria</span>
+                <div id="resolved-network">Nao identificado</div>
+              </div>
+              <div class="context-item">
+                <span>Escola</span>
+                <div id="resolved-school">Nao identificado</div>
+              </div>
+              <div class="context-item">
+                <span>School ID enviado</span>
+                <code id="resolved-school-id">padrao do backend</code>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="card chat-card">
+          <div class="chat-top">
+            <div class="meta">
+              <div class="panel-kicker">Atendimento Digital</div>
+              <h2 id="chat-title">Conversa de teste</h2>
+              <div class="subtle" id="chat-subtitle">Use esta janela para conversar com a IA enquanto um operador acompanha o fluxo no chat-manager.</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;">
+              <div class="pill"><span class="status-dot"></span> Resposta oficial assistida</div>
+            </div>
+          </div>
+
+          <div id="messages" class="messages"></div>
+
+          <div class="composer">
+            <form id="chat-form">
+              <textarea id="message-input" placeholder="Escreva uma pergunta de teste, como: Quais documentos preciso para matricula?" required></textarea>
+              <div class="composer-row">
+                <div class="hint">A conversa fica disponivel para acompanhamento humano em <code>/atendimento</code>.</div>
+                <button id="btn-send" class="btn btn-primary" type="submit">Enviar mensagem</button>
+              </div>
+            </form>
+            <div id="error-box" class="error"></div>
+          </div>
+        </section>
+      </section>
+    </div>
   </main>
+
 
   <script>
     const state = {
       sessionId: '',
+      consultationId: '',
       pollingTimer: null,
       renderedIds: new Set(),
-      loadingSession: false
+      loadingSession: false,
+      publicCalendarSchools: [],
+      publicCalendarBySchoolId: new Map(),
+      activePresetSlug: ''
     };
 
     const elements = {
       testerName: document.getElementById('tester-name'),
       schoolName: document.getElementById('school-name'),
       schoolId: document.getElementById('school-id'),
+      presetSchoolA: document.getElementById('preset-school-a'),
+      presetSchoolB: document.getElementById('preset-school-b'),
       entrypoint: document.getElementById('entrypoint'),
       agentKey: document.getElementById('agent-key'),
       newSession: document.getElementById('btn-new-session'),
@@ -446,7 +712,12 @@
       send: document.getElementById('btn-send'),
       errorBox: document.getElementById('error-box'),
       chatTitle: document.getElementById('chat-title'),
-      chatSubtitle: document.getElementById('chat-subtitle')
+      chatSubtitle: document.getElementById('chat-subtitle'),
+      resolvedNetwork: document.getElementById('resolved-network'),
+      resolvedSchool: document.getElementById('resolved-school'),
+      resolvedSchoolId: document.getElementById('resolved-school-id'),
+      schoolRequiredNote: document.getElementById('school-required-note'),
+      chatContextIndicator: document.getElementById('chat-context-indicator')
     };
 
     function escapeHtml(value) {
@@ -467,6 +738,20 @@
       };
       return map[String(value || '').trim()] || 'Auto-roteamento';
     }
+    function isUuid(value) {
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+    }
+    function isWebchatSessionId(value) {
+      return String(value || '').trim().startsWith('webchat:');
+    }
+    function getRequestHeaders(extra = {}) {
+      const schoolId = String(elements.schoolId.value || '').trim();
+      return schoolId ? { ...extra, 'x-school-id': schoolId } : { ...extra };
+    }
+
+    function hasExplicitSchoolSelection() {
+      return Boolean(String(elements.schoolId.value || '').trim());
+    }
 
     function getMetadata() {
       const agentKey = String(elements.agentKey.value || '').trim();
@@ -482,9 +767,161 @@
       };
     }
 
+    function getResolvedContext() {
+      const rawSchoolId = String(elements.schoolId.value || '').trim();
+      const fallbackSchoolName = String(elements.schoolName.value || 'Escola Piloto').trim();
+      const resolved = rawSchoolId ? state.publicCalendarBySchoolId.get(rawSchoolId) : null;
+
+      if (resolved) {
+        return {
+          schoolId: rawSchoolId,
+          schoolName: resolved.school_name || fallbackSchoolName,
+          networkName: resolved.network_name || 'Rede nao identificada',
+          status: 'resolved'
+        };
+      }
+
+      if (!rawSchoolId) {
+        return {
+          schoolId: '',
+          schoolName: fallbackSchoolName,
+          networkName: 'Padrao do backend / nao explicitado',
+          status: 'implicit'
+        };
+      }
+
+      return {
+        schoolId: rawSchoolId,
+        schoolName: fallbackSchoolName,
+        networkName: 'School ID nao encontrado no calendario publico',
+        status: 'unresolved'
+      };
+    }
+
+    function getCurrentSchoolRecord() {
+      const currentSchoolId = String(elements.schoolId.value || '').trim();
+      return currentSchoolId ? state.publicCalendarBySchoolId.get(currentSchoolId) || null : null;
+    }
+
+    function renderPresetSelection() {
+      const activeSlug = getCurrentSchoolRecord()?.school_slug || '';
+      state.activePresetSlug = activeSlug;
+      [
+        [elements.presetSchoolA, 'escola-a-sandbox'],
+        [elements.presetSchoolB, 'escola-b-sandbox']
+      ].forEach(([button, slug]) => {
+        const isActive = slug === activeSlug;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    }
+
+    function renderPendingContextSummary() {
+      if (state.sessionId) return;
+      const context = getResolvedContext();
+      const hasExplicitSchool = Boolean(context.schoolId);
+      elements.chatTitle.textContent = hasExplicitSchool ? 'Conversa de teste | ' + context.schoolName : 'Conversa de teste';
+      elements.chatSubtitle.textContent = hasExplicitSchool
+        ? 'Contexto preparado para ' + context.schoolName + ' | ' + context.networkName + '. Ao trocar de escola, o simulador encerra a conversa atual e inicia outra limpa.'
+        : 'Selecione Escola A ou Escola B para iniciar o teste com o contexto institucional correto.';
+    }
+
+    function updateInteractionAvailability() {
+      const hasSchool = hasExplicitSchoolSelection();
+      elements.newSession.disabled = !hasSchool || state.loadingSession;
+      elements.send.disabled = !hasSchool || state.loadingSession;
+      elements.input.disabled = !hasSchool;
+      elements.input.placeholder = hasSchool
+        ? 'Escreva uma pergunta de teste, como: Quais documentos preciso para matricula?'
+        : 'Escolha a Escola A ou Escola B para habilitar o chat.';
+      elements.schoolRequiredNote.style.display = hasSchool ? 'none' : 'block';
+      const context = getResolvedContext();
+      elements.chatContextIndicator.textContent = hasSchool
+        ? context.schoolName + ' | ' + context.networkName
+        : 'Escolha a escola para habilitar';
+    }
+
+    function renderResolvedContext() {
+      const context = getResolvedContext();
+      elements.resolvedNetwork.textContent = context.networkName;
+      elements.resolvedSchool.textContent = context.schoolName;
+      elements.resolvedSchoolId.textContent = context.schoolId || 'padrao do backend';
+      renderPresetSelection();
+      renderPendingContextSummary();
+      updateInteractionAvailability();
+    }
+
+    function syncSchoolNameFromContext() {
+      const resolved = getCurrentSchoolRecord();
+      elements.schoolName.value = resolved?.school_name || 'Selecione Escola A ou Escola B';
+      renderResolvedContext();
+    }
+
+    function resetConversationState() {
+      state.sessionId = '';
+      state.consultationId = '';
+      state.renderedIds = new Set();
+      elements.messages.innerHTML = '';
+      setStatus('Nenhuma conversa iniciada. Configure o simulador e abra uma nova sessao.');
+    }
+
+    async function restartSessionForSchoolChange(previousContext, target) {
+      const previousLabel = previousContext.schoolName || 'contexto anterior';
+      const nextLabel = target.school_name || 'nova escola';
+      const nextNetwork = target.network_name || 'Rede nao identificada';
+      window.alert('Ao trocar de escola, a conversa atual sera encerrada. O simulador vai iniciar uma nova sessao em ' + nextLabel + '.');
+      resetConversationState();
+      await startSession({
+        resetNotice: 'A conversa anterior em ' + previousLabel + ' foi encerrada no simulador. Novo contexto ativo: ' + nextLabel + ' | ' + nextNetwork + '.'
+      });
+    }
+
+    async function applySchoolPreset(slug) {
+      const target = (state.publicCalendarSchools || []).find((item) => item.school_slug === slug);
+      if (!target) {
+        showError('Nao foi possivel localizar o preset solicitado no calendario publico.');
+        return;
+      }
+
+      const previousContext = getResolvedContext();
+      const currentSchoolId = String(elements.schoolId.value || '').trim();
+      const targetSchoolId = String(target.school_id || '').trim();
+      const schoolChanged = Boolean(targetSchoolId) && targetSchoolId !== currentSchoolId;
+
+      elements.schoolId.value = targetSchoolId;
+      elements.schoolName.value = target.school_name || 'Selecione Escola A ou Escola B';
+      renderResolvedContext();
+      showError('');
+
+      if (state.sessionId && schoolChanged) {
+        await restartSessionForSchoolChange(previousContext, target);
+      }
+    }
+
+    async function loadContextCatalog() {
+      try {
+        const response = await fetch('/api/public-calendar');
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.error || 'Falha ao carregar o catalogo de escolas do simulador.');
+        }
+        state.publicCalendarSchools = Array.isArray(data.schools) ? data.schools : [];
+        state.publicCalendarBySchoolId = new Map(state.publicCalendarSchools.map((item) => [String(item.school_id || ''), item]));
+      } catch (error) {
+        console.warn('Nao foi possivel carregar o catalogo publico do simulador:', error?.message || error);
+      }
+      renderResolvedContext();
+    }
+
+    function getContextStatusSuffix() {
+      const context = getResolvedContext();
+      return context.schoolName && context.schoolId ? ' | Escola ativa: ' + context.schoolName : '';
+    }
+
     function setStatus(text) {
-      elements.statusText.textContent = text;
-      elements.sessionId.textContent = 'session_id: ' + (state.sessionId || 'nao iniciado');
+      elements.statusText.textContent = text + getContextStatusSuffix();
+      const suffix = state.consultationId ? ' | conversation_id: ' + state.consultationId : '';
+      elements.sessionId.textContent = 'session_id: ' + (state.sessionId || 'nao iniciado') + suffix;
     }
 
     function showError(message) {
@@ -497,12 +934,45 @@
       elements.errorBox.style.display = 'block';
     }
 
-    function appendMessage(role, title, text) {
-      const wrap = document.createElement('article');
-      wrap.className = 'bubble ' + role;
-      wrap.innerHTML = '<small>' + escapeHtml(title) + '</small>' + escapeHtml(text);
-      elements.messages.appendChild(wrap);
+    function buildSourceCard(sourceCard) {
+      if (!sourceCard || !sourceCard.title) return '';
+      const version = sourceCard.version ? '<div class="source-card-meta">Versao: ' + escapeHtml(sourceCard.version) + (sourceCard.evidence_score !== null && sourceCard.evidence_score !== undefined ? ' | Evidencia: ' + escapeHtml(Number(sourceCard.evidence_score).toFixed(2)) : '') + '</div>' : '';
+      const excerpt = sourceCard.excerpt ? '<div class="source-card-excerpt">' + escapeHtml(sourceCard.excerpt) + '</div>' : '';
+      return '<aside class="source-card"><strong>Fonte consultada</strong><div class="source-card-title">' + escapeHtml(sourceCard.title) + '</div>' + version + excerpt + '</aside>';
+    }
+
+    function getSourceCardFromAudit(audit) {
+      if (!audit) return null;
+      const source = audit.supporting_source || (Array.isArray(audit.consulted_sources) ? audit.consulted_sources[0] : null) || null;
+      if (!source || !source.source_title) return null;
+      return {
+        title: source.source_title || 'Fonte institucional',
+        version: source.source_version_label || 'publicado',
+        excerpt: source.source_excerpt || '',
+        evidence_score: source.evidence_score ?? audit.evidence_score ?? null
+      };
+    }
+
+    function appendMessage(role, title, text, sourceCard = null) {
+      const shell = document.createElement('div');
+      shell.className = 'message-shell ' + role;
+      const bubble = document.createElement('article');
+      bubble.className = 'bubble ' + role;
+      bubble.innerHTML = '<small>' + escapeHtml(title) + '</small>' + escapeHtml(text);
+      shell.appendChild(bubble);
+      if (role === 'assistant' && sourceCard) {
+        shell.insertAdjacentHTML('beforeend', buildSourceCard(sourceCard));
+      }
+      elements.messages.appendChild(shell);
       elements.messages.scrollTop = elements.messages.scrollHeight;
+    }
+
+    function waitForNextPaint() {
+      return new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.setTimeout(resolve, 0);
+        });
+      });
     }
 
     function renderTranscript(conversation) {
@@ -514,11 +984,14 @@
         state.renderedIds.add(message.id);
         const role = message.role === 'user' ? 'user' : 'assistant';
         const title = role === 'user' ? (message.source || 'Usuario') : (message.source || 'Assistente');
-        appendMessage(role, title, message.text || '');
+        appendMessage(role, title, message.text || '', role === 'assistant' ? getSourceCardFromAudit(message.audit) : null);
       });
     }
 
-    async function startSession() {
+    async function startSession(options = {}) {
+      if (!hasExplicitSchoolSelection()) {
+        throw new Error('Escolha a Escola A ou Escola B antes de iniciar o chat.');
+      }
       if (state.loadingSession) return state.sessionId;
       state.loadingSession = true;
       showError('');
@@ -528,9 +1001,10 @@
 
       try {
         const metadata = getMetadata();
+        const resetNotice = String(options.resetNotice || '').trim();
         const response = await fetch('/api/webchat/session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getRequestHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             school_id: metadata.school_id,
             entrypoint: metadata.entrypoint
@@ -542,11 +1016,17 @@
         }
 
         state.sessionId = String(body.session_id || '');
+        state.consultationId = '';
+        state.renderedIds = new Set();
         elements.messages.innerHTML = '';
-        elements.chatTitle.textContent = 'Conversa em andamento';
-        elements.chatSubtitle.textContent = metadata.parent_name + ' falando com ' + getAgentLabel(metadata.agent_key) + ' em ' + metadata.school_name + '.';
-        appendMessage('system', 'Simulador', 'Sessao criada com sucesso. Agora voce pode enviar perguntas e acompanhar a conversa em /atendimento.');
-        setStatus('Sessao ativa para teste controlado.');
+        const context = getResolvedContext();
+        elements.chatTitle.textContent = 'Conversa em andamento | ' + context.schoolName;
+        elements.chatSubtitle.textContent = metadata.parent_name + ' falando com ' + getAgentLabel(metadata.agent_key) + ' sobre ' + context.schoolName + ' | ' + context.networkName + '.';
+        if (resetNotice) {
+          appendMessage('system', 'Simulador', resetNotice);
+        }
+        appendMessage('system', 'Simulador', 'Sessao criada com sucesso. Contexto do teste: ' + context.networkName + ' -> ' + context.schoolName + (context.schoolId ? ' | school_id: ' + context.schoolId : ' | school_id: padrao do backend') + '.');
+        setStatus('Sessao ativa para teste controlado em ' + context.schoolName + '.');
         startPolling();
         return state.sessionId;
       } finally {
@@ -561,7 +1041,7 @@
       const metadata = getMetadata();
       const response = await fetch('/api/webchat/message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           session_id: sessionId,
           text,
@@ -572,16 +1052,43 @@
       if (!response.ok) {
         throw new Error(body?.error || 'Falha ao enviar mensagem para a IA.');
       }
+      if (body?.consultation_id) {
+        state.consultationId = String(body.consultation_id || '');
+        setStatus('Sessao ativa para teste controlado em ' + getResolvedContext().schoolName + '.');
+      }
       return body;
     }
 
     async function loadConversation() {
       if (!state.sessionId) return;
-      const response = await fetch('/api/webchat/conversations/' + encodeURIComponent(state.sessionId));
+
+      if (!isUuid(state.consultationId)) {
+        state.consultationId = '';
+      }
+
+      if (!state.consultationId) {
+        const listResponse = await fetch('/api/webchat/conversations', { headers: getRequestHeaders() });
+        const listBody = await listResponse.json().catch(() => ({}));
+        const conversations = Array.isArray(listBody?.conversations) ? listBody.conversations : [];
+        const matchedConversation = conversations.find((item) => String(item.user_id || '') === String(state.sessionId || ''));
+        if (isUuid(matchedConversation?.id)) {
+          state.consultationId = String(matchedConversation.id || '');
+        }
+      }
+
+      if (!isUuid(state.consultationId)) {
+        if (isWebchatSessionId(state.consultationId)) {
+          setStatus('Sessao ativa em ' + getResolvedContext().schoolName + '. Aguardando o registro definitivo da conversa...');
+        }
+        return;
+      }
+
+      const response = await fetch('/api/webchat/conversations/' + encodeURIComponent(state.consultationId), { headers: getRequestHeaders() });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body?.conversation) return;
+      state.consultationId = isUuid(body.conversation.id) ? String(body.conversation.id) : state.consultationId;
       renderTranscript(body.conversation);
-      setStatus('Conversa ativa e disponivel para acompanhamento no chat-manager.');
+      setStatus('Conversa ativa e disponivel para acompanhamento no chat-manager em ' + getResolvedContext().schoolName + '.');
     }
 
     function startPolling() {
@@ -593,6 +1100,10 @@
 
     async function handleSubmit(event) {
       event.preventDefault();
+      if (!hasExplicitSchoolSelection()) {
+        showError('Escolha a Escola A ou Escola B antes de conversar.');
+        return;
+      }
       const text = String(elements.input.value || '').trim();
       if (!text) return;
 
@@ -600,11 +1111,12 @@
       elements.send.disabled = true;
       appendMessage('user', elements.testerName.value || 'Usuario de teste', text);
       elements.input.value = '';
+      await waitForNextPaint();
 
       try {
         const body = await sendMessage(text);
         if (body?.reply) {
-          appendMessage('assistant', getAgentLabel(getMetadata().agent_key), String(body.reply || ''));
+          appendMessage('assistant', getAgentLabel(getMetadata().agent_key), String(body.reply || ''), body.source_card || null);
         }
         await loadConversation();
       } catch (error) {
@@ -623,13 +1135,24 @@
     function boot() {
       setStatus('Nenhuma conversa iniciada. Configure o simulador e abra uma nova sessao.');
       appendMessage('system', 'Simulador', 'Esta pagina foi criada para testar a conversa com a IA sem o antigo bloco omnichannel. Inicie uma sessao e acompanhe o fluxo em /atendimento.');
+      void loadContextCatalog();
       elements.newSession.addEventListener('click', () => {
-        state.sessionId = '';
+        resetConversationState();
         startSession().catch((error) => showError(error.message || 'Falha ao iniciar sessao.'));
       });
+      elements.presetSchoolA.addEventListener('click', () => {
+        applySchoolPreset('escola-a-sandbox').catch((error) => showError(error.message || 'Falha ao trocar para a Escola A.'));
+      });
+      elements.presetSchoolB.addEventListener('click', () => {
+        applySchoolPreset('escola-b-sandbox').catch((error) => showError(error.message || 'Falha ao trocar para a Escola B.'));
+      });
+      elements.schoolId.addEventListener('input', syncSchoolNameFromContext);
       elements.openManager.addEventListener('click', openManager);
       elements.form.addEventListener('submit', handleSubmit);
-      elements.input.focus();
+      renderResolvedContext();
+      if (hasExplicitSchoolSelection()) {
+        elements.input.focus();
+      }
     }
 
     document.addEventListener('DOMContentLoaded', boot);

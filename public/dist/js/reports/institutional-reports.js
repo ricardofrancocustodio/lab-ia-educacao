@@ -327,11 +327,29 @@ async function ensureAuthenticatedContext() {
   }
 }
 
+async function getAuthenticatedHeaders(extraHeaders = {}) {
+  const token = await window.getAccessToken();
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    ...extraHeaders
+  };
+  if (headers['Content-Type'] === undefined) {
+    delete headers['Content-Type'];
+  }
+  return headers;
+}
+
 async function loadReports() {
   await ensureAuthenticatedContext();
   const period = document.getElementById('report-period')?.value || 'today';
-  const res = await fetch('/api/reports/operational-summary?period=' + encodeURIComponent(period));
+  const res = await fetch('/api/reports/operational-summary?period=' + encodeURIComponent(period), {
+    headers: await getAuthenticatedHeaders({ 'Content-Type': undefined })
+  });
   const data = await res.json();
+  if (!res.ok || data.ok === false) {
+    throw new Error(data?.error || 'Falha ao carregar os relatorios operacionais.');
+  }
 
   reportState.rows = data.detail_rows || [];
   reportState.periodLabel = data.period_label || 'Hoje';

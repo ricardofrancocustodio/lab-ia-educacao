@@ -1,6 +1,5 @@
 // 📁 .qodo/services/supabase.js
 const { createClient } = require("@supabase/supabase-js");
-const { OpenAI } = require('openai'); // Precisa do OpenAI para criar embeddings
 const { standardizePhone } = require("../utils/phoneUtils");
 
 // --- CLIENTE SUPABASE ---
@@ -21,15 +20,8 @@ const supabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-// --- CLIENTE OPENAI ---
-// (Necessário para criar o embedding da pergunta do usuário em tempo real)
-const openai = process.env.OPENAI_API_KEY 
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-    console.warn("⚠️ OPENAI_API_KEY não definida no .env. A busca semântica (FAQ) não funcionará.");
-}
+// --- BUSCA TEXTUAL / KEYWORDS ---
+// Este projeto opera sem embeddings proprietarios no fluxo ativo.
 
 const ALLOWED_LEAD_STATUSES = new Set([
   'AGENDADO',
@@ -180,6 +172,321 @@ function normalizeMatchedKnowledgeRow(item = {}, normalizedQuestion) {
   };
 }
 
+function normalizeSearchText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function extractSearchKeywords(text) {
+  const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'por', 'com', 'uma', 'um', 'o', 'a', 'as', 'os', 'na', 'no', 'nas', 'nos']);
+  return [...new Set(
+    normalizeSearchText(text)
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 3 && !stopwords.has(token))
+  )];
+}
+
+function getOfficialContentCategories(moduleKey) {
+  const normalizedModule = String(moduleKey || '').trim().toLowerCase();
+  if (normalizedModule === 'calendar') return ['Atendimento Publico', 'Institucional', 'Secretaria'];
+  if (normalizedModule === 'enrollment') return ['Secretaria', 'Documentos', 'Atendimento Publico'];
+  if (normalizedModule === 'faq') return ['Institucional', 'Atendimento Publico', 'Secretaria'];
+  if (normalizedModule === 'notices') return ['Institucional', 'Atendimento Publico', 'Direcao'];
+  return ['Institucional'];
+}
+
+function buildCalendarAliases(entry = {}) {
+  const haystack = normalizeSearchText([entry.title, entry.event_type, entry.notes].filter(Boolean).join(' '));
+  const aliases = [];
+
+  if ((haystack.includes('inicio') || haystack.includes('retorno')) && (haystack.includes('letivo') || haystack.includes('aula'))) {
+    aliases.push('inicio das aulas', 'inicio do ano letivo', 'primeiro dia de aula', 'quando comecam as aulas', 'volta as aulas', 'retorno das aulas');
+  }
+  if ((haystack.includes('fim') || haystack.includes('termino') || haystack.includes('encerramento')) && (haystack.includes('letivo') || haystack.includes('aula'))) {
+    aliases.push('fim das aulas', 'fim do ano letivo', 'termino das aulas', 'ultimo dia de aula');
+  }
+  if (haystack.includes('recesso')) aliases.push('recesso escolar', 'recesso de julho', 'recesso do meio do ano');
+  if (haystack.includes('ferias')) aliases.push('ferias', 'ferias escolares', 'data das ferias', 'quando comecam as ferias', 'inicio das ferias', 'periodo de ferias');
+  if (haystack.includes('conselho')) aliases.push('conselho de classe');
+  if (haystack.includes('reuniao') && (haystack.includes('pais') || haystack.includes('mestres') || haystack.includes('familia'))) {
+    aliases.push('reuniao de pais', 'reuniao de pais e mestres', 'reuniao com as familias');
+  }
+  if (haystack.includes('boletim') || haystack.includes('resultado')) aliases.push('entrega de boletim', 'resultado escolar', 'resultado bimestral');
+  if (haystack.includes('avaliacao') || haystack.includes('prova')) aliases.push('periodo de provas', 'datas de avaliacao', 'calendario de provas');
+  if (haystack.includes('recuperacao')) aliases.push('recuperacao', 'estudos de recuperacao', 'prova de recuperacao');
+  if (haystack.includes('matricula')) aliases.push('periodo de matricula', 'datas de matricula', 'cronograma de matricula');
+  if (haystack.includes('rematricula')) aliases.push('periodo de rematricula', 'datas de rematricula');
+  if (haystack.includes('feriado')) aliases.push('feriado escolar', 'dia sem aula', 'nao tem aula');
+
+  return [...new Set(aliases)];
+}
+
+function buildEnrollmentAliases(record = {}) {
+  const haystack = normalizeSearchText([
+    record.title,
+    record.summary,
+    JSON.stringify(record.content_payload || {})
+  ].filter(Boolean).join(' '));
+  const aliases = ['matricula escolar', 'matricula', 'inscricao escolar'];
+
+  if (haystack.includes('rematricula')) aliases.push('rematricula', 'renovacao de matricula');
+  if (haystack.includes('documento')) aliases.push('documentos para matricula', 'quais documentos precisa', 'documentacao exigida');
+  if (haystack.includes('vaga')) aliases.push('vagas', 'tem vaga', 'disponibilidade de vaga');
+  if (haystack.includes('transferencia')) aliases.push('transferencia escolar', 'pedido de transferencia');
+  if (haystack.includes('idade')) aliases.push('idade minima', 'idade para matricula', 'faixa etaria');
+  if (haystack.includes('resultado')) aliases.push('resultado da matricula', 'resultado da inscricao');
+  if (haystack.includes('cronograma') || haystack.includes('periodo') || haystack.includes('prazo')) aliases.push('datas da matricula', 'prazo de matricula', 'periodo de inscricao');
+  if (haystack.includes('lista') && haystack.includes('espera')) aliases.push('lista de espera');
+
+  return [...new Set(aliases)];
+}
+
+function buildFaqAliases(record = {}) {
+  const haystack = normalizeSearchText([
+    record.title,
+    record.summary,
+    JSON.stringify(record.content_payload || {})
+  ].filter(Boolean).join(' '));
+  const aliases = [];
+
+  if (haystack.includes('horario')) aliases.push('horario de aula', 'horario de funcionamento', 'hora de entrada', 'hora de saida');
+  if (haystack.includes('endereco') || haystack.includes('localizacao')) aliases.push('onde fica a escola', 'endereco da escola', 'localizacao da escola');
+  if (haystack.includes('telefone') || haystack.includes('contato') || haystack.includes('whatsapp')) aliases.push('telefone da escola', 'contato da escola', 'whatsapp da escola');
+  if (haystack.includes('email')) aliases.push('email da escola', 'e-mail da escola');
+  if (haystack.includes('secretaria')) aliases.push('atendimento da secretaria', 'horario da secretaria');
+  if (haystack.includes('uniforme')) aliases.push('uniforme escolar', 'uso de uniforme');
+  if (haystack.includes('transporte')) aliases.push('transporte escolar', 'rota escolar');
+  if (haystack.includes('merenda') || haystack.includes('alimentacao')) aliases.push('merenda escolar', 'alimentacao escolar');
+  if (haystack.includes('boletim')) aliases.push('boletim escolar', 'notas do aluno');
+  if (haystack.includes('historico')) aliases.push('historico escolar');
+  if (haystack.includes('declaracao')) aliases.push('declaracao escolar', 'comprovante de escolaridade');
+
+  return [...new Set(aliases)];
+}
+
+function buildNoticeAliases(record = {}) {
+  const haystack = normalizeSearchText([
+    record.title,
+    record.summary,
+    JSON.stringify(record.content_payload || {})
+  ].filter(Boolean).join(' '));
+  const aliases = ['aviso da escola', 'comunicado oficial'];
+
+  if (haystack.includes('reuniao')) aliases.push('reuniao', 'convocacao para reuniao');
+  if (haystack.includes('evento')) aliases.push('evento escolar', 'programacao da escola');
+  if (haystack.includes('suspensao')) aliases.push('suspensao de aula', 'aula suspensa');
+  if (haystack.includes('feriado')) aliases.push('feriado', 'nao tem aula');
+  if (haystack.includes('greve')) aliases.push('greve', 'paralisacao');
+  if (haystack.includes('resultado')) aliases.push('resultado oficial', 'publicacao de resultado');
+  if (haystack.includes('atualizacao')) aliases.push('atualizacao importante', 'novo comunicado');
+
+  return [...new Set(aliases)];
+}
+
+function buildOfficialRecordAliases(record = {}) {
+  const moduleKey = String(record.module_key || '').trim().toLowerCase();
+  if (moduleKey === 'calendar') return [];
+  if (moduleKey === 'enrollment') return buildEnrollmentAliases(record);
+  if (moduleKey === 'faq') return buildFaqAliases(record);
+  if (moduleKey === 'notices') return buildNoticeAliases(record);
+  return [];
+}
+
+function buildOfficialRecordAnswer(record = {}, aliases = []) {
+  const contentPayload = record.content_payload && typeof record.content_payload === 'object'
+    ? JSON.stringify(record.content_payload)
+    : '';
+
+  return [
+    record.title,
+    record.summary,
+    contentPayload,
+    aliases.length ? ('Termos equivalentes: ' + aliases.join('; ')) : ''
+  ].filter(Boolean).join(' | ');
+}
+
+async function resolveKnowledgeScopeSchoolIds(schoolId) {
+  const fallback = [String(schoolId || '').trim()].filter(Boolean);
+  if (!supabase || !fallback.length) return fallback;
+
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('id, parent_school_id, institution_type')
+      .eq('id', schoolId)
+      .maybeSingle();
+
+    if (error || !data) return fallback;
+
+    if (String(data.institution_type || '').trim() === 'school_unit' && data.parent_school_id) {
+      return [...new Set([String(data.id || '').trim(), String(data.parent_school_id || '').trim()].filter(Boolean))];
+    }
+
+    return fallback;
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+async function loadSchoolContext(schoolId) {
+  if (!supabase || !schoolId) return null;
+
+  const { data, error } = await supabase
+    .from('schools')
+    .select('id, name, slug, institution_type, parent_school_id')
+    .eq('id', schoolId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erro ao carregar contexto da escola:', error.message);
+    return null;
+  }
+
+  return data || null;
+}
+
+async function findPublishedCalendarContext(schoolId) {
+  if (!supabase || !schoolId) return null;
+
+  const requestedSchool = await loadSchoolContext(schoolId);
+  if (!requestedSchool?.id) return null;
+
+  const isSchoolUnit = String(requestedSchool.institution_type || '').trim() === 'school_unit';
+  const parentSchool = requestedSchool.parent_school_id
+    ? await loadSchoolContext(requestedSchool.parent_school_id)
+    : null;
+  const networkScopeSchool = isSchoolUnit && parentSchool?.id ? parentSchool : requestedSchool;
+  const schoolScopeSchool = requestedSchool;
+  const candidateIds = [...new Set([
+    networkScopeSchool?.id,
+    schoolScopeSchool?.id
+  ].filter(Boolean))];
+
+  const { data, error } = await supabase
+    .from('official_content_records')
+    .select('id, school_id, module_key, scope_key, title, summary, content_payload, status, source_document_id, source_version_id, updated_at')
+    .in('school_id', candidateIds)
+    .eq('module_key', 'calendar')
+    .eq('status', 'published');
+
+  if (error) {
+    console.error('Erro ao carregar calendario oficial publicado:', error.message);
+    return null;
+  }
+
+  const rows = data || [];
+  const networkRecord = rows.find((item) => item.school_id === networkScopeSchool?.id && item.scope_key === 'network')
+    || (isSchoolUnit ? rows.find((item) => item.school_id === schoolScopeSchool?.id && item.scope_key === 'network') : null)
+    || null;
+  const schoolRecord = isSchoolUnit
+    ? (rows.find((item) => item.school_id === schoolScopeSchool?.id && item.scope_key === 'school') || null)
+    : null;
+  const networkEntries = Array.isArray(networkRecord?.content_payload?.entries) ? networkRecord.content_payload.entries : [];
+  const schoolEntries = Array.isArray(schoolRecord?.content_payload?.entries) ? schoolRecord.content_payload.entries : [];
+  const mergedEntries = [...networkEntries, ...schoolEntries];
+
+  if (!mergedEntries.length) return null;
+
+  return {
+    requested_school: requestedSchool,
+    parent_school: parentSchool,
+    network_scope_school: networkScopeSchool,
+    school_scope_school: schoolScopeSchool,
+    is_school_unit: isSchoolUnit,
+    network_record: networkRecord,
+    school_record: schoolRecord,
+    network_entries: networkEntries,
+    school_entries: schoolEntries,
+    merged_entries: mergedEntries,
+    title: schoolRecord?.title || networkRecord?.title || 'Calendario Escolar',
+    summary: schoolRecord?.summary || networkRecord?.summary || '',
+    updated_at: schoolRecord?.updated_at || networkRecord?.updated_at || null
+  };
+}
+function buildOfficialContentRows(records = []) {
+  const rows = [];
+
+  records.forEach((record) => {
+    const moduleKey = String(record.module_key || '').trim().toLowerCase();
+    const categories = getOfficialContentCategories(moduleKey);
+    if (moduleKey === 'calendar') {
+      const entries = Array.isArray(record.content_payload?.entries) ? record.content_payload.entries : [];
+      entries.forEach((entry, index) => {
+        const aliases = buildCalendarAliases(entry);
+        const answerParts = [
+          record.title,
+          record.summary,
+          entry.title,
+          entry.start_date ? ('Data de inicio: ' + entry.start_date) : '',
+          entry.end_date && entry.end_date !== entry.start_date ? ('Data final: ' + entry.end_date) : '',
+          entry.event_type ? ('Tipo: ' + entry.event_type) : '',
+          entry.audience ? ('Publico: ' + entry.audience) : '',
+          entry.location ? ('Local: ' + entry.location) : '',
+          entry.shift ? ('Turno: ' + entry.shift) : '',
+          entry.required_action ? ('Acao requerida: ' + entry.required_action) : '',
+          entry.notes ? ('Observacoes: ' + entry.notes) : '',
+          entry.source_reference ? ('Fonte: ' + entry.source_reference) : '',
+          aliases.length ? ('Termos equivalentes: ' + aliases.join('; ')) : ''
+        ].filter(Boolean);
+
+        rows.push({
+          id: record.id + ':calendar:' + index,
+          category: categories[0],
+          question: [record.title, entry.title, entry.event_type, ...aliases].filter(Boolean).join(' | '),
+          answer: answerParts.join(' | '),
+          source_document_id: record.source_document_id || null,
+          source_title: record.title || 'Conteudo Oficial',
+          source_version_id: record.source_version_id || null,
+          source_version_label: record.status === 'published' ? 'publicado' : (record.status || null),
+          source_version_number: null,
+          keywords: extractSearchKeywords([record.title, record.summary, entry.title, entry.event_type, entry.audience, entry.location, entry.notes, entry.required_action, entry.source_reference, ...aliases].filter(Boolean).join(' ')),
+          retrieval_method: 'official_content'
+        });
+      });
+      return;
+    }
+
+    const contentPayload = record.content_payload && typeof record.content_payload === 'object'
+      ? JSON.stringify(record.content_payload)
+      : '';
+    rows.push({
+      id: record.id + ':' + moduleKey,
+      category: categories[0],
+      question: [record.title, record.summary].filter(Boolean).join(' | '),
+      answer: [record.title, record.summary, contentPayload].filter(Boolean).join(' | '),
+      source_document_id: record.source_document_id || null,
+      source_title: record.title || 'Conteudo Oficial',
+      source_version_id: record.source_version_id || null,
+      source_version_label: record.status === 'published' ? 'publicado' : (record.status || null),
+      source_version_number: null,
+      keywords: extractSearchKeywords([record.title, record.summary, contentPayload].filter(Boolean).join(' ')),
+      retrieval_method: 'official_content'
+    });
+  });
+
+  return rows;
+}
+
+async function loadOfficialContentKnowledgeRows(scopeSchoolIds = []) {
+  if (!supabase || !scopeSchoolIds.length) return [];
+
+  const { data, error } = await supabase
+    .from('official_content_records')
+    .select('id, school_id, module_key, scope_key, title, summary, content_payload, status, source_document_id, source_version_id, updated_at')
+    .in('school_id', scopeSchoolIds)
+    .eq('status', 'published');
+
+  if (error) {
+    console.error('Erro ao buscar conteudo oficial publicado:', error.message);
+    return [];
+  }
+
+  return buildOfficialContentRows(data || []);
+}
+
 async function findMatchingAnswers(userQuestion, school_id, options = {}) {
   if (!supabase) return [];
 
@@ -188,9 +495,6 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     ? options.categories.map((value) => String(value || "").trim()).filter(Boolean)
     : [];
 
-  //
-  // 1️⃣ BUSCA POR KEYWORDS — SUPER RÁPIDA E DIRETA
-  //
   const { data: keywordMatch, error: kwError } = await supabase
     .from("knowledge_base")
     .select("*")
@@ -200,7 +504,6 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     console.error("KW ERROR:", kwError.message);
   }
 
-  // Filtra no Node.js porque keywords é um array
   const kwResults =
     keywordMatch?.filter(item =>
       matchesKnowledgeCategory(item.category, allowedCategories) &&
@@ -208,7 +511,7 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
     ) || [];
 
   if (kwResults.length > 0) {
-    console.log("🔎 MATCH POR KEYWORDS ENCONTRADO!");
+    console.log("MATCH POR KEYWORDS ENCONTRADO");
     return kwResults.map(r => r.answer);
   }
 
@@ -222,47 +525,12 @@ async function findMatchingAnswers(userQuestion, school_id, options = {}) {
       }) || [];
 
     if (categoryTextResults.length > 0) {
-      console.log("🔎 MATCH POR TEXTO E CATEGORIA ENCONTRADO!");
+      console.log("MATCH POR TEXTO E CATEGORIA ENCONTRADO");
       return categoryTextResults.slice(0, 3).map((item) => item.answer);
     }
   }
 
-  //
-  // 2️⃣ SENÃO, USA EMBEDDINGS NORMALMENTE
-  //
-  if (!openai) return [];
-
-  try {
-    const embeddingResponse = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: userQuestion,
-    });
-
-    const query_embedding = embeddingResponse.data[0].embedding;
-
-    const { data: answers, error } = await supabase.rpc("match_knowledge", {
-      query_embedding,
-      match_threshold: 0.5,
-      match_count: 3,
-      p_school_id: school_id
-    });
-
-    if (error) {
-      console.error("❌ Erro em match_knowledge:", error.message);
-      return [];
-    }
-
-    const filteredAnswers = Array.isArray(answers)
-      ? answers.filter((item) => matchesKnowledgeCategory(item.category, allowedCategories))
-      : [];
-
-    const finalAnswers = allowedCategories.length ? filteredAnswers : (answers || []);
-    return finalAnswers.map(a => a.answer) || [];
-
-  } catch (err) {
-    console.error("❌ Erro no embedding:", err.message);
-    return [];
-  }
+  return [];
 }
 
 async function upsertLead(leadData) {
@@ -836,18 +1104,19 @@ async function logLeadBotEvent(leadId, eventType, eventDetails = null, schoolId 
 async function findMatchingEntries(userQuestion, schoolId, options = {}) {
   if (!supabase || !schoolId) return [];
 
-  const normalized = String(userQuestion || '').toLowerCase().trim();
+  const normalized = normalizeSearchText(userQuestion);
   const allowedCategories = Array.isArray(options.categories)
     ? options.categories.map((value) => String(value || '').trim()).filter(Boolean)
     : [];
   const limit = Number(options.limit || 3);
+  const scopeSchoolIds = await resolveKnowledgeScopeSchoolIds(schoolId);
 
   const { data, error } = await supabase
     .from('knowledge_base')
-    .select('id, category, question, answer, source_document_id, source_title, source_version_id, source_version_label, source_version_number, keywords')
-    .eq('school_id', schoolId)
+    .select('id, school_id, category, question, answer, source_document_id, source_title, source_version_id, source_version_label, source_version_number, keywords')
+    .in('school_id', scopeSchoolIds)
     .order('updated_at', { ascending: false })
-    .limit(200);
+    .limit(300);
 
   if (error) {
     console.error('Erro ao buscar base estruturada:', error.message);
@@ -855,9 +1124,7 @@ async function findMatchingEntries(userQuestion, schoolId, options = {}) {
   }
 
   const candidateMap = new Map();
-  const filteredRows = (data || []).filter((item) => {
-    return !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories);
-  });
+  const filteredRows = (data || []).filter((item) => !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories));
 
   filteredRows.forEach((item) => {
     const normalizedItem = normalizeMatchedKnowledgeRow(item, normalized);
@@ -866,39 +1133,16 @@ async function findMatchingEntries(userQuestion, schoolId, options = {}) {
     }
   });
 
-  if (openai) {
-    try {
-      const embeddingResponse = await openai.embeddings.create({
-        model: 'text-embedding-3-small',
-        input: userQuestion,
-      });
-
-      const query_embedding = embeddingResponse.data[0].embedding;
-      const { data: semanticMatches, error: semanticError } = await supabase.rpc('match_knowledge', {
-        query_embedding,
-        match_threshold: 0.45,
-        match_count: Math.max(limit * 2, 6),
-        p_school_id: schoolId
-      });
-
-      if (semanticError) {
-        console.warn('Falha ao consultar match_knowledge, mantendo busca textual:', semanticError.message);
-      } else {
-        (semanticMatches || [])
-          .filter((item) => !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories))
-          .forEach((item) => {
-            const normalizedItem = normalizeMatchedKnowledgeRow({
-              ...item,
-              retrieval_method: 'semantic'
-            }, normalized);
-            const current = candidateMap.get(normalizedItem.id);
-            candidateMap.set(normalizedItem.id, current ? mergeEntryEvidence(current, normalizedItem) : normalizedItem);
-          });
+  const officialContentRows = await loadOfficialContentKnowledgeRows(scopeSchoolIds);
+  officialContentRows
+    .filter((item) => !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories))
+    .forEach((item) => {
+      const normalizedItem = normalizeMatchedKnowledgeRow(item, normalized);
+      if (normalizedItem.keyword_score > 0 || normalizedItem.text_score > 0.16) {
+        const current = candidateMap.get(normalizedItem.id);
+        candidateMap.set(normalizedItem.id, current ? mergeEntryEvidence(current, normalizedItem) : normalizedItem);
       }
-    } catch (embeddingError) {
-      console.warn('Falha ao gerar embedding para busca hibrida:', embeddingError.message || embeddingError);
-    }
-  }
+    });
 
   return [...candidateMap.values()]
     .sort((a, b) => {
@@ -1112,20 +1356,30 @@ async function recordConsultationEvent(payload = {}) {
 }
 
 async function closeConsultationEvent(payload = {}) {
-  if (!supabase || !payload.school_id || !payload.requester_id) return null;
+  if (!supabase || !payload.school_id || (!payload.requester_id && !payload.consultation_id)) return null;
 
   try {
-    const { data: consultation } = await supabase
+    let consultationQuery = supabase
       .from('institutional_consultations')
       .select('id, metadata')
       .eq('school_id', payload.school_id)
-      .eq('channel', payload.channel || 'chat')
-      .eq('requester_id', payload.requester_id)
-      .in('status', ['OPEN', 'IN_PROGRESS'])
-      .order('opened_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq('channel', payload.channel || 'chat');
 
+    if (payload.consultation_id) {
+      consultationQuery = consultationQuery
+        .eq('id', payload.consultation_id)
+        .limit(1)
+        .maybeSingle();
+    } else {
+      consultationQuery = consultationQuery
+        .eq('requester_id', payload.requester_id)
+        .in('status', ['OPEN', 'IN_PROGRESS'])
+        .order('opened_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    }
+
+    const { data: consultation } = await consultationQuery;
     if (!consultation?.id) return null;
 
     if (payload.final_text) {
@@ -1184,6 +1438,7 @@ module.exports = {
   loadSchoolConfig,
   findMatchingAnswers,
   findMatchingEntries,
+  findPublishedCalendarContext,
   upsertLead,
   upsertParentWithChildren,
   getSchoolIdByBotNumber,
@@ -1192,6 +1447,11 @@ module.exports = {
   recordConsultationEvent,
   closeConsultationEvent
 };
+
+
+
+
+
 
 
 

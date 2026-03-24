@@ -1,584 +1,9 @@
 [
   [
-    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b2d03409-593d-4819-bc76-b244c266319d",
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:bafaf170-dc93-48eb-8e5c-eac1297b1066",
     {
-      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b2d03409-593d-4819-bc76-b244c266319d",
-      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b2d03409-593d-4819-bc76-b244c266319d",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_name": "Lab IA Educacao",
-        "entrypoint": "main_interno",
-        "agent_key": "administration.secretariat",
-        "agent_title": "Secretaria",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-17T13:44:37.000Z",
-      "updated_at": "2026-03-17T13:45:05.625Z",
-      "transcript": [
-        {
-          "id": "8b2d6ef3-2843-47a5-8997-b8134eca7505",
-          "role": "user",
-          "source": "webchat",
-          "text": "olá, tudo bem?",
-          "created_at": "2026-03-17T13:44:37.003Z"
-        },
-        {
-          "id": "02652ba2-ecdf-45c7-8762-086c9590ce2d",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Olá! Tudo bem, e você? Como posso ajudá-lo hoje?",
-          "created_at": "2026-03-17T13:44:40.183Z"
-        },
-        {
-          "id": "0a797dfc-4d7b-4842-9afa-d3ec61d2f835",
-          "role": "user",
-          "source": "webchat",
-          "text": "quero saber informações",
-          "created_at": "2026-03-17T13:45:03.068Z"
-        },
-        {
-          "id": "0933fb05-67d0-4db2-88b7-82806b695346",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Claro! Que tipo de informações você gostaria de saber? Estou aqui para ajudar com questões relacionadas a protocolos, documentos, orientações cadastrais, requerimentos e atendimento administrativo institucional.",
-          "created_at": "2026-03-17T13:45:05.624Z"
-        }
-      ],
-      "last_message": "Claro! Que tipo de informações você gostaria de saber? Estou aqui para ajudar com questões relacionadas a protocolos, documentos, orientações cadastrais, requerimentos e atendimento administrativo institucional."
-    }
-  ],
-  [
-    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:6aae69fc-f506-4ac1-99bb-8d0063ffb03b",
-    {
-      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:6aae69fc-f506-4ac1-99bb-8d0063ffb03b",
-      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:6aae69fc-f506-4ac1-99bb-8d0063ffb03b",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_name": "Lab IA Educacao",
-        "entrypoint": "main_interno",
-        "agent_key": "public.assistant",
-        "agent_title": "Assistente Publico"
-      },
-      "summary": "",
-      "created_at": "2026-03-17T13:46:43.621Z",
-      "updated_at": "2026-03-17T13:46:47.508Z",
-      "transcript": [
-        {
-          "id": "d353f042-7747-4d11-8876-52aceec8bc25",
-          "role": "user",
-          "source": "webchat",
-          "text": "o que é esse atendimento?",
-          "created_at": "2026-03-17T13:46:43.623Z"
-        },
-        {
-          "id": "01b0279c-60c8-4b2d-9294-cc5a94a91ddd",
-          "role": "assistant",
-          "source": "public.assistant",
-          "text": "O atendimento da Secretaria tem como foco a orientação administrativa institucional, que inclui a gestão de protocolos, documentos, orientações cadastrais e requerimentos. O objetivo é oferecer suporte aos usuários em relação a questões administrativas, garantindo que recebam informações claras e precisas sobre os serviços disponíveis e como acessá-los.\n\nSe você tiver alguma dúvida específica ou precisar de informações adicionais, sinta-se à vontade para perguntar!",
-          "created_at": "2026-03-17T13:46:47.508Z"
-        }
-      ],
-      "last_message": "O atendimento da Secretaria tem como foco a orientação administrativa institucional, que inclui a gestão de protocolos, documentos, orientações cadastrais e requerimentos. O objetivo é oferecer suporte aos usuários em relação a questões administrativas, garantindo que recebam informações claras e precisas sobre os serviços disponíveis e como acessá-los.\n\nSe você tiver alguma dúvida específica ou precisar de informações adicionais, sinta-se à vontade para perguntar!"
-    }
-  ],
-  [
-    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b1733639-e2f9-4e8a-af62-d109f820c150",
-    {
-      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b1733639-e2f9-4e8a-af62-d109f820c150",
-      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:b1733639-e2f9-4e8a-af62-d109f820c150",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_name": "Lab IA Educacao",
-        "entrypoint": "main_interno",
-        "agent_key": "administration.secretariat",
-        "agent_title": "Secretaria",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-17T13:58:56.498Z",
-      "updated_at": "2026-03-17T14:04:13.895Z",
-      "transcript": [
-        {
-          "id": "2a524a0b-d4da-4a52-bf01-1204ac65ff3a",
-          "role": "user",
-          "source": "webchat",
-          "text": "olçá",
-          "created_at": "2026-03-17T13:58:56.501Z"
-        },
-        {
-          "id": "1d462061-2283-4041-b53b-189381e70672",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Olá! Como posso ajudar você hoje?",
-          "created_at": "2026-03-17T13:58:58.660Z"
-        },
-        {
-          "id": "32ae31c5-15da-420c-9914-51c0784f580c",
-          "role": "user",
-          "source": "webchat",
-          "text": "tem dinheiro aí?",
-          "created_at": "2026-03-17T14:02:48.618Z"
-        },
-        {
-          "id": "73edba2e-71d9-4cc9-a86e-0abb682e1974",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Para questões relacionadas a finanças ou questões de tesouraria, recomendo que você entre em contato diretamente com a Tesouraria. Eles poderão fornecer informações precisas sobre a disponibilidade de recursos financeiros.",
-          "created_at": "2026-03-17T14:02:51.608Z"
-        },
-        {
-          "id": "a62aeca9-d726-4140-ad70-ff399496c73e",
-          "role": "user",
-          "source": "webchat",
-          "text": "quero saber a data de matricula pro terceiro ano",
-          "created_at": "2026-03-17T14:04:10.215Z"
-        },
-        {
-          "id": "cd58812e-5875-4f2d-ba63-cc821c754112",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Infelizmente, não tenho acesso a informações específicas sobre datas de matrícula. É importante consultar diretamente a instituição de ensino ou a secretaria responsável para obter essa informação. Se precisar de outros esclarecimentos administrativos, estou à disposição para ajudar!",
-          "created_at": "2026-03-17T14:04:13.895Z"
-        }
-      ],
-      "last_message": "Infelizmente, não tenho acesso a informações específicas sobre datas de matrícula. É importante consultar diretamente a instituição de ensino ou a secretaria responsável para obter essa informação. Se precisar de outros esclarecimentos administrativos, estou à disposição para ajudar!"
-    }
-  ],
-  [
-    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:ac2d4369-1588-49f4-a142-346e6433e6e8",
-    {
-      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:ac2d4369-1588-49f4-a142-346e6433e6e8",
-      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:ac2d4369-1588-49f4-a142-346e6433e6e8",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_name": "Lab IA Educacao",
-        "entrypoint": "main_interno",
-        "agent_key": "administration.secretariat",
-        "agent_title": "Secretaria",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T02:23:46.974Z",
-      "updated_at": "2026-03-18T02:24:54.388Z",
-      "transcript": [
-        {
-          "id": "38aa2634-d3f8-4431-a36c-00f03d2ec05d",
-          "role": "user",
-          "source": "webchat",
-          "text": "olá! tudo bem",
-          "created_at": "2026-03-18T02:23:46.977Z"
-        },
-        {
-          "id": "2cc2c674-fd46-41fd-8638-f4420f405d74",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Olá! Tudo bem, e você? Como posso ajudar hoje?",
-          "created_at": "2026-03-18T02:23:48.988Z"
-        },
-        {
-          "id": "13924aed-3243-49fa-b605-9c4b0eb24fde",
-          "role": "user",
-          "source": "webchat",
-          "text": "você pode me ajudar com Tesouraria?",
-          "created_at": "2026-03-18T02:24:52.589Z"
-        },
-        {
-          "id": "9dfad3b3-21aa-40e7-8341-dbe18e8cdf6f",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Desculpe, mas não posso ajudar com assuntos da Tesouraria. Recomendo que você entre em contato diretamente com a equipe de Tesouraria para obter as informações necessárias. Estou à disposição para ajudar com questões administrativas ou da Secretaria.",
-          "created_at": "2026-03-18T02:24:54.388Z"
-        }
-      ],
-      "last_message": "Desculpe, mas não posso ajudar com assuntos da Tesouraria. Recomendo que você entre em contato diretamente com a equipe de Tesouraria para obter as informações necessárias. Estou à disposição para ajudar com questões administrativas ou da Secretaria."
-    }
-  ],
-  [
-    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:7691aa46-03c3-46f6-9439-4573b4557994",
-    {
-      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:7691aa46-03c3-46f6-9439-4573b4557994",
-      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:main_interno:7691aa46-03c3-46f6-9439-4573b4557994",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_name": "Lab IA Educacao",
-        "entrypoint": "main_interno",
-        "agent_key": "administration.secretariat",
-        "agent_title": "Secretaria",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T02:35:45.826Z",
-      "updated_at": "2026-03-18T02:36:26.979Z",
-      "transcript": [
-        {
-          "id": "361eba54-5591-4d64-acf4-fd0870180d17",
-          "role": "user",
-          "source": "webchat",
-          "text": "alow maneca! tudo certo com a caneca?",
-          "created_at": "2026-03-18T02:35:45.830Z"
-        },
-        {
-          "id": "5eca0804-20ee-4f68-baa0-3766d558605e",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Olá! Aqui é a Assistente da Secretaria. Estou à disposição para ajudar com orientações administrativas, protocolos, documentos e atendimentos relacionados à secretaria. Se precisar de algo específico, por favor, me avise!",
-          "created_at": "2026-03-18T02:35:48.451Z"
-        },
-        {
-          "id": "6e1a79f9-bf35-4241-a258-587a0ec9b350",
-          "role": "user",
-          "source": "webchat",
-          "text": "e com a tesouraria?",
-          "created_at": "2026-03-18T02:36:24.673Z"
-        },
-        {
-          "id": "04db86ce-f7ae-4052-a0ea-9df794f81483",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Para questões específicas sobre tesouraria, recomendo que você entre em contato diretamente com a equipe responsável nessa área. Estou aqui para ajudar apenas com assuntos administrativos e relacionados à secretaria. Se precisar de assistência com protocolos, documentos ou orientações cadastrais, estarei à disposição!",
-          "created_at": "2026-03-18T02:36:26.979Z"
-        }
-      ],
-      "last_message": "Para questões específicas sobre tesouraria, recomendo que você entre em contato diretamente com a equipe responsável nessa área. Estou aqui para ajudar apenas com assuntos administrativos e relacionados à secretaria. Se precisar de assistência com protocolos, documentos ou orientações cadastrais, estarei à disposição!"
-    }
-  ],
-  [
-    "qa-fonte-forte-1773842873890",
-    {
-      "id": "qa-fonte-forte-1773842873890",
-      "user_id": "qa-fonte-forte-1773842873890",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:07:53.890Z",
-      "updated_at": "2026-03-18T14:07:54.144Z",
-      "transcript": [
-        {
-          "id": "528d42a1-be64-404c-9970-8718afb0ed3b",
-          "role": "user",
-          "source": "webchat",
-          "text": "Quais documentos sao necessarios para solicitar uma declaracao na secretaria?",
-          "created_at": "2026-03-18T14:07:53.893Z"
-        },
-        {
-          "id": "4be8e22f-b31b-403f-a116-cc086bbd5190",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
-          "created_at": "2026-03-18T14:07:54.143Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
-    }
-  ],
-  [
-    "qa-fonte-parcial-1773842874160",
-    {
-      "id": "qa-fonte-parcial-1773842874160",
-      "user_id": "qa-fonte-parcial-1773842874160",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:07:54.160Z",
-      "updated_at": "2026-03-18T14:07:54.169Z",
-      "transcript": [
-        {
-          "id": "26e060a8-1bdd-4840-877a-742e9ae6d7ed",
-          "role": "user",
-          "source": "webchat",
-          "text": "Existe algum prazo para resposta de protocolo interno da escola?",
-          "created_at": "2026-03-18T14:07:54.161Z"
-        },
-        {
-          "id": "49e90550-666d-457d-99a7-5d6c8f878773",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
-          "created_at": "2026-03-18T14:07:54.169Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
-    }
-  ],
-  [
-    "qa-sem-base-1773842874178",
-    {
-      "id": "qa-sem-base-1773842874178",
-      "user_id": "qa-sem-base-1773842874178",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:07:54.180Z",
-      "updated_at": "2026-03-18T14:07:54.194Z",
-      "transcript": [
-        {
-          "id": "e7552382-9b3e-4334-a4a6-69a6773a2d11",
-          "role": "user",
-          "source": "webchat",
-          "text": "A escola oferece intercambio internacional com bolsa integral em 2027?",
-          "created_at": "2026-03-18T14:07:54.185Z"
-        },
-        {
-          "id": "825fcf8f-5e84-4c0b-93e0-28a69920e088",
-          "role": "assistant",
-          "source": "public.assistant",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
-          "created_at": "2026-03-18T14:07:54.194Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
-    }
-  ],
-  [
-    "qa-fonte-forte-1773842889260",
-    {
-      "id": "qa-fonte-forte-1773842889260",
-      "user_id": "qa-fonte-forte-1773842889260",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:08:09.260Z",
-      "updated_at": "2026-03-18T14:08:11.877Z",
-      "transcript": [
-        {
-          "id": "94757b87-d303-4652-9f38-bf6fc5867a9a",
-          "role": "user",
-          "source": "webchat",
-          "text": "Quais documentos sao necessarios para solicitar uma declaracao na secretaria?",
-          "created_at": "2026-03-18T14:08:09.263Z"
-        },
-        {
-          "id": "77e276b0-a225-42ee-bfae-f3d5ee698f5e",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
-          "created_at": "2026-03-18T14:08:11.877Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
-    }
-  ],
-  [
-    "qa-fonte-parcial-1773842892582",
-    {
-      "id": "qa-fonte-parcial-1773842892582",
-      "user_id": "qa-fonte-parcial-1773842892582",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa",
-        "routed_agent": "administration.secretariat"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:08:12.582Z",
-      "updated_at": "2026-03-18T14:08:13.353Z",
-      "transcript": [
-        {
-          "id": "20d75a26-c0e3-409d-b0f5-c1fc7a527652",
-          "role": "user",
-          "source": "webchat",
-          "text": "Existe algum prazo para resposta de protocolo interno da escola?",
-          "created_at": "2026-03-18T14:08:12.587Z"
-        },
-        {
-          "id": "7e583df3-4450-4b71-9870-e8440db05f84",
-          "role": "assistant",
-          "source": "administration.secretariat",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.",
-          "created_at": "2026-03-18T14:08:13.350Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area Secretaria. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario."
-    }
-  ],
-  [
-    "qa-sem-base-1773842893761",
-    {
-      "id": "qa-sem-base-1773842893761",
-      "user_id": "qa-sem-base-1773842893761",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:08:13.761Z",
-      "updated_at": "2026-03-18T14:08:14.294Z",
-      "transcript": [
-        {
-          "id": "564da477-3b71-475e-ab4d-d588feeefe34",
-          "role": "user",
-          "source": "webchat",
-          "text": "A escola oferece intercambio internacional com bolsa integral em 2027?",
-          "created_at": "2026-03-18T14:08:13.767Z"
-        },
-        {
-          "id": "9761cdea-b077-4001-9d7e-2c3c984d6f9c",
-          "role": "assistant",
-          "source": "public.assistant",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
-          "created_at": "2026-03-18T14:08:14.294Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
-    }
-  ],
-  [
-    "qa-segura-1773845183446-694",
-    {
-      "id": "qa-segura-1773845183446-694",
-      "user_id": "qa-segura-1773845183446-694",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa",
-        "routed_agent": "administration.direction"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:46:23.448Z",
-      "updated_at": "2026-03-18T14:46:27.724Z",
-      "transcript": [
-        {
-          "id": "3b03a815-7766-458d-9b5a-ae80ee0fafdf",
-          "role": "user",
-          "source": "webchat",
-          "text": "O que acontece quando a IA nao encontra base institucional suficiente?",
-          "created_at": "2026-03-18T14:46:23.454Z"
-        },
-        {
-          "id": "75269beb-1bde-4070-b074-a6e32e639c8b",
-          "role": "assistant",
-          "source": "administration.direction",
-          "text": "Quando a IA não encontra base institucional suficiente, ela deve se abster de responder ao mérito da questão, informando sobre essa limitação com clareza e sinalizando que o caso necessita de revisão humana ou curadoria da base. \n\nEssa diretriz está sustentada pela fonte: FAQ Institucional 2026 | Versão: seed-v1.",
-          "created_at": "2026-03-18T14:46:27.723Z"
-        }
-      ],
-      "last_message": "Quando a IA não encontra base institucional suficiente, ela deve se abster de responder ao mérito da questão, informando sobre essa limitação com clareza e sinalizando que o caso necessita de revisão humana ou curadoria da base. \n\nEssa diretriz está sustentada pela fonte: FAQ Institucional 2026 | Versão: seed-v1."
-    }
-  ],
-  [
-    "qa-ressalva-1773845188252-101",
-    {
-      "id": "qa-ressalva-1773845188252-101",
-      "user_id": "qa-ressalva-1773845188252-101",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa",
-        "routed_agent": "public.assistant"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:46:28.252Z",
-      "updated_at": "2026-03-18T14:46:32.691Z",
-      "transcript": [
-        {
-          "id": "4cca7324-cb88-4f3c-9446-95d26cfae63e",
-          "role": "user",
-          "source": "webchat",
-          "text": "Como a governanca registra a trilha das respostas da IA?",
-          "created_at": "2026-03-18T14:46:28.255Z"
-        },
-        {
-          "id": "a38b4f5b-6b80-466f-8e67-71fd54505ebd",
-          "role": "assistant",
-          "source": "public.assistant",
-          "text": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. O registro da trilha das respostas da IA é realizado conforme diretrizes que garantem uma auditoria adequada. De acordo com a fonte consultada, cada resposta automática deve registrar uma trilha auditável que inclui a pergunta original, a resposta entregue, as fontes consultadas, a versão da fonte, o nível de risco e a necessidade de revisão, quando aplicável (Fonte: FAQ Institucional 2026 | Versão: seed-v1 | Evidência: 0.77). \n\nSe precisar de mais informações ou orientações, estou à disposição!",
-          "created_at": "2026-03-18T14:46:32.690Z"
-        }
-      ],
-      "last_message": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. O registro da trilha das respostas da IA é realizado conforme diretrizes que garantem uma auditoria adequada. De acordo com a fonte consultada, cada resposta automática deve registrar uma trilha auditável que inclui a pergunta original, a resposta entregue, as fontes consultadas, a versão da fonte, o nível de risco e a necessidade de revisão, quando aplicável (Fonte: FAQ Institucional 2026 | Versão: seed-v1 | Evidência: 0.77). \n\nSe precisar de mais informações ou orientações, estou à disposição!"
-    }
-  ],
-  [
-    "qa-abstencao-1773845193226-912",
-    {
-      "id": "qa-abstencao-1773845193226-912",
-      "user_id": "qa-abstencao-1773845193226-912",
-      "channel": "webchat",
-      "status": "AI_ACTIVE",
-      "ai_enabled": true,
-      "metadata": {
-        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
-        "entrypoint": "test_hallucination",
-        "profile": "qa"
-      },
-      "summary": "",
-      "created_at": "2026-03-18T14:46:33.226Z",
-      "updated_at": "2026-03-18T14:46:33.698Z",
-      "transcript": [
-        {
-          "id": "66eed55f-4864-4b81-b030-230721a99ba2",
-          "role": "user",
-          "source": "webchat",
-          "text": "A instituicao oferece intercambio internacional com bolsa integral em 2027?",
-          "created_at": "2026-03-18T14:46:33.228Z"
-        },
-        {
-          "id": "24718e4b-e891-4899-aed7-966b86ab24db",
-          "role": "assistant",
-          "source": "public.assistant",
-          "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
-          "created_at": "2026-03-18T14:46:33.698Z"
-        }
-      ],
-      "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
-    }
-  ],
-  [
-    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:131225c4-fcf0-4fb4-ade9-7b7f38e73af1",
-    {
-      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:131225c4-fcf0-4fb4-ade9-7b7f38e73af1",
-      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:131225c4-fcf0-4fb4-ade9-7b7f38e73af1",
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:bafaf170-dc93-48eb-8e5c-eac1297b1066",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:bafaf170-dc93-48eb-8e5c-eac1297b1066",
       "channel": "webchat",
       "status": "AI_ACTIVE",
       "ai_enabled": true,
@@ -593,25 +18,693 @@
         "agent_title": "Auto-roteamento"
       },
       "summary": "",
-      "created_at": "2026-03-22T03:12:37.435Z",
-      "updated_at": "2026-03-22T03:12:39.133Z",
+      "created_at": "2026-03-23T17:56:36.957Z",
+      "updated_at": "2026-03-23T17:56:39.765Z",
       "transcript": [
         {
-          "id": "46aa0e2a-2833-4aaa-af5a-650e31b8aa96",
+          "id": "64a42dfb-2de1-4010-8270-fc7ad6501d61",
+          "role": "user",
+          "source": "webchat",
+          "text": "boa tarde, gostaria de saber quando vai ter a reunião de pais e mestres",
+          "created_at": "2026-03-23T17:56:36.960Z"
+        },
+        {
+          "id": "0365a009-0473-4e4a-85a9-93966fb83ac0",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. Desculpe, estamos enfrentando instabilidade tecnica no momento.",
+          "created_at": "2026-03-23T17:56:39.765Z"
+        }
+      ],
+      "last_message": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. Desculpe, estamos enfrentando instabilidade tecnica no momento."
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:573b3d2d-45a2-4bfd-a86c-99e14f725ad2",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:573b3d2d-45a2-4bfd-a86c-99e14f725ad2",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:573b3d2d-45a2-4bfd-a86c-99e14f725ad2",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola Piloto",
+        "school_id": "",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T18:01:08.257Z",
+      "updated_at": "2026-03-23T18:01:10.047Z",
+      "transcript": [
+        {
+          "id": "a8fe599c-bc9e-4cb4-90a0-7d82b7abaee7",
           "role": "user",
           "source": "webchat",
           "text": "olá",
-          "created_at": "2026-03-22T03:12:37.438Z"
+          "created_at": "2026-03-23T18:01:08.260Z"
         },
         {
-          "id": "9d9eac46-5200-4b3c-9301-0885cc6d4b9f",
+          "id": "24efce1e-901c-401b-8da4-284f4d662ca4",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Calendario da Rede/Secretaria | Calendario-base oficial publicado pela secretaria ou rede. | Recesso Escolar | Data de inicio: 01/04/2026 | Tipo: Recesso | Publico: Toda comunidade | Local: - | Turno: Integral | Acao requerida: - | Observacoes: Sem atividades letivas | Fonte: Calendário Escolar 2026 | Termos equivalentes: recesso escolar Fonte utilizada: Calendario da Rede/Secretaria (publicado).",
+          "created_at": "2026-03-23T18:01:10.047Z"
+        }
+      ],
+      "last_message": "Calendario da Rede/Secretaria | Calendario-base oficial publicado pela secretaria ou rede. | Recesso Escolar | Data de inicio: 01/04/2026 | Tipo: Recesso | Publico: Toda comunidade | Local: - | Turno: Integral | Acao requerida: - | Observacoes: Sem atividades letivas | Fonte: Calendário Escolar 2026 | Termos equivalentes: recesso escolar Fonte utilizada: Calendario da Rede/Secretaria (publicado)."
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:8f13ec67-b3b5-4c75-aaf1-65398470e72a",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:8f13ec67-b3b5-4c75-aaf1-65398470e72a",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:8f13ec67-b3b5-4c75-aaf1-65398470e72a",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola Piloto",
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T20:32:04.267Z",
+      "updated_at": "2026-03-23T20:32:04.676Z",
+      "transcript": [
+        {
+          "id": "b3e6088e-a0b7-4b27-9d8f-c20d6d32a415",
+          "role": "user",
+          "source": "webchat",
+          "text": "olás",
+          "created_at": "2026-03-23T20:32:04.270Z"
+        },
+        {
+          "id": "6b370136-4c6a-4cea-93a3-aa10d10e14fa",
           "role": "assistant",
           "source": "public.assistant",
           "text": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento.",
-          "created_at": "2026-03-22T03:12:39.133Z"
+          "created_at": "2026-03-23T20:32:04.676Z"
         }
       ],
       "last_message": "Nao encontrei base institucional suficiente e versionada para responder com seguranca a essa consulta. Para preservar a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e, se necessario, atualizacao da base de conhecimento."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:cd9b5594-84a2-4254-917c-adab19b085c2",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:cd9b5594-84a2-4254-917c-adab19b085c2",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:cd9b5594-84a2-4254-917c-adab19b085c2",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola A - Sandbox",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T20:38:56.208Z",
+      "updated_at": "2026-03-23T20:39:27.296Z",
+      "transcript": [
+        {
+          "id": "d8471ba7-c142-490d-8a01-44b899698ece",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá",
+          "created_at": "2026-03-23T20:38:56.211Z"
+        },
+        {
+          "id": "165dd7be-27da-40cf-8b16-bd624d2f91f4",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-23T20:38:56.215Z"
+        },
+        {
+          "id": "3485d926-b6bf-4d56-ba39-e4481c8a6483",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber a data de reunião de pais e mestres",
+          "created_at": "2026-03-23T20:39:26.972Z"
+        },
+        {
+          "id": "ff3c8e19-10cf-4e68-aaf0-e5bae35a126d",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. Assistente temporariamente indisponivel: a configuracao Groq nao esta pronta neste ambiente.",
+          "created_at": "2026-03-23T20:39:27.296Z"
+        }
+      ],
+      "last_message": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. Assistente temporariamente indisponivel: a configuracao Groq nao esta pronta neste ambiente."
+    }
+  ],
+  [
+    "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:1b0946a9-283e-47f0-adb9-9ebabe550e7d",
+    {
+      "id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:1b0946a9-283e-47f0-adb9-9ebabe550e7d",
+      "user_id": "webchat:314c2676-73b8-47e6-8582-29cadfaa3863:simulador_piloto:1b0946a9-283e-47f0-adb9-9ebabe550e7d",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola Piloto",
+        "school_id": "314c2676-73b8-47e6-8582-29cadfaa3863",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T20:46:44.634Z",
+      "updated_at": "2026-03-23T20:49:22.493Z",
+      "transcript": [
+        {
+          "id": "16d7d008-8f6d-4e36-98fd-d1b72b9382df",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá, tudo bem?",
+          "created_at": "2026-03-23T20:46:44.637Z"
+        },
+        {
+          "id": "5b83c5f2-c3b7-419c-870a-329408ef7f24",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-23T20:46:44.641Z"
+        },
+        {
+          "id": "4edde1c1-f5c6-455d-ac82-7b1e2dc7ccf9",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber a data de reunião de pais e mestres",
+          "created_at": "2026-03-23T20:47:05.110Z"
+        },
+        {
+          "id": "aa37458d-18d6-40c6-8ec6-c785a4aba4b3",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. De acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.66, as datas de reunião de pais e mestres são:\n\n- 26/03/2026, no turno noturno;\n- 28/03/2026, no turno matutino;\n- 08/06/2026, no turno noturno.\n\nFonte: Calendário Escolar 2026.",
+          "created_at": "2026-03-23T20:47:06.241Z"
+        },
+        {
+          "id": "2a92544b-fb63-470b-86ad-d995f8294016",
+          "role": "user",
+          "source": "webchat",
+          "text": "obrigado",
+          "created_at": "2026-03-23T20:48:19.662Z"
+        },
+        {
+          "id": "a6f5a82a-a83b-42d4-aeab-321e2b193498",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-23T20:48:19.887Z"
+        },
+        {
+          "id": "31f7c25a-d1ce-4992-aa6a-88531cd2dc56",
+          "role": "user",
+          "source": "webchat",
+          "text": "e onde vai ser a reunião de pais e mestres?",
+          "created_at": "2026-03-23T20:48:56.700Z"
+        },
+        {
+          "id": "01c86ee6-921c-4ab3-b7a6-8a345ee4d166",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-23T20:48:56.942Z"
+        },
+        {
+          "id": "1f81aa28-d633-4e22-b38e-729a405effb6",
+          "role": "user",
+          "source": "webchat",
+          "text": "e o inicio das aulas?",
+          "created_at": "2026-03-23T20:49:21.567Z"
+        },
+        {
+          "id": "0495b569-fc24-4569-b062-62b6abcae333",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. De acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.66, o início das aulas está previsto para 02/02/2026. Essa informação consta no Calendário Escolar 2026, que é a fonte oficial para esse tipo de informação.",
+          "created_at": "2026-03-23T20:49:22.491Z"
+        }
+      ],
+      "last_message": "Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado. De acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.66, o início das aulas está previsto para 02/02/2026. Essa informação consta no Calendário Escolar 2026, que é a fonte oficial para esse tipo de informação."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:583eefb5-7c21-45b1-b93b-8f80d71826ff",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:583eefb5-7c21-45b1-b93b-8f80d71826ff",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:583eefb5-7c21-45b1-b93b-8f80d71826ff",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola A - Sandbox",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T21:10:33.328Z",
+      "updated_at": "2026-03-23T21:11:10.871Z",
+      "transcript": [
+        {
+          "id": "1d056552-98f6-4c69-91c5-6b41bddc2063",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá",
+          "created_at": "2026-03-23T21:10:33.331Z"
+        },
+        {
+          "id": "0060a982-9b69-423a-8663-06a6ab148cce",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-23T21:10:33.334Z"
+        },
+        {
+          "id": "55cc3f78-efdf-44cb-8f5b-823e38f37399",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber a data das primeiras ferias. quando será?",
+          "created_at": "2026-03-23T21:11:00.735Z"
+        },
+        {
+          "id": "3fe7662d-340b-4d5b-be46-6d5a1f5a2f5f",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-23T21:11:00.937Z"
+        },
+        {
+          "id": "bfbe19d9-9f46-4b27-a441-3cf35d4c5ccc",
+          "role": "user",
+          "source": "webchat",
+          "text": "férias",
+          "created_at": "2026-03-23T21:11:09.884Z"
+        },
+        {
+          "id": "f4045021-dc76-4eb7-a90d-f9d0c2b569d3",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "As férias escolares estão programadas para começar em 18/07/2026, de acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.80. É importante verificar o calendário oficial para obter informações atualizadas e precisas. Se você tiver alguma dúvida ou precisar de mais informações, por favor, não hesite em perguntar.",
+          "created_at": "2026-03-23T21:11:10.871Z"
+        }
+      ],
+      "last_message": "As férias escolares estão programadas para começar em 18/07/2026, de acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.80. É importante verificar o calendário oficial para obter informações atualizadas e precisas. Se você tiver alguma dúvida ou precisar de mais informações, por favor, não hesite em perguntar."
+    }
+  ],
+  [
+    "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:c6ec7fc0-2caa-47ec-b74b-b18aa8cb85b3",
+    {
+      "id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:c6ec7fc0-2caa-47ec-b74b-b18aa8cb85b3",
+      "user_id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:c6ec7fc0-2caa-47ec-b74b-b18aa8cb85b3",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola B - Sandbox",
+        "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T21:11:48.118Z",
+      "updated_at": "2026-03-23T21:12:09.142Z",
+      "transcript": [
+        {
+          "id": "eebdb145-bb73-43f7-9c72-f0e3a2eb72d0",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá",
+          "created_at": "2026-03-23T21:11:48.120Z"
+        },
+        {
+          "id": "438b79ec-1559-44f6-8ee6-52e67d90ed03",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-23T21:11:48.122Z"
+        },
+        {
+          "id": "a3c7c80d-553b-4a98-8216-35d5d02c700c",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber data das férias",
+          "created_at": "2026-03-23T21:12:02.240Z"
+        },
+        {
+          "id": "83b53722-57fa-4e17-8f4a-c0479a44c5c3",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-23T21:12:02.417Z"
+        },
+        {
+          "id": "f36f1ce5-3b5e-43ed-b33e-eca6b527fce8",
+          "role": "user",
+          "source": "webchat",
+          "text": "férias",
+          "created_at": "2026-03-23T21:12:08.138Z"
+        },
+        {
+          "id": "6f6166de-9e7e-49b8-bddb-625b0a54f66d",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "As férias escolares estão programadas para começar em 18/07/2026, de acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.80. Além disso, também há registros de início das férias em 19/07/2026 e 20/07/2026, ambos com o mesmo nível de evidência e fonte. Recomendo verificar o Calendário Escolar 2026 para mais informações detalhadas. Se precisar de mais ajuda ou esclarecimentos, por favor, não hesite em perguntar.",
+          "created_at": "2026-03-23T21:12:09.142Z"
+        }
+      ],
+      "last_message": "As férias escolares estão programadas para começar em 18/07/2026, de acordo com o Calendário da Rede/Secretaria, versão publicada, com evidência de 0.80. Além disso, também há registros de início das férias em 19/07/2026 e 20/07/2026, ambos com o mesmo nível de evidência e fonte. Recomendo verificar o Calendário Escolar 2026 para mais informações detalhadas. Se precisar de mais ajuda ou esclarecimentos, por favor, não hesite em perguntar."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:7ad2977e-0164-46f6-86df-00f3aa9d1b1f",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:7ad2977e-0164-46f6-86df-00f3aa9d1b1f",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:7ad2977e-0164-46f6-86df-00f3aa9d1b1f",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola A - Sandbox",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T21:41:46.923Z",
+      "updated_at": "2026-03-23T21:42:27.499Z",
+      "transcript": [
+        {
+          "id": "0b31cb18-2226-47f5-bfdd-3bb76a44bcc3",
+          "role": "user",
+          "source": "webchat",
+          "text": "boa noite",
+          "created_at": "2026-03-23T21:41:46.926Z"
+        },
+        {
+          "id": "3cad0e13-ffcf-4252-aeb0-aeff391a3dec",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-23T21:41:46.931Z"
+        },
+        {
+          "id": "bbc9bda2-88be-4c8b-a343-1d8550a6ef93",
+          "role": "user",
+          "source": "webchat",
+          "text": "quero saber qual a data do iferiado mais proximo",
+          "created_at": "2026-03-23T21:42:27.266Z"
+        },
+        {
+          "id": "b44565a2-f4e7-44ba-9c72-3443c1452667",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-23T21:42:27.499Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:25a129e1-57bc-432d-85f2-d2c26b3b6e2c",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:25a129e1-57bc-432d-85f2-d2c26b3b6e2c",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:25a129e1-57bc-432d-85f2-d2c26b3b6e2c",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola A - Sandbox",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T22:44:53.784Z",
+      "updated_at": "2026-03-23T22:45:28.940Z",
+      "transcript": [
+        {
+          "id": "f25d4c27-e662-418f-824d-44d8539f6425",
+          "role": "user",
+          "source": "webchat",
+          "text": "boa noite",
+          "created_at": "2026-03-23T22:44:53.788Z"
+        },
+        {
+          "id": "c321d9a2-6c80-48ec-a1c2-046ca64be75c",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-23T22:44:53.791Z"
+        },
+        {
+          "id": "a189c9c2-74bd-4d0a-87f9-c310a66061ff",
+          "role": "user",
+          "source": "webchat",
+          "text": "gostaria de saber quando é a férias da escola?",
+          "created_at": "2026-03-23T22:45:28.480Z"
+        },
+        {
+          "id": "b75f3e08-7f0d-4556-bfa8-1037092e9ba5",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-23T22:45:28.940Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:0acaf3ba-c494-400d-a78e-17eb2464946c",
+    {
+      "id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:0acaf3ba-c494-400d-a78e-17eb2464946c",
+      "user_id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:0acaf3ba-c494-400d-a78e-17eb2464946c",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola B - Sandbox",
+        "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T22:52:06.446Z",
+      "updated_at": "2026-03-23T22:53:09.738Z",
+      "transcript": [
+        {
+          "id": "86ca950a-ecc9-451c-8493-476c9a927435",
+          "role": "user",
+          "source": "webchat",
+          "text": "boa noite!\nvocê poderia me informar qual é a ultima data de aula?",
+          "created_at": "2026-03-23T22:52:06.452Z"
+        },
+        {
+          "id": "15cdb736-2fe9-4042-8da6-9bf3b25ff41b",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Boa noite! Infelizmente, não encontrei informações sobre a última data de aula no calendário da Rede/Secretaria. As fontes disponíveis apenas mencionam o início das aulas (02/02/2026) e os feriados, como o Carnaval (17/02/2026 e 18/02/2026). Se você precisar de mais informações, posso encaminhá-lo à área responsável pelo calendário escolar.\n\nFonte: Calendario da Rede/Secretaria (publicado).",
+          "created_at": "2026-03-23T22:52:07.786Z"
+        },
+        {
+          "id": "38c5e1e7-b49f-4dfb-8fec-1ab6146df6c4",
+          "role": "user",
+          "source": "webchat",
+          "text": "e quando que começaram as aulas?",
+          "created_at": "2026-03-23T22:52:31.571Z"
+        },
+        {
+          "id": "a7d2a661-4741-4aab-bfe1-f8c8be401ba4",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "As aulas começaram em 02/02/2026, de acordo com o Calendário da Rede/Secretaria, que é o calendário-base oficial publicado pela secretaria ou rede.\n\nFonte: Calendario da Rede/Secretaria (publicado) | Evidencia: 0.94",
+          "created_at": "2026-03-23T22:52:32.467Z"
+        },
+        {
+          "id": "7f9db11a-0cd7-4d81-85eb-23d4b9b03eec",
+          "role": "user",
+          "source": "webchat",
+          "text": "e a data de inicio das férias?:",
+          "created_at": "2026-03-23T22:53:09.291Z"
+        },
+        {
+          "id": "5a60cdfd-2f67-45e5-989b-e322029e1bc3",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 18/07/2026 a 03/08/2026.",
+          "created_at": "2026-03-23T22:53:09.738Z"
+        }
+      ],
+      "last_message": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 18/07/2026 a 03/08/2026."
+    }
+  ],
+  [
+    "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:teste-fix-b",
+    {
+      "id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:teste-fix-b",
+      "user_id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:teste-fix-b",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
+        "school_name": "Escola B - Sandbox",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "entrypoint": "simulador_piloto"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T22:55:50.809Z",
+      "updated_at": "2026-03-23T22:55:51.328Z",
+      "transcript": [
+        {
+          "id": "ea7cc94c-5e1b-41ce-befa-27ceaa4ba031",
+          "role": "user",
+          "source": "webchat",
+          "text": "e a data de inicio das ferias?",
+          "created_at": "2026-03-23T22:55:50.818Z"
+        },
+        {
+          "id": "ee677c64-4705-45f4-ad37-575485da05c5",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 01/07/2026 a 31/07/2026.",
+          "created_at": "2026-03-23T22:55:51.328Z"
+        }
+      ],
+      "last_message": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 01/07/2026 a 31/07/2026."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:692fabdd-1a11-4219-948a-4f0a994a6749",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:692fabdd-1a11-4219-948a-4f0a994a6749",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:692fabdd-1a11-4219-948a-4f0a994a6749",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola A - Sandbox",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T22:56:46.228Z",
+      "updated_at": "2026-03-23T22:56:46.959Z",
+      "transcript": [
+        {
+          "id": "750e6637-601a-418d-b7fd-ded6b7a8ee0f",
+          "role": "user",
+          "source": "webchat",
+          "text": "boa noite\ngostaria de saber qual é a data de inicio das férias?",
+          "created_at": "2026-03-23T22:56:46.231Z"
+        },
+        {
+          "id": "e24d4da3-284c-4c85-a1cf-ee7c20002f16",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 18/07/2026 a 03/08/2026.",
+          "created_at": "2026-03-23T22:56:46.958Z"
+        }
+      ],
+      "last_message": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 18/07/2026 a 03/08/2026."
+    }
+  ],
+  [
+    "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:63424fb7-f8dd-4c9c-b471-29c3e29f3071",
+    {
+      "id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:63424fb7-f8dd-4c9c-b471-29c3e29f3071",
+      "user_id": "webchat:b771fe3e-e95c-4db1-a6e0-962eb4ea254a:simulador_piloto:63424fb7-f8dd-4c9c-b471-29c3e29f3071",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola B - Sandbox",
+        "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento"
+      },
+      "summary": "",
+      "created_at": "2026-03-23T22:57:00.818Z",
+      "updated_at": "2026-03-23T22:57:01.073Z",
+      "transcript": [
+        {
+          "id": "6adc6b66-992d-473d-9c60-5ffbb6db243a",
+          "role": "user",
+          "source": "webchat",
+          "text": "boa noite\ngostaria de saber qual é a data de inicio das férias?",
+          "created_at": "2026-03-23T22:57:00.822Z"
+        },
+        {
+          "id": "18453e77-4812-4439-bd39-57f0a201683f",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 01/07/2026 a 31/07/2026.",
+          "created_at": "2026-03-23T22:57:01.073Z"
+        }
+      ],
+      "last_message": "Segundo o calendario oficial, o proximo periodo de ferias escolares vai de 01/07/2026 a 31/07/2026."
     }
   ]
 ]

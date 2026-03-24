@@ -6,7 +6,7 @@
 **Natureza do documento:** Relatorio tecnico-institucional de governanca algoritmica  
 **Versao:** 1.0  
 **Data:** 21 de marco de 2026  
-**Escopo analisado:** Plataforma LAB-AI Educacao em sua configuracao atual de atendimento institucional, base de conhecimento, auditoria e governanca
+**Escopo analisado:** Plataforma LAB-IA Educacao em sua configuracao atual de atendimento institucional, base de conhecimento, auditoria e governanca
 
 ---
 
@@ -45,7 +45,7 @@ A analise mostra que ha medidas concretas ja implementadas para mitigar parte de
 
 Tambem foram identificadas medidas em consolidacao, especialmente nas frentes de LGPD, isolamento completo por escola, RLS abrangente, minimizacao de dados em prompts e politica de retencao.
 
-Em sintese, conclui-se que o sistema possui arquitetura promissora e relativamente madura para um piloto institucional de **IA com governanca**, desde que seu uso permaneça limitado ao apoio informacional e operacional, sem substituicao de decisao administrativa formal, e desde que as medidas de supervisao e conformidade continuem evoluindo antes da expansao em larga escala.
+Em sintese, conclui-se que o sistema possui arquitetura promissora e relativamente madura para um piloto institucional de **IA com governanca**, desde que seu uso permaneï¿½a limitado ao apoio informacional e operacional, sem substituicao de decisao administrativa formal, e desde que as medidas de supervisao e conformidade continuem evoluindo antes da expansao em larga escala.
 
 ---
 
@@ -226,7 +226,7 @@ O provedor utilizado pode ser configurado entre OpenAI, Groq ou Gemini, mas a ca
 
 ### 5.6 Auditoria e classificacao de risco
 
-Na orquestracao de chat em `.qodo/services/chat/inbound.js`, o sistema constrói um "envelope de auditoria" com os seguintes elementos:
+Na orquestracao de chat em `.qodo/services/chat/inbound.js`, o sistema constrï¿½i um "envelope de auditoria" com os seguintes elementos:
 
 - existencia ou ausencia de base confiavel
 - score de evidencia

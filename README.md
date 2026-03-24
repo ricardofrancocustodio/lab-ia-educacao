@@ -1,6 +1,6 @@
-# LAB-AI Educacao
+# LAB-IA Educacao
 
-LAB-AI Educacao e uma plataforma de atendimento institucional e governanca do conhecimento com IA auditavel para redes e orgaos educacionais.
+LAB-IA Educacao e uma plataforma de atendimento institucional e governanca do conhecimento com IA auditavel para redes e orgaos educacionais.
 
 O projeto foi estruturado para apoiar o uso seguro de IA em contextos publicos de educacao, transformando interacoes em dados de gestao, rastreabilidade e aprendizagem institucional.
 

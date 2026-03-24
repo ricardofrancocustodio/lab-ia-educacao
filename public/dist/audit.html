@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head id="component-head">
+  <meta charset="utf-8">
   <title>Assistente Público | Auditoria</title>
   <style>
     body { opacity: 0; transition: opacity .3s ease; }
@@ -77,21 +78,21 @@
         <div class="container-fluid">
           <div class="mitigation-guide">
             <div class="mitigation-step">
-              <strong>Resposta com evid?ncia</strong>
-              Quando h? base institucional forte e versionada, a IA responde normalmente e registra fonte, vers?o, score e risco baixo.
+              <strong>Resposta com evidência</strong>
+              Quando há base institucional forte e versionada, a IA responde normalmente e registra fonte, versão, score e risco baixo.
             </div>
             <div class="mitigation-step">
               <strong>Resposta com ressalva</strong>
-              Quando h? evid?ncia parcial, a IA responde de forma conservadora, sinaliza revis?o e registra risco m?dio.
+              Quando há evidência parcial, a IA responde de forma conservadora, sinaliza revisão e registra risco médio.
             </div>
             <div class="mitigation-step">
               <strong>Resposta contida</strong>
-              Quando a base n?o sustenta a resposta, a IA se abst?m, n?o inventa informa??o e abre trilha de governan?a com risco alto.
+              Quando a base não sustenta a resposta, a IA se abstém, não inventa informação e abre trilha de governança com risco alto.
             </div>
           </div>
 
           <div class="card mb-3">
-            <div class="card-header"><h3 class="card-title">M?dulo de Avalia??o de Risco da Resposta</h3></div>
+            <div class="card-header"><h3 class="card-title">Módulo de Avaliação de Risco da Resposta</h3></div>
             <div class="card-body">
               <div class="row">
                 <div class="col-lg-4 mb-3 mb-lg-0"><div id="audit-risk-module-summary" class="small text-muted">Carregando leitura de risco...</div></div>
@@ -104,26 +105,26 @@
           <div class="card mb-3">
             <div class="card-header"><h3 class="card-title">Painel de Tratamento Humano</h3></div>
             <div class="card-body">
-              <div class="small text-muted mb-3">Acompanhe a fila de revis?o, respons?veis e desfechos do tratamento humano.</div>
+              <div class="small text-muted mb-3">Acompanhe a fila de revisÃ£o, responsÃ¡veis e desfechos do tratamento humano.</div>
               <div class="treatment-kpis">
-                <div class="treatment-kpi"><div class="treatment-kpi-label">Em tratamento</div><div class="treatment-kpi-value" id="treatment-kpi-total">0</div><div class="small text-muted">Logs com atua??o humana</div></div>
-                <div class="treatment-kpi"><div class="treatment-kpi-label">Pendentes</div><div class="treatment-kpi-value" id="treatment-kpi-pending">0</div><div class="small text-muted">Aguardando a??o humana</div></div>
-                <div class="treatment-kpi"><div class="treatment-kpi-label">Conclu?dos</div><div class="treatment-kpi-value" id="treatment-kpi-completed">0</div><div class="small text-muted">Revisados, descartados ou curados</div></div>
-                <div class="treatment-kpi"><div class="treatment-kpi-label">Sem respons?vel</div><div class="treatment-kpi-value" id="treatment-kpi-unassigned">0</div><div class="small text-muted">Pend?ncias sem dono</div></div>
+                <div class="treatment-kpi"><div class="treatment-kpi-label">Em tratamento</div><div class="treatment-kpi-value" id="treatment-kpi-total">0</div><div class="small text-muted">Logs com atuação humana</div></div>
+                <div class="treatment-kpi"><div class="treatment-kpi-label">Pendentes</div><div class="treatment-kpi-value" id="treatment-kpi-pending">0</div><div class="small text-muted">Aguardando ação humana</div></div>
+                <div class="treatment-kpi"><div class="treatment-kpi-label">Concluídos</div><div class="treatment-kpi-value" id="treatment-kpi-completed">0</div><div class="small text-muted">Revisados, descartados ou curados</div></div>
+                <div class="treatment-kpi"><div class="treatment-kpi-label">Sem responsável</div><div class="treatment-kpi-value" id="treatment-kpi-unassigned">0</div><div class="small text-muted">Pendências sem dono</div></div>
                 <div class="treatment-kpi"><div class="treatment-kpi-label">Viraram curadoria</div><div class="treatment-kpi-value" id="treatment-kpi-knowledge">0</div><div class="small text-muted">Casos convertidos em base</div></div>
               </div>
               <div class="treatment-panels">
                 <section class="treatment-panel">
-                  <h4>Respons?veis</h4>
-                  <div id="audit-treatment-by-owner" class="small text-muted">Carregando respons?veis...</div>
+                  <h4>ResponsÃ¡veis</h4>
+                  <div id="audit-treatment-by-owner" class="small text-muted">Carregando responsÃ¡veis...</div>
                 </section>
                 <section class="treatment-panel">
                   <h4>Status do tratamento</h4>
                   <div id="audit-treatment-by-status" class="small text-muted">Carregando status...</div>
                 </section>
                 <section class="treatment-panel">
-                  <h4>Pend?ncias priorit?rias</h4>
-                  <div id="audit-treatment-priority" class="small text-muted">Carregando pend?ncias...</div>
+                  <h4>PendÃªncias prioritÃ¡rias</h4>
+                  <div id="audit-treatment-priority" class="small text-muted">Carregando pendÃªncias...</div>
                 </section>
               </div>
             </div>
@@ -145,13 +146,13 @@
                 <div class="filters">
                   <select class="form-control form-control-sm" id="audit-scenario-filter">
                     <option value="all">Todos os casos</option>
-                    <option value="case_1">Caso 1 - Resposta automática com evidência</option>
+                    <option value="case_1">Caso 1 - Resposta automÃ¡tica com evidÃªncia</option>
                     <option value="case_2">Caso 2 - Sem base suficiente</option>
-                    <option value="case_3">Caso 3 - Intervenção manual</option>
+                    <option value="case_3">Caso 3 - IntervenÃ§Ã£o manual</option>
                     <option value="case_4">Caso 4 - Resposta corrigida ou fonte atualizada</option>
-                    <option value="case_5">Caso 5 - Resposta com ressalva e revisão</option>
-                    <option value="case_6">Caso 6 - Resposta contida por mitigação</option>
-                    <option value="other">Outros eventos auditáveis</option>
+                    <option value="case_5">Caso 5 - Resposta com ressalva e revisÃ£o</option>
+                    <option value="case_6">Caso 6 - Resposta contida por mitigaÃ§Ã£o</option>
+                    <option value="other">Outros eventos auditÃ¡veis</option>
                   </select>
                   <select class="form-control form-control-sm" id="audit-conversation-filter">
                     <option value="all">Todas as conversas</option>
@@ -167,11 +168,11 @@
                   </select>
                   <select class="form-control form-control-sm" id="audit-review-filter">
                     <option value="all">Todos os tratamentos</option>
-                    <option value="PENDING_REVIEW">Pendentes de revisão</option>
+                    <option value="PENDING_REVIEW">Pendentes de revisÃ£o</option>
                     <option value="REVIEWED">Revisados</option>
                     <option value="KNOWLEDGE_CREATED">Viraram curadoria</option>
                     <option value="DISMISSED">Descartados</option>
-                    <option value="NOT_REQUIRED">Não requer revisão</option>
+                    <option value="NOT_REQUIRED">NÃ£o requer revisÃ£o</option>
                   </select>
                   <input type="date" class="form-control form-control-sm" id="audit-date-from">
                   <input type="date" class="form-control form-control-sm" id="audit-date-to">
@@ -235,6 +236,7 @@
   <script src="./js/coordinator/carregar-componentes.js"></script>
   <script src="./js/permissions.js"></script>
   <script src="./js/audit/formal-audit.js"></script>
+  <script src="./js/audit/treatment-inbox.js"></script>
 </body>
 </html>
 

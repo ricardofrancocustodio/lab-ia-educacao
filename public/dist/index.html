@@ -419,14 +419,27 @@
         margin-bottom: 52px;
       }
     }
+
+    .oauth-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .oauth-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
   <div class="top-strip"></div>
   <header class="gov-header">
     <div class="gov-header-inner">
-      <a class="gov-logo" href="#" aria-label="LAB-AI Educacao">
-        <span class="g1">l</span><span class="g2">a</span><span class="g3">b</span><span class="g4">-</span><span class="g5">a</span><span class="g6">i</span>
+      <a class="gov-logo" href="#" aria-label="lab-ia">
+        <span class="g1">l</span><span class="g2">a</span><span class="g3">b</span><span class="g4">-</span><span class="g5">i</span><span class="g6">a</span>
       </a>
       <div class="gov-tools" aria-label="Acessibilidade">
         <span><i class="bi bi-circle-half"></i> <strong>Alto Contraste</strong></span>
@@ -440,14 +453,14 @@
       <aside class="promo-panel" aria-hidden="true">
         <div class="promo-portrait"></div>
         <div class="promo-content">
-          <div class="promo-mark"><span class="g1">l</span><span class="g2">a</span><span class="g3">b</span><span class="g4">-</span><span class="g5">a</span><span class="g6">i</span></div>
+          <div class="promo-mark"><span class="g1">l</span><span class="g2">a</span><span class="g3">b</span><span class="g4">-</span><span class="g5">i</span><span class="g6">a</span></div>
           <h2 class="promo-title">IA auditavel para atendimento institucional</h2>
           <p class="promo-copy">apoia redes e orgaos educacionais com conhecimento versionado, rastreabilidade e inteligencia administrativa para o uso seguro de IA.</p>
         </div>
       </aside>
 
       <section class="login-card" aria-label="Formulario de acesso">
-        <h1 class="login-title">Identifique-se no <strong>Assistente Publico</strong> com:</h1>
+        <h1 class="login-title">Identifique-se no <strong>lab-ia</strong> com:</h1>
 
         <div class="method-box">
           <i class="bi bi-person-badge"></i>
@@ -457,6 +470,7 @@
           </div>
         </div>
 
+        <div class="divider-title">Ou acesse com e-mail e senha:</div>
         <form id="loginForm">
           <div class="field-group">
             <label for="email">E-mail</label>
@@ -500,6 +514,7 @@
   <script src="js/adminlte.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabaseConfig.js"></script>
+  <script src="./js/session.js"></script>
 
   <script>
     let _supabaseLogin = null;
@@ -515,46 +530,79 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', verificarSupabase);
+    document.addEventListener('DOMContentLoaded', async () => {
+      verificarSupabase();
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      if (!_supabaseLogin) {
-        alert('Erro: o sistema ainda nao carregou. Recarregue a pagina e tente novamente.');
-        return;
-      }
-
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const errorMsg = document.getElementById('error-msg');
-
-      errorMsg.style.display = 'none';
-      const textoOriginal = btnLogin.innerHTML;
-      btnLogin.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Entrando...';
-      btnLogin.disabled = true;
-
-      try {
-        const { error } = await _supabaseLogin.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        window.location.href = '/dashboard';
-      } catch (err) {
-        errorMsg.innerText = 'Falha no login: ' + (err.message.includes('Invalid login') ? 'E-mail ou senha incorretos.' : err.message);
-        errorMsg.style.display = 'block';
-        btnLogin.innerHTML = textoOriginal;
-        btnLogin.disabled = false;
+      if (window.supabaseClient) {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (session) {
+          console.log('Sessao existente encontrada, redirecionando para /dashboard');
+          window.location.href = '/dashboard';
+          return;
+        }
       }
     });
 
+    const loginForm = document.getElementById('loginForm');
     const passwordInput = document.getElementById('password');
     const togglePassword = document.getElementById('togglePassword');
     const toggleIcon = document.getElementById('toggleIcon');
 
-    togglePassword.addEventListener('click', () => {
-      const isPassword = passwordInput.type === 'password';
-      passwordInput.type = isPassword ? 'text' : 'password';
-      toggleIcon.className = isPassword ? 'bi bi-eye' : 'bi bi-eye-slash';
-    });
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!_supabaseLogin) {
+          console.warn('Supabase client ainda nao disponível no submit.');
+          alert('Erro: o sistema ainda nao carregou. Recarregue a pagina e tente novamente.');
+          return;
+        }
+
+        const email = (document.getElementById('email')?.value || '').trim();
+        const password = (passwordInput?.value || '').trim();
+        const errorMsg = document.getElementById('error-msg');
+
+        console.log('Tentativa de login', { email, password: Boolean(password) });
+
+        if (errorMsg) {
+          errorMsg.style.display = 'none';
+        }
+
+        const textoOriginal = btnLogin.innerHTML;
+        btnLogin.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Entrando...';
+        btnLogin.disabled = true;
+
+        try {
+          const response = await window.signInWithEmail(email, password);
+          console.log('Login respondido', response);
+
+          if (!response || !response.session) {
+            throw new Error('login_sem_sessao');
+          }
+
+          window.location.href = '/dashboard';
+        } catch (err) {
+          console.error('Erro no login:', err);
+          if (errorMsg) {
+            const message = err.message || String(err);
+            errorMsg.innerText = 'Falha no login: ' + (message.includes('Invalid login') ? 'E-mail ou senha incorretos.' : message);
+            errorMsg.style.display = 'block';
+          } else {
+            alert('Falha no login: ' + (err.message || err));
+          }
+          btnLogin.innerHTML = textoOriginal;
+          btnLogin.disabled = false;
+        }
+      });
+    }
+
+    if (togglePassword && toggleIcon && passwordInput) {
+      togglePassword.addEventListener('click', () => {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        toggleIcon.className = isPassword ? 'bi bi-eye' : 'bi bi-eye-slash';
+      });
+    }
   </script>
 </body>
 </html>

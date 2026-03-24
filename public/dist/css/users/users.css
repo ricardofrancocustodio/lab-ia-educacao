@@ -313,3 +313,26 @@ body {
 }
 
 
+
+.bulk-import-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.bulk-import-hints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.bulk-import-preview {
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    color: #1e3a8a;
+}
+
+.bulk-import-preview strong {
+    color: #0f172a;
+}

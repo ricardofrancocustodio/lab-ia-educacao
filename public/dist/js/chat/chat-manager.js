@@ -1,4 +1,4 @@
-﻿let contatoAtivoId = null;
+let contatoAtivoId = null;
 let conversaAtiva = null;
 let auditMessageAtivoId = null;
 let conversas = [];
@@ -44,11 +44,23 @@ function applyChatManagerPermissions() {
     $('#btn-resolve-chat').toggle(canResolve);
 }
 
+function getScopedSchoolIdForChatManager() {
+    try {
+        if (typeof window.getChatManagerSelectedSchoolId === 'function') {
+            const selectedSchoolId = String(window.getChatManagerSelectedSchoolId() || '').trim();
+            if (selectedSchoolId) return selectedSchoolId;
+        }
+    } catch (_error) {}
+    return String(sessionStorage.getItem('CHAT_MANAGER_SELECTED_SCHOOL_ID') || '').trim();
+}
+
 function getChatManagerRequestHeaders(extraHeaders = {}) {
+    const scopedSchoolId = getScopedSchoolIdForChatManager();
     return {
         'x-user-role': sessionStorage.getItem('USER_ROLE') || '',
         'x-platform-role': sessionStorage.getItem('PLATFORM_ROLE') || '',
         'x-effective-role': sessionStorage.getItem('EFFECTIVE_ROLE') || sessionStorage.getItem('PLATFORM_ROLE') || sessionStorage.getItem('USER_ROLE') || '',
+        ...(scopedSchoolId ? { 'x-school-id': scopedSchoolId } : {}),
         ...extraHeaders
     };
 }
@@ -112,6 +124,24 @@ function formatFeedbackTypeLabel(value) {
     if (normalized === 'not_helpful') return 'Nao util';
     if (normalized === 'incorrect') return 'Incorreta';
     return value || '-';
+}
+
+function normalizeOperatorIdentity(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function getActiveFeedbackTypeForOperator(audit, operatorName = getCurrentOperatorName()) {
+    const entries = Array.isArray(audit?.feedback_entries) ? audit.feedback_entries : [];
+    const normalizedOperator = normalizeOperatorIdentity(operatorName);
+    const match = entries.find((entry) => normalizeOperatorIdentity(entry.created_by) === normalizedOperator);
+    return String(match?.feedback_type || '').trim().toLowerCase();
+}
+
+function getFeedbackButtonClass(type, activeType) {
+    if (type === 'helpful') return activeType === type ? 'btn-success' : 'btn-outline-success';
+    if (type === 'not_helpful') return activeType === type ? 'btn-warning' : 'btn-outline-warning';
+    if (type === 'incorrect') return activeType === type ? 'btn-danger' : 'btn-outline-danger';
+    return 'btn-outline-secondary';
 }
 
 function formatIncidentStatus(value) {
@@ -572,7 +602,7 @@ function renderizarContatos(lista = conversas) {
         const statusClass = c.status === 'AI_ACTIVE' ? 'badge-success' : 'badge-secondary';
         const governanceBadges = [];
         if (c.feedback_not_helpful > 0) {
-            governanceBadges.push(`<span class="badge badge-warning governance-badge">Nao util ${escapeHtml(String(c.feedback_not_helpful))}</span>`);
+            governanceBadges.push('<span class="badge badge-warning governance-badge">Nao util</span>');
         }
         if (c.feedback_incorrect > 0) {
             governanceBadges.push(`<span class="badge badge-danger governance-badge">Incorreta ${escapeHtml(String(c.feedback_incorrect))}</span>`);
@@ -581,13 +611,13 @@ function renderizarContatos(lista = conversas) {
             governanceBadges.push(`<span class="badge badge-dark governance-badge">Incidente ${escapeHtml(String(c.incidents_open))}</span>`);
         }
         const html = `
-            <div class="contact-item ${contatoAtivoId === c.id ? 'active' : ''}${c.governance_flagged ? ' governance-flagged' : ''}" onclick="selecionarChat('${escapeHtml(c.id)}')">
+            <div class="contact-item ${contatoAtivoId === c.id ? 'active' : ''}${c.governance_flagged && c.status === 'AI_ACTIVE' ? ' governance-flagged' : ''}" onclick="selecionarChat('${escapeHtml(c.id)}')">
                 <div class="d-flex justify-content-between align-items-start">
                     <strong>${escapeHtml(c.display_name)}</strong>
                     <span class="badge ${badgeClass} origin-badge">${escapeHtml(c.origin_label)}</span>
                 </div>
                 <div class="small text-muted mt-1">${escapeHtml(c.area_label)}</div>
-                <div class="text-muted small text-truncate mt-1">${escapeHtml(c.last_message || c.summary || 'Conversa com assistente institucional.')}</div>
+                <div class="text-muted small text-truncate mt-1">${escapeHtml((() => { const preview = String(c.last_message || c.summary || '').trim(); const normalized = preview.toLowerCase(); const normalizedArea = String(c.area_label || '').trim().toLowerCase(); if (!preview || normalized === normalizedArea) return 'Conversa com assistente institucional.'; if (normalized === 'auto-roteamento' || normalized === 'auto roteamento') return 'Triagem automatica em andamento.'; return preview; })())}</div>
                 <div class="mt-2 d-flex flex-wrap" style="gap: 6px;">
                     <span class="badge ${statusClass}">${escapeHtml(c.status_label)}</span>
                     ${governanceBadges.join('')}
@@ -776,12 +806,13 @@ function renderizarAuditoria(conversation) {
                 ${audit.fallback_to_human ? `<span class="audit-chip">Encaminhamento recomendado</span>` : ''}
         `;
 
+    const activeFeedbackType = getActiveFeedbackTypeForOperator(audit);
     const governanceActions = capabilities.feedbackActions
         ? `
             <div class="d-flex flex-wrap mt-3" style="gap: 8px;">
-                <button class="btn btn-sm btn-outline-success" onclick="registrarFeedbackAuditoria('helpful')" ${audit.response_id ? '' : 'disabled'}>Marcar util</button>
-                <button class="btn btn-sm btn-outline-warning" onclick="registrarFeedbackAuditoria('not_helpful')" ${audit.response_id ? '' : 'disabled'}>Nao util</button>
-                <button class="btn btn-sm btn-outline-danger" onclick="registrarFeedbackAuditoria('incorrect')" ${audit.response_id ? '' : 'disabled'}>Incorreta</button>
+                <button class="btn btn-sm ${getFeedbackButtonClass('helpful', activeFeedbackType)}" onclick="registrarFeedbackAuditoria('helpful')" ${audit.response_id ? '' : 'disabled'}>${activeFeedbackType === 'helpful' ? 'Util marcado' : 'Marcar util'}</button>
+                <button class="btn btn-sm ${getFeedbackButtonClass('not_helpful', activeFeedbackType)}" onclick="registrarFeedbackAuditoria('not_helpful')" ${audit.response_id ? '' : 'disabled'}>${activeFeedbackType === 'not_helpful' ? 'Nao util marcado' : 'Nao util'}</button>
+                <button class="btn btn-sm ${getFeedbackButtonClass('incorrect', activeFeedbackType)}" onclick="registrarFeedbackAuditoria('incorrect')" ${audit.response_id ? '' : 'disabled'}>${activeFeedbackType === 'incorrect' ? 'Incorreta marcada' : 'Incorreta'}</button>
                 <button class="btn btn-sm btn-outline-dark" onclick="registrarIncidenteAuditoria()" ${audit.response_id ? '' : 'disabled'}>Abrir incidente</button>
             </div>
         `
@@ -1001,6 +1032,7 @@ async function encerrarConversaAtual() {
 window.selecionarChat = selecionarChat;
 window.selecionarAuditoriaMensagem = selecionarAuditoriaMensagem;
 window.enviarMensagem = enviarMensagem;
+
 
 
 

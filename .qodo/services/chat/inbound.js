@@ -95,10 +95,29 @@ function normalizeReply(result, fallbackAgent) {
   };
 }
 
+function hasReliableInstitutionalSource(source = {}) {
+  return Boolean(
+    source?.source_version_id ||
+    source?.source_document_id ||
+    String(source?.source_version_label || '').trim() ||
+    String(source?.retrieval_method || '').trim() === 'official_content'
+  );
+}
+
+function buildSourceCardPayload(source = {}) {
+  if (!source || !hasReliableInstitutionalSource(source)) return null;
+  return {
+    title: source.source_title || 'Fonte institucional',
+    version: source.source_version_label || 'publicado',
+    excerpt: String(source.source_excerpt || '').replace(/\s+/g, ' ').trim().slice(0, 220),
+    evidence_score: source.evidence_score ?? null
+  };
+}
+
 function buildAuditEnvelope(normalizedAudit = {}, resolvedAgent) {
   const supportingSource = normalizedAudit.supporting_source || null;
   const consultedSources = Array.isArray(normalizedAudit.consulted_sources) ? normalizedAudit.consulted_sources : [];
-  const hasReliableBase = Boolean(supportingSource?.source_version_id || consultedSources[0]?.source_version_id);
+  const hasReliableBase = Boolean(hasReliableInstitutionalSource(supportingSource) || hasReliableInstitutionalSource(consultedSources[0] || {}));
   const evidenceScore = Number(normalizedAudit.evidence_score || 0);
   const abstained = Boolean(normalizedAudit.abstained);
   const reviewRequired = Boolean(normalizedAudit.review_required || abstained || !hasReliableBase);
@@ -161,7 +180,15 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
     userText = `${text}\n\nObservacao do sistema: informe que este canal opera com assistentes especializados e siga com a triagem automatizada.`;
   }
 
-  const rawResult = await handler.handleMessage(userId, userText);
+  const handlerPayload = typeof userText === "string"
+    ? {
+        text: userText,
+        school_id: metadata.school_id || process.env.SCHOOL_ID || null,
+        metadata: { ...(metadata || {}) }
+      }
+    : userText;
+
+  const rawResult = await handler.handleMessage(userId, handlerPayload);
   const normalizedResult = normalizeReply(rawResult, resolvedAgent);
   const auditEnvelope = buildAuditEnvelope(normalizedResult.audit, resolvedAgent);
   const finalReply = isHumanHandoffRequest(text)
@@ -185,7 +212,7 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
     };
   }
 
-  await recordConsultationEvent({
+  const persistenceResult = await recordConsultationEvent({
     school_id: metadata.school_id || process.env.SCHOOL_ID || null,
     channel: String(channel || "webchat"),
     requester_id: userId,
@@ -226,7 +253,10 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
     ok: true,
     channel: String(channel || "unknown"),
     user_id: userId,
+    consultation_id: persistenceResult?.consultation?.id || null,
+    assistant_response_id: persistenceResult?.assistant_response?.id || null,
     reply: finalReply,
+    source_card: buildSourceCardPayload(auditEnvelope.supportingSource),
     metadata: {
       ...metadata,
       routed_agent: normalizedResult.audit.assistant_key || resolvedAgent?.agentKey || "public.assistant"
@@ -235,3 +265,5 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
 }
 
 module.exports = { handleInboundChat };
+
+

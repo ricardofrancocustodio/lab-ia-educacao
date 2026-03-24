@@ -505,7 +505,7 @@ async function salvarMinhaResposta(id) {
     
     Swal.fire({
         title: 'Atualizando...',
-        text: 'Gerando embedding e palavras-chave',
+        text: 'Gerando palavras-chave e indice textual',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -540,7 +540,7 @@ async function salvarMinhaResposta(id) {
             Swal.fire({ 
                 icon: 'success', 
                 title: 'Salvo!', 
-                text: embedding ? 'Embedding e palavras-chave atualizados' : 'Resposta salva (sem embedding)',
+                text: embedding ? 'Palavras-chave atualizadas' : 'Resposta salva sem indexacao semantica',
                 toast: true, 
                 position: 'top-end', 
                 showConfirmButton: false, 
@@ -567,7 +567,7 @@ async function salvarMinhaResposta(id) {
         Swal.fire({ 
             icon: 'success', 
             title: 'Salvo!', 
-            text: 'Resposta salva (sem embedding)',
+            text: 'Resposta salva sem indexacao semantica',
             toast: true, 
             position: 'top-end', 
             showConfirmButton: false, 
@@ -597,7 +597,7 @@ async function salvarDadosMinhaPergunta() {
 
     Swal.fire({
         title: 'Salvando...',
-        text: 'Gerando embedding e palavras-chave',
+        text: 'Gerando palavras-chave e indice textual',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -652,7 +652,7 @@ async function salvarDadosMinhaPergunta() {
             Swal.fire({ 
                 icon: 'success', 
                 title: 'Sucesso!', 
-                text: embedding ? 'Embedding e palavras-chave gerados' : 'Resposta customizada salva (sem embedding)',
+                text: embedding ? 'Palavras-chave geradas' : 'Resposta customizada salva sem indexacao semantica',
                 toast: true, 
                 position: 'top-end', 
                 showConfirmButton: false, 
@@ -751,7 +751,7 @@ async function excluirMinhaPergunta(id, event) {
 async function gerarEmbeddingETagsCustom(pergunta, resposta) {
     try {
         const textoCompleto = `${pergunta}\n${resposta}`;
-        console.log('🔍 Tentando gerar embedding via Supabase Edge Function (Custom)...');
+        console.log('🔍 Gerando palavras-chave via Supabase Edge Function (custom)...');
 
         if (!window.supabaseClient) {
             throw new Error("Cliente Supabase não inicializado.");
@@ -775,7 +775,7 @@ async function gerarEmbeddingETagsCustom(pergunta, resposta) {
         };
 
     } catch (error) {
-        console.error('⚠️ Erro ao gerar embedding (usando fallback local):', error);
+        console.error('⚠️ Erro ao gerar indexacao textual (usando fallback local):', error);
         
         const keywordsSimples = extrairKeywordsSimplesCustom(`${pergunta} ${resposta}`);
         

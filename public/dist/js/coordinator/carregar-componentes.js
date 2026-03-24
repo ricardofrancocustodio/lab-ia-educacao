@@ -28,7 +28,7 @@ async function carregarComponente(idElemento, caminhoArquivo) {
 function getRoleLabel(role) {
     const map = {
         superadmin: 'Superadmin do Projeto',
-        network_manager: 'Gestão da Rede',
+        network_manager: 'Gestor de Rede',
         content_curator: 'Curadoria de Conteúdo',
         public_operator: 'Atendimento Público',
         secretariat: 'Secretaria',

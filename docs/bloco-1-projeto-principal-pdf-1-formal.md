@@ -5,7 +5,7 @@
 **Bloco 1 - Projeto Principal**  
 **PDF 1 - Versao formal para edital, proposta institucional ou apresentacao executiva**
 
-**Proponente:** Laboratorio de IA para Educacao / Plataforma LAB-AI Educacao  
+**Proponente:** Laboratorio de IA para Educacao / Plataforma LAB-IA Educacao  
 **Natureza da proposta:** Transformacao digital do atendimento educacional com inteligencia artificial auditavel  
 **Area tematica:** Educacao publica, inovacao governamental, governanca de dados, atendimento ao cidadao  
 **Versao do documento:** 1.0  

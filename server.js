@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 require("dotenv").config();
@@ -8,6 +9,7 @@ const { createClient } = require("@supabase/supabase-js");
 
 const webhookRoutes = require("./.qodo/web/webhook.js");
 const webchatRoutes = require("./.qodo/api/webchat.js");
+const faqController = require("./.qodo/api/faqController.js");
 const { loadRuntimeSettings, invalidateAIProviderCache } = require("./.qodo/services/ai");
 
 const app = express();
@@ -26,9 +28,46 @@ const supabase =
     : null;
 
 const PRIVILEGED_ROLES = new Set(["superadmin", "network_manager"]);
+const CHAT_MANAGER_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "public_operator", "secretariat", "coordination", "treasury", "direction"]);
 const OFFICIAL_CONTENT_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat", "direction", "coordination"]);
 const OFFICIAL_CONTENT_NETWORK_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
 const OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat", "direction", "coordination"]);
+const AUDIT_TREATMENT_DESTINATIONS = {
+  content_curation: {
+    label: "Curadoria de conteudo",
+    page_key: "official-content",
+    page_path: "/conteudo-oficial",
+    action_label: "Abrir Conteudo Oficial",
+    roles: new Set(["superadmin", "auditor", "content_curator"])
+  },
+  network_secretariat: {
+    label: "Secretaria / Rede",
+    page_key: "official-content",
+    page_path: "/conteudo-oficial",
+    action_label: "Abrir Conteudo Oficial",
+    roles: new Set(["superadmin", "auditor", "network_manager", "secretariat"])
+  },
+  service_operation: {
+    label: "Operacao de atendimento",
+    page_key: "chat-manager",
+    page_path: "/atendimento",
+    action_label: "Abrir Atendimento",
+    roles: new Set(["superadmin", "auditor", "public_operator", "coordination"])
+  },
+  direction_compliance: {
+    label: "Direcao / Compliance",
+    page_key: "audit",
+    page_path: "/audit",
+    action_label: "Abrir Auditoria",
+    roles: new Set(["superadmin", "auditor", "direction"])
+  }
+};
+const AUDIT_TREATMENT_PROGRESS = {
+  OPEN: "Aberto",
+  IN_PROGRESS: "Em andamento",
+  COMPLETED: "Concluido",
+  DISMISSED: "Descartado"
+};
 
 const ASSISTANT_AREAS = {
   "public.assistant": {
@@ -58,6 +97,13 @@ function serveDistPage(res, fileName) {
   return res.sendFile(path.join(__dirname, "public", "dist", fileName));
 }
 
+function serveChatManagerPage(res) {
+  const filePath = path.join(__dirname, "public", "dist", "chat-manager.html");
+  const html = fs.readFileSync(filePath, "utf8")
+    .replace('./js//chat/chat-manager.js', '/chat-manager.bundle.js');
+  return res.type("html").send(html);
+}
+
 const distPages = new Set([
   "index",
   "dashboard",
@@ -85,7 +131,7 @@ app.get("/dist/:page", (req, res, next) => {
 app.get("/login", (_req, res) => serveDistPage(res, "index.html"));
 app.get("/dashboard", (_req, res) => serveDistPage(res, "dashboard.html"));
 app.get("/audit", (_req, res) => serveDistPage(res, "audit.html"));
-app.get("/atendimento", (_req, res) => serveDistPage(res, "chat-manager.html"));
+app.get("/atendimento", (_req, res) => serveChatManagerPage(res));
 app.get("/simulador-chat.html", (_req, res) => res.redirect(301, "/simulador-chat"));
 app.get("/simulador-chat", (_req, res) => res.sendFile(path.join(__dirname, "public", "simulador-chat.html")));
 app.get("/conhecimento", (_req, res) => serveDistPage(res, "knowledge-base.html"));
@@ -98,11 +144,22 @@ app.get("/esqueci-senha", (_req, res) => serveDistPage(res, "forgot-password.htm
 app.get("/redefinir-senha", (_req, res) => serveDistPage(res, "reset-password.html"));
 app.get("/ativar-conta", (_req, res) => serveDistPage(res, "accept-invite.html"));
 app.get("/verificar-sessao", (_req, res) => serveDistPage(res, "verify-session.html"));
+app.get("/chat-manager.bundle.js", (_req, res) => {
+  try {
+    const baseScript = fs.readFileSync(path.join(__dirname, "public", "dist", "js", "chat", "chat-manager.js"), "utf8");
+    const enhancedScript = fs.readFileSync(path.join(__dirname, "scripts", "chat-manager-network-scope.js"), "utf8");
+    const treatmentInboxScript = fs.readFileSync(path.join(__dirname, "public", "dist", "js", "audit", "treatment-inbox.js"), "utf8");
+    return res.type("application/javascript").send(`${baseScript}\n\n${enhancedScript}\n\n${treatmentInboxScript}`);
+  } catch (error) {
+    console.error("Erro ao montar o bundle do chat manager:", error);
+    return res.status(500).type("application/javascript").send('console.error(\"Falha ao carregar o chat manager.\");');
+  }
+});
 app.use("/webhook", webhookRoutes);
 app.use("/api/webchat", webchatRoutes);
 
 function getSchoolId(req) {
-  return String(req.query.school_id || req.body?.school_id || process.env.SCHOOL_ID || "").trim();
+  return String(req.headers?.["x-school-id"] || req.query.school_id || req.body?.school_id || "").trim();
 }
 
 function getBearerToken(req) {
@@ -200,7 +257,16 @@ async function resolveRequestContext(req, options = {}) {
 
   const requestedSchoolId = getSchoolId(req);
   if (requestedSchoolId && requestedSchoolId !== schoolId) {
-    throw Object.assign(new Error("A escola informada na requisicao nao corresponde ao contexto autenticado."), { statusCode: 403 });
+    if (platformRole === "superadmin") {
+      const requestedSchool = await fetchSchoolContextById(requestedSchoolId);
+      if (!requestedSchool?.id) {
+        throw Object.assign(new Error("A instituicao solicitada pelo superadmin nao foi encontrada."), { statusCode: 404 });
+      }
+      schoolId = requestedSchool.id;
+      schoolRole = "superadmin";
+    } else {
+      throw Object.assign(new Error("A escola informada na requisicao nao corresponde ao contexto autenticado."), { statusCode: 403 });
+    }
   }
 
   const effectiveRole = platformRole || schoolRole;
@@ -237,6 +303,491 @@ async function requireRequestContext(req, res, options = {}) {
     }
     return { ok: false, response: res.status(statusCode).json({ ok: false, error: error.message || "Falha ao validar a sessao." }) };
   }
+}
+
+function normalizeInstitutionType(value) {
+  return String(value || "education_department").trim().toLowerCase() || "education_department";
+}
+
+async function fetchSchoolContextById(schoolId) {
+  if (!supabase || !schoolId) return null;
+  const { data, error } = await supabase
+    .from("schools")
+    .select("id, name, slug, institution_type, parent_school_id")
+    .eq("id", schoolId)
+    .maybeSingle();
+  if (error) {
+    throw Object.assign(new Error("Falha ao carregar o contexto institucional."), { statusCode: 500, cause: error });
+  }
+  if (!data?.id) return null;
+  return {
+    ...data,
+    institution_type: normalizeInstitutionType(data.institution_type)
+  };
+}
+
+function serializeInstitutionContext(school, parent = null) {
+  if (!school?.id) return null;
+  return {
+    id: school.id,
+    name: school.name || "",
+    slug: school.slug || "",
+    institution_type: normalizeInstitutionType(school.institution_type),
+    parent_school_id: school.parent_school_id || null,
+    parent_name: parent?.name || ""
+  };
+}
+
+function clampQueryLimit(value, fallback = 20, max = 50) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(Math.floor(parsed), max);
+}
+
+async function resolveOfficialContentScopeContext(baseSchoolId) {
+  const requestedSchool = await fetchSchoolContextById(baseSchoolId);
+  if (!requestedSchool?.id) {
+    throw Object.assign(new Error("Instituicao de contexto nao encontrada para Conteudo Oficial."), { statusCode: 404 });
+  }
+
+  let parentSchool = null;
+  if (requestedSchool.parent_school_id) {
+    parentSchool = await fetchSchoolContextById(requestedSchool.parent_school_id);
+  }
+
+  const isSchoolUnit = normalizeInstitutionType(requestedSchool.institution_type) === "school_unit";
+  const networkScopeSchool = isSchoolUnit && parentSchool?.id ? parentSchool : requestedSchool;
+  const schoolScopeSchool = requestedSchool;
+
+  return {
+    requestedSchool,
+    parentSchool,
+    networkScopeSchool,
+    schoolScopeSchool,
+    isSchoolUnit
+  };
+}
+
+async function resolveManagedSchoolScope(accessContext) {
+  const baseSchool = await fetchSchoolContextById(accessContext?.schoolId);
+  if (!baseSchool?.id) {
+    throw Object.assign(new Error("Contexto institucional da gestao de usuarios nao encontrado."), { statusCode: 404 });
+  }
+
+  if (accessContext?.effectiveRole === "superadmin") {
+    const { data, error } = await supabase
+      .from("schools")
+      .select("id, name, slug, institution_type, parent_school_id")
+      .order("name", { ascending: true });
+    if (error) {
+      throw Object.assign(new Error("Falha ao carregar as instituicoes da plataforma."), { statusCode: 500, cause: error });
+    }
+
+    return {
+      baseSchool,
+      scopeMode: "global",
+      managedSchools: data || [],
+      managedSchoolIds: [...new Set((data || []).map((item) => item.id).filter(Boolean))]
+    };
+  }
+
+  const normalizedType = normalizeInstitutionType(baseSchool.institution_type);
+  if (normalizedType === "school_unit") {
+    return {
+      baseSchool,
+      scopeMode: "single_school",
+      managedSchools: [baseSchool],
+      managedSchoolIds: [baseSchool.id]
+    };
+  }
+
+  const { data: childSchools, error: childError } = await supabase
+    .from("schools")
+    .select("id, name, slug, institution_type, parent_school_id")
+    .eq("parent_school_id", baseSchool.id)
+    .order("name", { ascending: true });
+  if (childError) {
+    throw Object.assign(new Error("Falha ao carregar as escolas da rede."), { statusCode: 500, cause: childError });
+  }
+
+  const managedSchools = [baseSchool, ...(childSchools || [])];
+  return {
+    baseSchool,
+    scopeMode: "network",
+    managedSchools,
+    managedSchoolIds: [...new Set(managedSchools.map((item) => item.id).filter(Boolean))]
+  };
+}
+
+function normalizeAuditTreatmentDestination(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return AUDIT_TREATMENT_DESTINATIONS[normalized] ? normalized : "";
+}
+
+function normalizeAuditTreatmentProgress(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return AUDIT_TREATMENT_PROGRESS[normalized] ? normalized : "";
+}
+
+function getAuditTreatmentDestinationMeta(destination) {
+  return AUDIT_TREATMENT_DESTINATIONS[normalizeAuditTreatmentDestination(destination)] || null;
+}
+
+function canRoleHandleAuditTreatmentDestination(role, destination) {
+  const normalizedRole = normalizeRoleKey(role);
+  if (normalizedRole === "superadmin" || normalizedRole === "auditor") return true;
+  const meta = getAuditTreatmentDestinationMeta(destination);
+  return Boolean(meta?.roles?.has(normalizedRole));
+}
+
+function listAuditTreatmentDestinationsForRole(role, options = {}) {
+  const normalizedRole = normalizeRoleKey(role);
+  const includeAllForAudit = Boolean(options.includeAllForAudit) && (normalizedRole === "superadmin" || normalizedRole === "auditor");
+  return Object.entries(AUDIT_TREATMENT_DESTINATIONS)
+    .filter(([key, meta]) => includeAllForAudit || meta.roles.has(normalizedRole) || normalizedRole === "superadmin")
+    .map(([key, meta]) => ({
+      key,
+      label: meta.label,
+      page_key: meta.page_key,
+      page_path: meta.page_path,
+      action_label: meta.action_label
+    }));
+}
+
+function getDefaultTreatmentProgressForReviewStatus(reviewStatus, existingProgress = "") {
+  const normalizedReviewStatus = String(reviewStatus || "").trim().toUpperCase();
+  if (normalizedReviewStatus === "DISMISSED") return "DISMISSED";
+  const normalizedExisting = normalizeAuditTreatmentProgress(existingProgress);
+  if (normalizedExisting && normalizedExisting !== "DISMISSED") return normalizedExisting;
+  if (normalizedReviewStatus === "KNOWLEDGE_CREATED") return "COMPLETED";
+  return "OPEN";
+}
+
+async function buildAuditTreatmentQueue({ accessContext, includeCompleted = false, includeAllDestinations = false, destinationFilter = "" }) {
+  const scope = await resolveManagedSchoolScope(accessContext);
+  const schoolIds = scope.managedSchoolIds || [];
+  if (!schoolIds.length) {
+    return { scopeMode: scope.scopeMode, items: [], destinations: [] };
+  }
+
+  const allowedDestinations = listAuditTreatmentDestinationsForRole(accessContext.effectiveRole, { includeAllForAudit: includeAllDestinations });
+  const allowedDestinationKeys = new Set(allowedDestinations.map((item) => item.key));
+  const explicitDestination = normalizeAuditTreatmentDestination(destinationFilter);
+  const effectiveDestinationKeys = explicitDestination
+    ? new Set(allowedDestinationKeys.has(explicitDestination) ? [explicitDestination] : [])
+    : allowedDestinationKeys;
+
+  if (!effectiveDestinationKeys.size) {
+    return { scopeMode: scope.scopeMode, items: [], destinations: allowedDestinations };
+  }
+
+  const { data: eventRows, error: eventError } = await supabase
+    .from("formal_audit_events")
+    .select("id, school_id, consultation_id, event_type, severity, actor_type, actor_name, summary, details, created_at")
+    .in("school_id", schoolIds)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (eventError) {
+    throw Object.assign(new Error("Falha ao carregar a fila de tratamentos da auditoria."), { statusCode: 500, cause: eventError });
+  }
+
+  const candidateRows = (eventRows || [])
+    .filter((row) => !["AUDIT_REVIEW_STATUS_UPDATED", "AUDIT_TREATMENT_PROGRESS_UPDATED"].includes(String(row.event_type || "").toUpperCase()))
+    .filter((row) => {
+      const destination = normalizeAuditTreatmentDestination(row.details?.treatment_destination);
+      if (!destination || !effectiveDestinationKeys.has(destination)) return false;
+      const progress = normalizeAuditTreatmentProgress(row.details?.treatment_progress_status || getDefaultTreatmentProgressForReviewStatus(row.details?.review_status, row.details?.treatment_progress_status));
+      return includeCompleted || !["COMPLETED", "DISMISSED"].includes(progress);
+    });
+
+  if (!candidateRows.length) {
+    return { scopeMode: scope.scopeMode, items: [], destinations: allowedDestinations };
+  }
+
+  const consultationIds = [...new Set(candidateRows.map((row) => row.consultation_id).filter(Boolean))];
+  const schoolNameById = new Map((scope.managedSchools || []).map((item) => [item.id, item.name || ""]));
+  const consultationsById = new Map();
+  const responsesByConsultationId = new Map();
+
+  if (consultationIds.length) {
+    const [{ data: consultationRows, error: consultationsError }, { data: responseRows, error: responsesError }] = await Promise.all([
+      supabase
+        .from("institutional_consultations")
+        .select("id, school_id, requester_id, requester_name, channel, primary_topic, assigned_assistant_key, opened_at")
+        .in("school_id", schoolIds)
+        .in("id", consultationIds),
+      supabase
+        .from("assistant_responses")
+        .select("consultation_id, assistant_key, supporting_source_title, delivered_at, created_at")
+        .in("school_id", schoolIds)
+        .in("consultation_id", consultationIds)
+        .order("delivered_at", { ascending: false })
+    ]);
+    if (consultationsError) {
+      throw Object.assign(new Error("Falha ao carregar os contextos das conversas da fila de tratamento."), { statusCode: 500, cause: consultationsError });
+    }
+    if (responsesError) {
+      throw Object.assign(new Error("Falha ao carregar as respostas vinculadas a fila de tratamento."), { statusCode: 500, cause: responsesError });
+    }
+
+    (consultationRows || []).forEach((item) => consultationsById.set(item.id, item));
+    (responseRows || []).forEach((item) => {
+      if (!responsesByConsultationId.has(item.consultation_id)) {
+        responsesByConsultationId.set(item.consultation_id, item);
+      }
+    });
+  }
+
+  const items = candidateRows.map((row) => {
+    const details = row.details || {};
+    const consultation = row.consultation_id ? consultationsById.get(row.consultation_id) || null : null;
+    const response = row.consultation_id ? responsesByConsultationId.get(row.consultation_id) || null : null;
+    const destination = normalizeAuditTreatmentDestination(details.treatment_destination);
+    const destinationMeta = getAuditTreatmentDestinationMeta(destination);
+    const reviewStatus = String(details.review_status || (details.review_required ? "PENDING_REVIEW" : "NOT_REQUIRED")).toUpperCase();
+    const progressStatus = normalizeAuditTreatmentProgress(details.treatment_progress_status || getDefaultTreatmentProgressForReviewStatus(reviewStatus, details.treatment_progress_status)) || "OPEN";
+    return {
+      id: row.id,
+      school_id: row.school_id,
+      school_name: schoolNameById.get(row.school_id) || "",
+      consultation_id: row.consultation_id || null,
+      created_at: row.created_at,
+      event_type: row.event_type || "",
+      severity: row.severity || "INFO",
+      summary: row.summary || "",
+      topic: details.topic || consultation?.primary_topic || "Sem classificacao",
+      requester_name: details.requester_name || consultation?.requester_name || "-",
+      requester_id: details.requester_id || consultation?.requester_id || "-",
+      channel: details.channel || consultation?.channel || "-",
+      assistant_name: details.assistant_name || getAssistantLabel(details.assigned_assistant_key || response?.assistant_key || consultation?.assigned_assistant_key || "public.assistant"),
+      supporting_source_title: details.supporting_source_title || response?.supporting_source_title || "-",
+      review_status: reviewStatus,
+      review_notes: details.review_notes || "",
+      reviewed_by: details.reviewed_by || "",
+      reviewed_at: details.reviewed_at || null,
+      treatment_destination: destination,
+      treatment_destination_label: destinationMeta?.label || "Sem destino",
+      treatment_progress_status: progressStatus,
+      treatment_progress_label: AUDIT_TREATMENT_PROGRESS[progressStatus] || progressStatus,
+      treatment_page_key: destinationMeta?.page_key || "",
+      treatment_page_path: destinationMeta?.page_path || "/audit",
+      treatment_action_label: destinationMeta?.action_label || "Abrir contexto",
+      treatment_last_updated_at: details.treatment_last_updated_at || details.reviewed_at || row.created_at,
+      treatment_last_updated_by: details.treatment_last_updated_by || details.reviewed_by || "",
+      treatment_completion_notes: details.treatment_completion_notes || ""
+    };
+  }).sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime());
+
+  return {
+    scopeMode: scope.scopeMode,
+    items,
+    destinations: allowedDestinations
+  };
+}
+
+function buildOfficialContentScopedDefaults({ schoolScopeSchoolId, networkScopeSchoolId }) {
+  return [
+    { school_id: networkScopeSchoolId, module_key: "calendar", scope_key: "network", title: "Calendario da Rede/Secretaria", summary: "Calendario-base oficial publicado pela secretaria ou rede.", content_payload: { template_version: "calendar_csv_v1", locale: "pt-BR", columns: ["start_date", "end_date", "title", "event_type", "audience", "location", "shift", "required_action", "notes", "source_reference"], display_columns: ["data_inicio", "data_fim", "titulo", "tipo_evento", "publico", "local", "turno", "acao_necessaria", "observacoes", "fonte_referencia"], entries: [], guidance: "Use uma linha por evento em CSV com datas em YYYY-MM-DD. O usuario pode preencher com cabecalhos em portugues: data_inicio, data_fim, titulo, tipo_evento, publico, local, turno, acao_necessaria, observacoes e fonte_referencia." }, status: "draft" },
+    { school_id: schoolScopeSchoolId, module_key: "calendar", scope_key: "school", title: "Complementos da Escola", summary: "Eventos e avisos especificos da unidade escolar.", content_payload: { template_version: "calendar_csv_v1", locale: "pt-BR", columns: ["start_date", "end_date", "title", "event_type", "audience", "location", "shift", "required_action", "notes", "source_reference"], display_columns: ["data_inicio", "data_fim", "titulo", "tipo_evento", "publico", "local", "turno", "acao_necessaria", "observacoes", "fonte_referencia"], entries: [], guidance: "Use uma linha por evento local da unidade. O usuario pode preencher com cabecalhos em portugues e o sistema converte para o formato interno automaticamente." }, status: "draft" },
+    { school_id: schoolScopeSchoolId, module_key: "enrollment", scope_key: "school", title: "Matricula e Documentos Exigidos", summary: "Regras oficiais e documentos do processo de matricula/rematricula.", content_payload: { enrollment_period: "", reenrollment_period: "", target_audience: "", required_documents: [], optional_documents: [], special_rules: "", official_link: "" }, status: "draft" },
+    { school_id: schoolScopeSchoolId, module_key: "faq", scope_key: "school", title: "FAQ Oficial", summary: "Perguntas e respostas curtas, validadas e rastreaveis.", content_payload: { items: [] }, status: "draft" },
+    { school_id: schoolScopeSchoolId, module_key: "notices", scope_key: "school", title: "Comunicados Oficiais", summary: "Avisos de vigencia temporaria ou comunicados administrativos.", content_payload: { items: [] }, status: "draft" }
+  ];
+}
+
+async function findOfficialContentRecord({ moduleKey, scopeKey, scopeContext }) {
+  const primarySchoolId = scopeKey === "network"
+    ? scopeContext.networkScopeSchool?.id
+    : scopeContext.schoolScopeSchool?.id;
+  const fallbackSchoolId = scopeKey === "network"
+    && scopeContext.isSchoolUnit
+    && scopeContext.schoolScopeSchool?.id
+    && scopeContext.schoolScopeSchool.id !== primarySchoolId
+      ? scopeContext.schoolScopeSchool.id
+      : null;
+  const schoolIds = [...new Set([primarySchoolId, fallbackSchoolId].filter(Boolean))];
+
+  if (!schoolIds.length) {
+    return { record: null, recordSchoolId: primarySchoolId || "", legacyFallback: false };
+  }
+
+  const { data, error } = await supabase
+    .from("official_content_records")
+    .select("*")
+    .in("school_id", schoolIds)
+    .eq("module_key", moduleKey)
+    .eq("scope_key", scopeKey);
+  if (error) {
+    throw Object.assign(new Error("Falha ao localizar o registro de Conteudo Oficial."), { statusCode: 500, cause: error });
+  }
+
+  const rows = data || [];
+  const primaryRecord = rows.find((item) => item.school_id === primarySchoolId) || null;
+  const fallbackRecord = fallbackSchoolId ? (rows.find((item) => item.school_id === fallbackSchoolId) || null) : null;
+  let siblingLegacyRecord = null;
+  if (!primaryRecord && scopeKey === "network" && scopeContext.networkScopeSchool?.id) {
+    const { data: childSchools, error: childSchoolsError } = await supabase
+      .from("schools")
+      .select("id")
+      .eq("parent_school_id", scopeContext.networkScopeSchool.id);
+    if (childSchoolsError) {
+      throw Object.assign(new Error("Falha ao carregar unidades da rede para fallback legado."), { statusCode: 500, cause: childSchoolsError });
+    }
+
+    const childSchoolIds = (childSchools || []).map((item) => item.id).filter(Boolean);
+    if (childSchoolIds.length) {
+      const { data: siblingRows, error: siblingError } = await supabase
+        .from("official_content_records")
+        .select("*")
+        .eq("module_key", moduleKey)
+        .eq("scope_key", scopeKey)
+        .neq("school_id", primarySchoolId)
+        .in("school_id", childSchoolIds)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      if (siblingError) {
+        throw Object.assign(new Error("Falha ao localizar fallback legado de rede."), { statusCode: 500, cause: siblingError });
+      }
+      siblingLegacyRecord = (siblingRows || [])[0] || null;
+    }
+  }
+  const record = primaryRecord || fallbackRecord || siblingLegacyRecord || null;
+
+  return {
+    record,
+    recordSchoolId: record?.school_id || primarySchoolId || "",
+    legacyFallback: !primaryRecord && Boolean(fallbackRecord || siblingLegacyRecord)
+  };
+}
+
+async function buildOfficialContentResponse({ scopeContext, rows }) {
+  const defaults = buildOfficialContentScopedDefaults({
+    schoolScopeSchoolId: scopeContext.schoolScopeSchool.id,
+    networkScopeSchoolId: scopeContext.networkScopeSchool.id
+  });
+  const byKey = new Map((rows || []).map((row) => [`${row.school_id}::${row.module_key}::${row.scope_key}`, row]));
+  const directNetworkKey = `${scopeContext.networkScopeSchool.id}::calendar::network`;
+  const legacyNetworkKey = `${scopeContext.schoolScopeSchool.id}::calendar::network`;
+  const directNetworkRecord = byKey.get(directNetworkKey) || null;
+  const legacyCandidates = (rows || [])
+    .filter((row) => row.module_key === "calendar" && row.scope_key === "network" && row.school_id !== scopeContext.networkScopeSchool.id)
+    .sort((left, right) => String(right.updated_at || "").localeCompare(String(left.updated_at || "")));
+  const legacyNetworkRecord = (scopeContext.schoolScopeSchool.id !== scopeContext.networkScopeSchool.id
+    ? (byKey.get(legacyNetworkKey) || null)
+    : null) || legacyCandidates[0] || null;
+  const usingLegacyNetworkFallback = !directNetworkRecord && Boolean(legacyNetworkRecord);
+
+  const records = defaults.map((item) => {
+    const compositeKey = `${item.school_id}::${item.module_key}::${item.scope_key}`;
+    if (item.module_key === "calendar" && item.scope_key === "network") {
+      const resolved = directNetworkRecord || legacyNetworkRecord || null;
+      if (!resolved) return item;
+      return {
+        ...item,
+        ...resolved,
+        _resolved_school_id: resolved.school_id,
+        _legacy_network_fallback: usingLegacyNetworkFallback
+      };
+    }
+    const existing = byKey.get(compositeKey);
+    return existing ? { ...item, ...existing, _resolved_school_id: existing.school_id } : item;
+  });
+
+  return {
+    records: await enrichOfficialContentRecords(records),
+    context: {
+      requested_school: serializeInstitutionContext(scopeContext.requestedSchool, scopeContext.parentSchool),
+      network_scope: serializeInstitutionContext(scopeContext.networkScopeSchool),
+      school_scope: serializeInstitutionContext(scopeContext.schoolScopeSchool, scopeContext.parentSchool),
+      using_legacy_network_fallback: usingLegacyNetworkFallback
+    }
+  };
+}
+
+async function enrichOfficialContentRecords(records = []) {
+  const normalizedRecords = Array.isArray(records) ? records.filter(Boolean) : [];
+  if (!normalizedRecords.length) return [];
+
+  const sourceDocumentIds = [...new Set(normalizedRecords.map((item) => item.source_document_id).filter(Boolean))];
+  const schoolIds = [...new Set(normalizedRecords.map((item) => item._resolved_school_id || item.school_id).filter(Boolean))];
+  const canonicalReferences = [...new Set(normalizedRecords.map((item) => `official-content:${item.module_key}:${item.scope_key}`))];
+  const sourceDocumentById = new Map();
+  const sourceDocumentByCanonical = new Map();
+
+  if (sourceDocumentIds.length) {
+    const { data: sourceDocuments, error: sourceDocumentsError } = await supabase
+      .from("source_documents")
+      .select("*")
+      .in("id", sourceDocumentIds);
+    if (sourceDocumentsError) {
+      throw Object.assign(new Error("Falha ao carregar documentos tecnicos do Conteudo Oficial."), { statusCode: 500, cause: sourceDocumentsError });
+    }
+    (sourceDocuments || []).forEach((item) => {
+      sourceDocumentById.set(item.id, item);
+      sourceDocumentByCanonical.set(`${item.school_id}::${item.canonical_reference}`, item);
+    });
+  }
+
+  if (schoolIds.length && canonicalReferences.length) {
+    const { data: canonicalDocs, error: canonicalDocsError } = await supabase
+      .from("source_documents")
+      .select("*")
+      .in("school_id", schoolIds)
+      .in("canonical_reference", canonicalReferences);
+    if (canonicalDocsError) {
+      throw Object.assign(new Error("Falha ao localizar documentos canonicos do Conteudo Oficial."), { statusCode: 500, cause: canonicalDocsError });
+    }
+    (canonicalDocs || []).forEach((item) => {
+      if (!sourceDocumentById.has(item.id)) {
+        sourceDocumentById.set(item.id, item);
+      }
+      sourceDocumentByCanonical.set(`${item.school_id}::${item.canonical_reference}`, item);
+    });
+  }
+
+  const effectiveSourceDocumentIds = [...new Set(
+    normalizedRecords
+      .map((item) => {
+        const schoolId = item._resolved_school_id || item.school_id;
+        const canonicalReference = `official-content:${item.module_key}:${item.scope_key}`;
+        const document = sourceDocumentById.get(item.source_document_id) || sourceDocumentByCanonical.get(`${schoolId}::${canonicalReference}`) || null;
+        return document?.id || null;
+      })
+      .filter(Boolean)
+  )];
+
+  const versionById = new Map();
+  const currentVersionBySourceDocumentId = new Map();
+  if (effectiveSourceDocumentIds.length) {
+    const { data: versions, error: versionsError } = await supabase
+      .from("knowledge_source_versions")
+      .select("id, school_id, source_document_id, version_label, version_number, file_name, mime_type, chunk_count, published_at, is_current, created_by")
+      .in("source_document_id", effectiveSourceDocumentIds)
+      .order("version_number", { ascending: false });
+    if (versionsError) {
+      throw Object.assign(new Error("Falha ao carregar versoes tecnicas do Conteudo Oficial."), { statusCode: 500, cause: versionsError });
+    }
+    (versions || []).forEach((item) => {
+      versionById.set(item.id, item);
+      if (item.is_current && !currentVersionBySourceDocumentId.has(item.source_document_id)) {
+        currentVersionBySourceDocumentId.set(item.source_document_id, item);
+      }
+    });
+  }
+
+  return normalizedRecords.map((item) => {
+    const schoolId = item._resolved_school_id || item.school_id;
+    const canonicalReference = `official-content:${item.module_key}:${item.scope_key}`;
+    const sourceDocument = sourceDocumentById.get(item.source_document_id) || sourceDocumentByCanonical.get(`${schoolId}::${canonicalReference}`) || null;
+    const sourceVersion = versionById.get(item.source_version_id) || (sourceDocument?.id ? currentVersionBySourceDocumentId.get(sourceDocument.id) || null : null);
+    return {
+      ...item,
+      source_document_id: item.source_document_id || sourceDocument?.id || null,
+      source_version_id: item.source_version_id || sourceVersion?.id || null,
+      _source_document_meta: sourceDocument || null,
+      _source_version_meta: sourceVersion || null
+    };
+  });
 }
 
 function getPeriodConfig(req) {
@@ -1094,6 +1645,7 @@ function buildOfficialContentDefaults(schoolId) {
   return [
     { school_id: schoolId, module_key: "calendar", scope_key: "network", title: "Calendario da Rede/Secretaria", summary: "Calendario-base oficial publicado pela secretaria ou rede.", content_payload: { template_version: "calendar_csv_v1", locale: "pt-BR", columns: ["start_date", "end_date", "title", "event_type", "audience", "location", "shift", "required_action", "notes", "source_reference"], display_columns: ["data_inicio", "data_fim", "titulo", "tipo_evento", "publico", "local", "turno", "acao_necessaria", "observacoes", "fonte_referencia"], entries: [], guidance: "Use uma linha por evento em CSV com datas em YYYY-MM-DD. O usuario pode preencher com cabecalhos em portugues: data_inicio, data_fim, titulo, tipo_evento, publico, local, turno, acao_necessaria, observacoes e fonte_referencia." }, status: "draft" },
     { school_id: schoolId, module_key: "calendar", scope_key: "school", title: "Complementos da Escola", summary: "Eventos e avisos especificos da unidade escolar.", content_payload: { template_version: "calendar_csv_v1", locale: "pt-BR", columns: ["start_date", "end_date", "title", "event_type", "audience", "location", "shift", "required_action", "notes", "source_reference"], display_columns: ["data_inicio", "data_fim", "titulo", "tipo_evento", "publico", "local", "turno", "acao_necessaria", "observacoes", "fonte_referencia"], entries: [], guidance: "Use uma linha por evento local da unidade. O usuario pode preencher com cabecalhos em portugues e o sistema converte para o formato interno automaticamente." }, status: "draft" },
+    { school_id: schoolId, module_key: "enrollment", scope_key: "network", title: "Matricula e Documentos da Rede", summary: "Regras oficiais e documentos da rede para matricula e rematricula.", content_payload: { enrollment_period: "", reenrollment_period: "", target_audience: "", required_documents: [], optional_documents: [], special_rules: "", official_link: "" }, status: "draft" },
     { school_id: schoolId, module_key: "enrollment", scope_key: "school", title: "Matricula e Documentos Exigidos", summary: "Regras oficiais e documentos do processo de matricula/rematricula.", content_payload: { enrollment_period: "", reenrollment_period: "", target_audience: "", required_documents: [], optional_documents: [], special_rules: "", official_link: "" }, status: "draft" },
     { school_id: schoolId, module_key: "faq", scope_key: "school", title: "FAQ Oficial", summary: "Perguntas e respostas curtas, validadas e rastreaveis.", content_payload: { items: [] }, status: "draft" },
     { school_id: schoolId, module_key: "notices", scope_key: "school", title: "Comunicados Oficiais", summary: "Avisos de vigencia temporaria ou comunicados administrativos.", content_payload: { items: [] }, status: "draft" }
@@ -1111,20 +1663,249 @@ app.get("/api/official-content", async (req, res) => {
     }
     const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
     if (!access.ok) return access.response;
-    const schoolId = access.context.schoolId;
-    const { data, error } = await supabase.from("official_content_records").select("*").eq("school_id", schoolId).order("module_key", { ascending: true }).order("scope_key", { ascending: true });
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const schoolIds = [...new Set([scopeContext.schoolScopeSchool.id, scopeContext.networkScopeSchool.id].filter(Boolean))];
+    const { data, error } = await supabase
+      .from("official_content_records")
+      .select("*")
+      .in("school_id", schoolIds)
+      .order("module_key", { ascending: true })
+      .order("scope_key", { ascending: true });
     if (error) throw error;
     const rows = data || [];
-    const defaults = buildOfficialContentDefaults(schoolId);
-    const byKey = new Map(rows.map((row) => [String(row.module_key) + "::" + String(row.scope_key), row]));
-    const merged = defaults.map((item) => {
-      const existing = byKey.get(String(item.module_key) + "::" + String(item.scope_key));
-      return existing ? { ...item, ...existing } : item;
-    });
-    return res.json({ ok: true, records: merged });
+    const directNetworkRow = rows.find((item) => item.school_id === scopeContext.networkScopeSchool.id && item.module_key === "calendar" && item.scope_key === "network");
+    if (!directNetworkRow) {
+      const { record: legacyNetworkRecord } = await findOfficialContentRecord({ moduleKey: "calendar", scopeKey: "network", scopeContext });
+      if (legacyNetworkRecord?.id && !rows.some((item) => item.id === legacyNetworkRecord.id)) {
+        rows.push(legacyNetworkRecord);
+      }
+    }
+    const payload = await buildOfficialContentResponse({ scopeContext, rows });
+    return res.json({ ok: true, ...payload });
   } catch (error) {
     console.error("Erro /api/official-content:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar Conteudo Oficial." });
+  }
+});
+
+app.get("/api/official-content/institutions", async (req, res) => {
+  try {
+    if (!supabase) {
+      const missingEnv = getMissingSupabaseServerEnv();
+      return res.status(500).json({
+        ok: false,
+        error: `Supabase nao configurado no servidor. Variaveis ausentes: ${missingEnv.join(", ") || "desconhecido"}.`
+      });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: ["superadmin"] });
+    if (!access.ok) return access.response;
+
+    const { data, error } = await supabase
+      .from("schools")
+      .select("id, name, slug, institution_type, parent_school_id")
+      .order("name", { ascending: true });
+    if (error) throw error;
+
+    const byId = new Map((data || []).map((item) => [item.id, item]));
+    const institutions = (data || []).map((item) => {
+      const parent = item.parent_school_id ? byId.get(item.parent_school_id) : null;
+      return serializeInstitutionContext(item, parent);
+    });
+
+    return res.json({
+      ok: true,
+      default_school_id: access.context.schoolId,
+      institutions
+    });
+  } catch (error) {
+    console.error("Erro /api/official-content/institutions:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar o catalogo institucional." });
+  }
+});
+
+app.get("/api/chat-manager/schools", async (req, res) => {
+  try {
+    if (!supabase) {
+      const missingEnv = getMissingSupabaseServerEnv();
+      return res.status(500).json({
+        ok: false,
+        error: `Supabase nao configurado no servidor. Variaveis ausentes: ${missingEnv.join(", ") || "desconhecido"}.`
+      });
+    }
+
+    const access = await requireRequestContext(req, res, { allowedRoles: [...CHAT_MANAGER_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const baseSchool = await fetchSchoolContextById(access.context.schoolId);
+    if (!baseSchool?.id) {
+      return res.status(404).json({ ok: false, error: "Contexto institucional do chat manager nao encontrado." });
+    }
+
+    const searchTerm = String(req.query.q || "").trim();
+    const selectedSchoolId = String(req.query.selected_school_id || "").trim();
+    const limit = clampQueryLimit(req.query.limit, 20, 50);
+    const minSearchLength = 2;
+    const normalizedType = normalizeInstitutionType(baseSchool.institution_type);
+    const role = access.context.effectiveRole;
+    const parentSchool = baseSchool.parent_school_id ? await fetchSchoolContextById(baseSchool.parent_school_id) : null;
+    const networkScopeSchool = normalizedType === "school_unit" && parentSchool?.id ? parentSchool : baseSchool;
+    const networkScope = serializeInstitutionContext(networkScopeSchool, parentSchool && networkScopeSchool?.id !== parentSchool.id ? parentSchool : null);
+    const currentSchool = serializeInstitutionContext(baseSchool, parentSchool);
+    const singleSchoolScope = normalizedType === "school_unit" && role !== "superadmin";
+    const scopeMode = role === "superadmin"
+      ? "global_search"
+      : singleSchoolScope
+        ? "single_school"
+        : "network_search";
+
+    let schools = [];
+    let selectedSchool = null;
+
+    if (selectedSchoolId) {
+      const selected = await fetchSchoolContextById(selectedSchoolId);
+      if (selected?.id) {
+        const selectedParent = selected.parent_school_id ? await fetchSchoolContextById(selected.parent_school_id) : null;
+        const belongsToCurrentNetwork = role === "superadmin"
+          || selected.id === baseSchool.id
+          || selected.parent_school_id === networkScopeSchool.id;
+        if (belongsToCurrentNetwork) {
+          selectedSchool = serializeInstitutionContext(selected, selectedParent);
+        }
+      }
+    }
+
+    if (singleSchoolScope) {
+      const onlySchool = currentSchool;
+      const normalizedSearch = searchTerm.toLowerCase();
+      const matchesSearch = !normalizedSearch
+        || String(onlySchool?.name || "").toLowerCase().includes(normalizedSearch)
+        || String(onlySchool?.slug || "").toLowerCase().includes(normalizedSearch);
+      schools = matchesSearch && onlySchool ? [onlySchool] : [];
+      selectedSchool = selectedSchool || onlySchool;
+    } else if (searchTerm.length >= minSearchLength) {
+      const searchPattern = `%${searchTerm}%`;
+      let query = supabase
+        .from("schools")
+        .select("id, name, slug, institution_type, parent_school_id")
+        .or(`name.ilike.${searchPattern},slug.ilike.${searchPattern}`)
+        .order("name", { ascending: true })
+        .limit(limit);
+
+      if (role !== "superadmin") {
+        query = query.eq("parent_school_id", networkScopeSchool.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const rows = data || [];
+      const parentIds = [...new Set(rows.map((item) => item.parent_school_id).filter(Boolean))];
+      const parentById = new Map();
+
+      if (parentIds.length) {
+        const { data: parentRows, error: parentError } = await supabase
+          .from("schools")
+          .select("id, name, slug, institution_type, parent_school_id")
+          .in("id", parentIds);
+        if (parentError) throw parentError;
+        (parentRows || []).forEach((item) => parentById.set(item.id, item));
+      }
+
+      schools = rows
+        .filter((item) => {
+          if (role === "superadmin") return true;
+          return item.id === networkScopeSchool.id || item.parent_school_id === networkScopeSchool.id;
+        })
+        .map((item) => serializeInstitutionContext(item, parentById.get(item.parent_school_id) || null));
+    }
+
+    return res.json({
+      ok: true,
+      scope_mode: scopeMode,
+      min_search_length: minSearchLength,
+      network_scope: networkScope,
+      current_school: currentSchool,
+      selected_school: selectedSchool,
+      schools
+    });
+  } catch (error) {
+    console.error("Erro /api/chat-manager/schools:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar as escolas do chat manager." });
+  }
+});
+
+app.get("/api/users/managed", async (req, res) => {
+  try {
+    if (!supabase) {
+      const missingEnv = getMissingSupabaseServerEnv();
+      return res.status(500).json({
+        ok: false,
+        error: `Supabase nao configurado no servidor. Variaveis ausentes: ${missingEnv.join(", ") || "desconhecido"}.`
+      });
+    }
+
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scope = await resolveManagedSchoolScope(access.context);
+    if (!scope.managedSchoolIds.length) {
+      return res.json({ ok: true, scope_mode: scope.scopeMode, users: [], schools: [] });
+    }
+
+    const { data: memberRows, error: memberError } = await supabase
+      .from("school_members")
+      .select("id, user_id, school_id, role, name, email, phone, active, status, member_scope, created_at")
+      .in("school_id", scope.managedSchoolIds)
+      .order("name", { ascending: true });
+    if (memberError) {
+      throw Object.assign(new Error("Falha ao carregar os usuarios gerenciados."), { statusCode: 500, cause: memberError });
+    }
+
+    const parentIds = [...new Set((scope.managedSchools || []).map((item) => item.parent_school_id).filter(Boolean))];
+    const parentById = new Map();
+
+    if (parentIds.length) {
+      const { data: parentRows, error: parentError } = await supabase
+        .from("schools")
+        .select("id, name, slug, institution_type, parent_school_id")
+        .in("id", parentIds);
+      if (parentError) {
+        throw Object.assign(new Error("Falha ao carregar os contextos institucionais da gestao de usuarios."), { statusCode: 500, cause: parentError });
+      }
+      (parentRows || []).forEach((item) => parentById.set(item.id, item));
+    }
+
+    const schools = (scope.managedSchools || []).map((item) => {
+      const parent = item.parent_school_id ? parentById.get(item.parent_school_id) || null : null;
+      return serializeInstitutionContext(item, parent);
+    });
+    const schoolsById = new Map(schools.map((item) => [item.id, item]));
+
+    const users = (memberRows || []).map((item) => {
+      const school = schoolsById.get(item.school_id) || null;
+      const parent = school?.parent_school_id ? schoolsById.get(school.parent_school_id) || null : null;
+      return {
+        ...item,
+        source_table: "school_members",
+        school_name: school?.name || "",
+        school_institution_type: school?.institution_type || "",
+        parent_school_name: parent?.name || school?.parent_name || ""
+      };
+    });
+
+    return res.json({
+      ok: true,
+      scope_mode: scope.scopeMode,
+      managed_school_ids: scope.managedSchoolIds,
+      schools,
+      users
+    });
+  } catch (error) {
+    const statusCode = Number(error?.statusCode || 500);
+    if (statusCode >= 500) {
+      console.error("Erro /api/users/managed:", error?.cause || error);
+    }
+    return res.status(statusCode).json({ ok: false, error: error.message || "Falha ao carregar os usuarios gerenciados." });
   }
 });
 
@@ -1139,7 +1920,7 @@ app.post("/api/official-content/:module/:scope", async (req, res) => {
     }
     const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
     if (!access.ok) return access.response;
-    const schoolId = access.context.schoolId;
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
     const moduleKey = String(req.params.module || "").trim().toLowerCase();
     const scopeKey = String(req.params.scope || "").trim().toLowerCase();
     if (!moduleKey || !scopeKey) return res.status(400).json({ ok: false, error: "Modulo e escopo sao obrigatorios." });
@@ -1156,6 +1937,7 @@ app.post("/api/official-content/:module/:scope", async (req, res) => {
           : "Seu perfil nao pode editar conteudo oficial da escola."
       });
     }
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
     const payload = {
       school_id: schoolId,
       module_key: moduleKey,
@@ -1178,13 +1960,17 @@ app.post("/api/official-content/:module/:scope", async (req, res) => {
       existingSourceDocumentId: payload.source_document_id
     });
     const technicalContent = formatOfficialContentForKnowledge(moduleKey, scopeKey, payload.title, payload.summary, payload.content_payload);
+    let fileName = String(req.body?.file_name || "").trim();
+    if (!fileName) {
+      fileName = moduleKey === 'calendar' ? `calendario-${scopeKey}.csv` : `${moduleKey}-${scopeKey}.txt`;
+    }
     const version = await publishSourceVersion({
       schoolId,
       sourceDocument,
       versionLabel: moduleKey + "-" + scopeKey + "-" + new Date().toISOString().slice(0, 10),
       content: technicalContent,
-      fileName: moduleKey + "-" + scopeKey + ".txt",
-      mimeType: "text/plain",
+      fileName,
+      mimeType: moduleKey === 'calendar' ? 'text/csv' : 'text/plain',
       userId: access.context.user.id
     });
     payload.source_document_id = sourceDocument.id;
@@ -1204,34 +1990,28 @@ app.get("/api/official-content/:module/:scope/history", async (req, res) => {
     if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
     const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
     if (!access.ok) return access.response;
-    const schoolId = access.context.schoolId;
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
     const moduleKey = String(req.params.module || "").trim().toLowerCase();
     const scopeKey = String(req.params.scope || "").trim().toLowerCase();
+    const { record, recordSchoolId } = await findOfficialContentRecord({ moduleKey, scopeKey, scopeContext });
+    const [enrichedRecord] = await enrichOfficialContentRecords(record ? [record] : []);
+    const effectiveRecord = enrichedRecord || record || null;
 
-    const { data: record, error: recordError } = await supabase
-      .from("official_content_records")
-      .select("*")
-      .eq("school_id", schoolId)
-      .eq("module_key", moduleKey)
-      .eq("scope_key", scopeKey)
-      .maybeSingle();
-    if (recordError) throw recordError;
-
-    if (!record?.source_document_id) {
-      return res.json({ ok: true, current: record || null, history: [] });
+    if (!effectiveRecord?.source_document_id) {
+      return res.json({ ok: true, current: effectiveRecord, history: [] });
     }
 
     const [{ data: versions, error: versionsError }, { data: audits, error: auditsError }] = await Promise.all([
       supabase
         .from("knowledge_source_versions")
         .select("id, source_document_id, version_label, version_number, file_name, mime_type, published_at, is_current, created_by")
-        .eq("school_id", schoolId)
-        .eq("source_document_id", record.source_document_id)
+        .eq("school_id", recordSchoolId)
+        .eq("source_document_id", effectiveRecord.source_document_id)
         .order("version_number", { ascending: false }),
       supabase
         .from("formal_audit_events")
         .select("id, actor_name, created_at, details")
-        .eq("school_id", schoolId)
+        .eq("school_id", recordSchoolId)
         .eq("event_type", "OFFICIAL_CONTENT_UPDATED")
         .order("created_at", { ascending: false })
         .limit(100)
@@ -1251,6 +2031,8 @@ app.get("/api/official-content/:module/:scope/history", async (req, res) => {
         id: version.id,
         version_label: version.version_label,
         version_number: version.version_number,
+        file_name: version.file_name || null,
+        mime_type: version.mime_type || null,
         published_at: version.published_at,
         is_current: Boolean(version.is_current),
         actor_name: auditMatch?.actor_name || null,
@@ -1262,7 +2044,7 @@ app.get("/api/official-content/:module/:scope/history", async (req, res) => {
       };
     });
 
-    return res.json({ ok: true, current: record || null, history });
+    return res.json({ ok: true, current: effectiveRecord, history });
   } catch (error) {
     console.error("Erro /api/official-content/:module/:scope/history:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar historico do Conteudo Oficial." });
@@ -1274,7 +2056,7 @@ app.post("/api/official-content/:module/:scope/status", async (req, res) => {
     if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
     const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
     if (!access.ok) return access.response;
-    const schoolId = access.context.schoolId;
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
     const moduleKey = String(req.params.module || "").trim().toLowerCase();
     const scopeKey = String(req.params.scope || "").trim().toLowerCase();
     const editorRoles = scopeKey === "network" ? OFFICIAL_CONTENT_NETWORK_EDIT_ROLES : OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES;
@@ -1286,10 +2068,11 @@ app.post("/api/official-content/:module/:scope/status", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Status invalido. Use draft, published ou archived." });
     }
     const updatedBy = String(req.body?.updated_by || access.context.user.email || access.context.user.id || "Gestao").trim();
+    const { recordSchoolId } = await findOfficialContentRecord({ moduleKey, scopeKey, scopeContext });
     const { data: record, error: updateError } = await supabase
       .from("official_content_records")
       .update({ status: nextStatus, updated_by: updatedBy, updated_at: new Date().toISOString() })
-      .eq("school_id", schoolId)
+      .eq("school_id", recordSchoolId)
       .eq("module_key", moduleKey)
       .eq("scope_key", scopeKey)
       .select("*")
@@ -1297,7 +2080,7 @@ app.post("/api/official-content/:module/:scope/status", async (req, res) => {
     if (updateError) throw updateError;
 
     await supabase.from("formal_audit_events").insert({
-      school_id: schoolId,
+      school_id: recordSchoolId,
       event_type: "OFFICIAL_CONTENT_STATUS_UPDATED",
       actor_type: "Gestao",
       actor_name: updatedBy || "Conteudo Oficial",
@@ -1323,7 +2106,7 @@ app.post("/api/official-content/:module/:scope/restore/:versionId", async (req, 
     if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
     const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
     if (!access.ok) return access.response;
-    const schoolId = access.context.schoolId;
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
     const moduleKey = String(req.params.module || "").trim().toLowerCase();
     const scopeKey = String(req.params.scope || "").trim().toLowerCase();
     const versionId = String(req.params.versionId || "").trim();
@@ -1331,25 +2114,21 @@ app.post("/api/official-content/:module/:scope/restore/:versionId", async (req, 
     if (!editorRoles.has(access.context.effectiveRole)) {
       return res.status(403).json({ ok: false, error: "Seu perfil nao pode reativar versoes deste conteudo oficial." });
     }
+    const { record: existingRecord, recordSchoolId } = await findOfficialContentRecord({ moduleKey, scopeKey, scopeContext });
 
-    const [{ data: record, error: recordError }, { data: audits, error: auditsError }] = await Promise.all([
-      supabase
-        .from("official_content_records")
-        .select("*")
-        .eq("school_id", schoolId)
-        .eq("module_key", moduleKey)
-        .eq("scope_key", scopeKey)
-        .single(),
+    const [{ data: audits, error: auditsError }] = await Promise.all([
       supabase
         .from("formal_audit_events")
         .select("id, actor_name, created_at, details")
-        .eq("school_id", schoolId)
+        .eq("school_id", recordSchoolId)
         .eq("event_type", "OFFICIAL_CONTENT_UPDATED")
         .order("created_at", { ascending: false })
         .limit(100)
     ]);
-    if (recordError) throw recordError;
     if (auditsError) throw auditsError;
+    if (!existingRecord?.id) {
+      return res.status(404).json({ ok: false, error: "Registro atual de Conteudo Oficial nao encontrado para restauracao." });
+    }
 
     const auditMatch = (audits || []).find((event) => {
       const details = event.details || {};
@@ -1361,20 +2140,20 @@ app.post("/api/official-content/:module/:scope/restore/:versionId", async (req, 
       return res.status(400).json({ ok: false, error: "Esta versao nao possui snapshot reversivel. Reative apenas versoes salvas com historico estruturado." });
     }
 
-    const restoredTitle = String(req.body?.title || auditMatch?.details?.title || record.title || '').trim() || null;
-    const restoredSummary = String(req.body?.summary || auditMatch?.details?.summary || record.summary || '').trim() || null;
+    const restoredTitle = String(req.body?.title || auditMatch?.details?.title || existingRecord.title || '').trim() || null;
+    const restoredSummary = String(req.body?.summary || auditMatch?.details?.summary || existingRecord.summary || '').trim() || null;
     const updatedBy = String(req.body?.updated_by || access.context.user.email || access.context.user.id || 'Gestao').trim();
     const sourceDocument = await ensureOfficialContentSourceDocument({
-      schoolId,
+      schoolId: recordSchoolId,
       moduleKey,
       scopeKey,
       title: restoredTitle || (moduleKey + '-' + scopeKey),
       summary: restoredSummary,
-      existingSourceDocumentId: record.source_document_id
+      existingSourceDocumentId: existingRecord.source_document_id
     });
     const technicalContent = formatOfficialContentForKnowledge(moduleKey, scopeKey, restoredTitle, restoredSummary, snapshot);
     const version = await publishSourceVersion({
-      schoolId,
+      schoolId: recordSchoolId,
       sourceDocument,
       versionLabel: moduleKey + '-' + scopeKey + '-restored-' + new Date().toISOString().slice(0, 10),
       content: technicalContent,
@@ -1397,7 +2176,7 @@ app.post("/api/official-content/:module/:scope/restore/:versionId", async (req, 
     const { data: updatedRecord, error: upsertError } = await supabase
       .from('official_content_records')
       .update(payload)
-      .eq('school_id', schoolId)
+      .eq('school_id', recordSchoolId)
       .eq('module_key', moduleKey)
       .eq('scope_key', scopeKey)
       .select('*')
@@ -1405,7 +2184,7 @@ app.post("/api/official-content/:module/:scope/restore/:versionId", async (req, 
     if (upsertError) throw upsertError;
 
     await supabase.from('formal_audit_events').insert({
-      school_id: schoolId,
+      school_id: recordSchoolId,
       event_type: 'OFFICIAL_CONTENT_RESTORED',
       actor_type: 'Gestao',
       actor_name: updatedBy || 'Conteudo Oficial',
@@ -1452,6 +2231,11 @@ app.get("/api/public-calendar", async (_req, res) => {
     const schoolRows = schools || [];
     const recordRows = records || [];
     const bySchool = new Map(schoolRows.map((school) => [school.id, school]));
+    const networkIdsWithChildren = new Set(
+      schoolRows
+        .filter((school) => (!school.institution_type || school.institution_type === 'school_unit') && school.parent_school_id)
+        .map((school) => school.parent_school_id)
+    );
 
     const schoolCalendars = schoolRows
       .filter((school) => !school.institution_type || school.institution_type === 'school_unit')
@@ -1462,6 +2246,7 @@ app.get("/api/public-calendar", async (_req, res) => {
         const networkEntries = Array.isArray(networkRecord?.content_payload?.entries) ? networkRecord.content_payload.entries : [];
         const schoolEntries = Array.isArray(schoolRecord?.content_payload?.entries) ? schoolRecord.content_payload.entries : [];
         return {
+          selection_id: `school:${school.id}`,
           school_id: school.id,
           school_name: school.name,
           school_slug: school.slug,
@@ -1485,6 +2270,7 @@ app.get("/api/public-calendar", async (_req, res) => {
         const networkRecord = recordRows.find((row) => row.school_id === school.id && row.scope_key === 'network');
         const networkEntries = Array.isArray(networkRecord?.content_payload?.entries) ? networkRecord.content_payload.entries : [];
         return {
+          selection_id: `network:${school.id}`,
           school_id: school.id,
           school_name: school.name,
           school_slug: school.slug,
@@ -1500,10 +2286,14 @@ app.get("/api/public-calendar", async (_req, res) => {
           updated_at: networkRecord?.updated_at || null
         };
       })
-      .filter((item) => item.merged_entries.length && !schoolCalendars.some((school) => school.network_id === item.network_id));
+      .filter((item) => item.merged_entries.length && networkIdsWithChildren.has(item.network_id));
 
     const calendars = [...standaloneNetworks, ...schoolCalendars]
-      .sort((a, b) => String(a.school_name).localeCompare(String(b.school_name), 'pt-BR'));
+      .sort((a, b) =>
+        String(a.network_name).localeCompare(String(b.network_name), 'pt-BR') ||
+        Number(a.presentation_kind !== 'network_only') - Number(b.presentation_kind !== 'network_only') ||
+        String(a.school_name).localeCompare(String(b.school_name), 'pt-BR')
+      );
 
     const networks = [...new Map(calendars.map((item) => [item.network_id, { id: item.network_id, name: item.network_name }])).values()]
       .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
@@ -1528,7 +2318,7 @@ app.get("/api/preferences/ai-provider", async (req, res) => {
 
     const { data, error } = await supabase
       .from("ai_provider_settings")
-      .select("school_id, active_provider, openai_chat_model, groq_model, updated_by, updated_at")
+      .select("school_id, active_provider, groq_model, updated_by, updated_at")
       .eq("school_id", schoolId)
       .maybeSingle();
 
@@ -1543,8 +2333,7 @@ app.get("/api/preferences/ai-provider", async (req, res) => {
     return res.status(200).json({
       ok: true,
       settings: {
-        active_provider: data?.active_provider || fallback.active_provider,
-        openai_chat_model: data?.openai_chat_model || fallback.openai_chat_model,
+        active_provider: data?.active_provider === 'groq' ? 'groq' : fallback.active_provider,
         groq_model: data?.groq_model || fallback.groq_model,
         updated_by: data?.updated_by || null,
         updated_at: data?.updated_at || null
@@ -1566,13 +2355,12 @@ app.post("/api/preferences/ai-provider", async (req, res) => {
     const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES] });
     if (!access.ok) return access.response;
     const schoolId = access.context.schoolId;
-    const activeProvider = String(req.body?.active_provider || '').trim().toLowerCase();
-    const openaiModel = String(req.body?.openai_chat_model || process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini').trim();
+    const activeProvider = 'groq';
     const groqModel = String(req.body?.groq_model || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile').trim();
     const updatedBy = String(req.body?.updated_by || access.context.memberName || access.context.memberEmail || 'Operador institucional').trim();
 
-    if (!['openai', 'groq', 'gemini'].includes(activeProvider)) {
-      return res.status(400).json({ ok: false, error: 'active_provider invalido.' });
+        if (!groqModel) {
+      return res.status(400).json({ ok: false, error: 'groq_model invalido.' });
     }
 
     const { data, error } = await supabase
@@ -1580,12 +2368,11 @@ app.post("/api/preferences/ai-provider", async (req, res) => {
       .upsert({
         school_id: schoolId,
         active_provider: activeProvider,
-        openai_chat_model: openaiModel || null,
         groq_model: groqModel || null,
         updated_by: updatedBy || null,
         updated_at: new Date().toISOString()
       }, { onConflict: 'school_id' })
-      .select("school_id, active_provider, openai_chat_model, groq_model, updated_by, updated_at")
+      .select("school_id, active_provider, groq_model, updated_by, updated_at")
       .single();
 
     if (error) {
@@ -1612,13 +2399,29 @@ app.get("/api/intelligence/dashboard", async (req, res) => {
   try {
     const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "secretariat", "observer"] });
     if (!access.ok) return access.response;
-    const schoolId = access.context.schoolId;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds || [];
+    if (!schoolIds.length) {
+      return res.status(200).json({
+        ok: true,
+        period: periodConfig.period,
+        period_label: periodConfig.label,
+        metrics: fallbackDashboard(periodConfig).metrics,
+        assistant_volume: [],
+        top_topics: [],
+        channel_volume: [],
+        risk_overview: [],
+        response_risk_module: buildResponseRiskModule([]),
+        latest_audit_events: [],
+        scope_mode: scope.scopeMode
+      });
+    }
 
     const consultationsResult = await applyRange(
       supabase
         .from("institutional_consultations")
         .select("id, requester_id, channel, status, primary_topic, assigned_assistant_key, opened_at")
-        .eq("school_id", schoolId)
+        .in("school_id", schoolIds)
         .order("opened_at", { ascending: false })
         .limit(2000),
       "opened_at",
@@ -1634,7 +2437,7 @@ app.get("/api/intelligence/dashboard", async (req, res) => {
         supabase
           .from("assistant_responses")
           .select("consultation_id, assistant_key, confidence_score, source_version_id, created_at, delivered_at, response_mode, fallback_to_human")
-          .eq("school_id", schoolId)
+          .in("school_id", schoolIds)
           .order("created_at", { ascending: false })
           .limit(2000),
         "created_at",
@@ -1644,7 +2447,7 @@ app.get("/api/intelligence/dashboard", async (req, res) => {
         supabase
           .from("formal_audit_events")
           .select("consultation_id, event_type, severity, details, created_at")
-          .eq("school_id", schoolId)
+          .in("school_id", schoolIds)
           .order("created_at", { ascending: false })
           .limit(2000),
         "created_at",
@@ -1654,7 +2457,7 @@ app.get("/api/intelligence/dashboard", async (req, res) => {
         supabase
           .from("formal_audit_events")
           .select("event_type, severity, created_at, summary")
-          .eq("school_id", schoolId)
+          .in("school_id", schoolIds)
           .order("created_at", { ascending: false })
           .limit(8),
         "created_at",
@@ -1789,7 +2592,8 @@ app.get("/api/intelligence/dashboard", async (req, res) => {
       channel_volume: channelVolume,
       risk_overview: riskOverview,
       response_risk_module: responseRiskModule,
-      latest_audit_events: latestAuditsResult.data || []
+      latest_audit_events: latestAuditsResult.data || [],
+      scope_mode: scope.scopeMode
     });
   } catch (error) {
     console.error("Erro /api/intelligence/dashboard:", error);
@@ -1839,8 +2643,11 @@ app.get("/api/reports/operational-summary", async (req, res) => {
   }
 
   try {
-    const schoolId = getSchoolId(req);
-    if (!schoolId) {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "observer"] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds || [];
+    if (!schoolIds.length) {
       return res.status(200).json(emptyPayload);
     }
 
@@ -2060,22 +2867,22 @@ app.get("/api/reports/operational-summary", async (req, res) => {
     const loadPeriod = async (config) => {
       const [consultations, responses, audits, messages] = await Promise.all([
         applyRange(
-          supabase.from("institutional_consultations").select("id, status, primary_topic, requester_id, channel, opened_at").eq("school_id", schoolId).order("opened_at", { ascending: false }).limit(2000),
+          supabase.from("institutional_consultations").select("id, school_id, status, primary_topic, requester_id, channel, opened_at").in("school_id", schoolIds).order("opened_at", { ascending: false }).limit(2000),
           "opened_at",
           config
         ),
         applyRange(
-          supabase.from("assistant_responses").select("id, consultation_id, assistant_key, confidence_score, source_version_id, response_mode, fallback_to_human, supporting_source_title, delivered_at, created_at").eq("school_id", schoolId).order("created_at", { ascending: false }).limit(2000),
+          supabase.from("assistant_responses").select("id, school_id, consultation_id, assistant_key, confidence_score, source_version_id, response_mode, fallback_to_human, supporting_source_title, delivered_at, created_at").in("school_id", schoolIds).order("created_at", { ascending: false }).limit(2000),
           "created_at",
           config
         ),
         applyRange(
-          supabase.from("formal_audit_events").select("consultation_id, event_type, details, created_at").eq("school_id", schoolId).order("created_at", { ascending: false }).limit(2000),
+          supabase.from("formal_audit_events").select("school_id, consultation_id, event_type, details, created_at").in("school_id", schoolIds).order("created_at", { ascending: false }).limit(2000),
           "created_at",
           config
         ),
         applyRange(
-          supabase.from("consultation_messages").select("consultation_id, actor_type, created_at").eq("school_id", schoolId).order("created_at", { ascending: true }).limit(4000),
+          supabase.from("consultation_messages").select("school_id, consultation_id, actor_type, created_at").in("school_id", schoolIds).order("created_at", { ascending: true }).limit(4000),
           "created_at",
           config
         )
@@ -2227,7 +3034,8 @@ app.get("/api/reports/operational-summary", async (req, res) => {
       response_risk_module: responseRiskModule,
       recurring_demand: recurringDemand,
       previous_summary: previousSummary,
-      comparison
+      comparison,
+      scope_mode: scope.scopeMode
     });
   } catch (error) {
     console.error("Erro /api/reports/operational-summary:", error);
@@ -2239,10 +3047,15 @@ app.post("/api/audit/events/:id/review", async (req, res) => {
   if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
 
   try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "secretariat"] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds || [];
     const eventId = String(req.params.id || '').trim();
     const reviewStatus = String(req.body?.review_status || '').trim().toUpperCase();
     const reviewedBy = String(req.body?.reviewed_by || 'Operador institucional').trim();
     const reviewNotes = String(req.body?.review_notes || '').trim();
+    const treatmentDestination = normalizeAuditTreatmentDestination(req.body?.treatment_destination);
     const allowedStatuses = new Set(['PENDING_REVIEW', 'REVIEWED', 'KNOWLEDGE_CREATED', 'DISMISSED']);
 
     if (!eventId) {
@@ -2251,18 +3064,19 @@ app.post("/api/audit/events/:id/review", async (req, res) => {
     if (!allowedStatuses.has(reviewStatus)) {
       return res.status(400).json({ ok: false, error: 'Status de revisao invalido.' });
     }
-
-    const schoolId = getSchoolId(req);
+    if (treatmentDestination && !canRoleHandleAuditTreatmentDestination(access.context.effectiveRole, treatmentDestination)) {
+      return res.status(403).json({ ok: false, error: 'Seu perfil nao pode encaminhar para este destino de tratamento.' });
+    }
+    if (!schoolIds.length) {
+      return res.status(403).json({ ok: false, error: 'Seu perfil nao possui escopo institucional valido para tratar eventos.' });
+    }
     let query = supabase
       .from('formal_audit_events')
       .select('id, school_id, consultation_id, event_type, actor_name, summary, details')
       .eq('id', eventId)
+      .in('school_id', schoolIds)
       .limit(1)
       .maybeSingle();
-
-    if (schoolId) {
-      query = query.eq('school_id', schoolId);
-    }
 
     const { data: eventRow, error: fetchError } = await query;
     if (fetchError) throw fetchError;
@@ -2270,12 +3084,20 @@ app.post("/api/audit/events/:id/review", async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Evento de auditoria nao encontrado.' });
     }
 
+    const nextTreatmentDestination = treatmentDestination || normalizeAuditTreatmentDestination(eventRow.details?.treatment_destination);
+    const nextProgressStatus = nextTreatmentDestination
+      ? getDefaultTreatmentProgressForReviewStatus(reviewStatus, eventRow.details?.treatment_progress_status)
+      : (reviewStatus === 'DISMISSED' ? 'DISMISSED' : '');
     const nextDetails = {
       ...(eventRow.details || {}),
       review_status: reviewStatus,
       reviewed_by: reviewedBy || 'Operador institucional',
       reviewed_at: new Date().toISOString(),
-      review_notes: reviewNotes || null
+      review_notes: reviewNotes || null,
+      treatment_destination: nextTreatmentDestination || null,
+      treatment_progress_status: nextProgressStatus || null,
+      treatment_last_updated_at: new Date().toISOString(),
+      treatment_last_updated_by: reviewedBy || 'Operador institucional'
     };
 
     const { data: updatedEvent, error: updateError } = await supabase
@@ -2308,7 +3130,9 @@ app.post("/api/audit/events/:id/review", async (req, res) => {
         review_status: reviewStatus,
         reviewed_by: reviewedBy || 'Operador institucional',
         reviewed_at: nextDetails.reviewed_at,
-        review_notes: reviewNotes || null
+        review_notes: reviewNotes || null,
+        treatment_destination: nextTreatmentDestination || null,
+        treatment_progress_status: nextProgressStatus || null
       }
     });
 
@@ -2319,20 +3143,130 @@ app.post("/api/audit/events/:id/review", async (req, res) => {
   }
 });
 
+app.get("/api/audit/treatments", async (req, res) => {
+  if (!supabase) return res.status(200).json({ ok: true, items: [], destinations: [] });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "public_operator", "secretariat"] });
+    if (!access.ok) return access.response;
+    const includeCompleted = String(req.query.include_completed || "").trim().toLowerCase() === "true";
+    const includeAllDestinations = String(req.query.view || "").trim().toLowerCase() === "all";
+    const destination = String(req.query.destination || "").trim();
+    const queue = await buildAuditTreatmentQueue({
+      accessContext: access.context,
+      includeCompleted,
+      includeAllDestinations,
+      destinationFilter: destination
+    });
+    return res.status(200).json({ ok: true, scope_mode: queue.scopeMode, destinations: queue.destinations, items: queue.items });
+  } catch (error) {
+    console.error("Erro /api/audit/treatments:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar a fila de tratamentos." });
+  }
+});
+
+app.post("/api/audit/treatments/:id/status", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "public_operator", "secretariat"] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds || [];
+    const eventId = String(req.params.id || "").trim();
+    const nextStatus = normalizeAuditTreatmentProgress(req.body?.treatment_progress_status);
+    const notes = String(req.body?.treatment_completion_notes || "").trim();
+    const actorName = String(req.body?.updated_by || access.context.memberName || access.context.memberEmail || "Operador institucional").trim();
+
+    if (!eventId) {
+      return res.status(400).json({ ok: false, error: "Item de tratamento invalido." });
+    }
+    if (!["OPEN", "IN_PROGRESS", "COMPLETED", "DISMISSED"].includes(nextStatus)) {
+      return res.status(400).json({ ok: false, error: "Status do tratamento invalido." });
+    }
+    if (!schoolIds.length) {
+      return res.status(403).json({ ok: false, error: "Seu perfil nao possui escopo institucional valido para tratar eventos." });
+    }
+
+    const { data: eventRow, error: fetchError } = await supabase
+      .from("formal_audit_events")
+      .select("id, school_id, consultation_id, event_type, summary, details")
+      .eq("id", eventId)
+      .in("school_id", schoolIds)
+      .limit(1)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    if (!eventRow) {
+      return res.status(404).json({ ok: false, error: "Item de tratamento nao encontrado." });
+    }
+
+    const destination = normalizeAuditTreatmentDestination(eventRow.details?.treatment_destination);
+    if (!destination) {
+      return res.status(400).json({ ok: false, error: "Este evento ainda nao possui destino de tratamento." });
+    }
+    if (!canRoleHandleAuditTreatmentDestination(access.context.effectiveRole, destination)) {
+      return res.status(403).json({ ok: false, error: "Seu perfil nao pode atualizar este destino de tratamento." });
+    }
+
+    const nextDetails = {
+      ...(eventRow.details || {}),
+      treatment_progress_status: nextStatus,
+      treatment_last_updated_at: new Date().toISOString(),
+      treatment_last_updated_by: actorName || "Operador institucional",
+      treatment_completion_notes: notes || null
+    };
+
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from("formal_audit_events")
+      .update({ details: nextDetails })
+      .eq("id", eventId)
+      .select("id, details")
+      .single();
+    if (updateError) throw updateError;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: eventRow.school_id,
+      consultation_id: eventRow.consultation_id,
+      event_type: "AUDIT_TREATMENT_PROGRESS_UPDATED",
+      severity: "INFO",
+      actor_type: "HUMAN",
+      actor_name: actorName || "Operador institucional",
+      summary: `Tratamento atualizado para ${AUDIT_TREATMENT_PROGRESS[nextStatus] || nextStatus}.`,
+      details: {
+        source_event_id: eventRow.id,
+        source_event_type: eventRow.event_type,
+        treatment_destination: destination,
+        treatment_progress_status: nextStatus,
+        treatment_last_updated_at: nextDetails.treatment_last_updated_at,
+        treatment_last_updated_by: actorName || "Operador institucional",
+        treatment_completion_notes: notes || null
+      }
+    });
+
+    return res.status(200).json({ ok: true, event: updatedEvent });
+  } catch (error) {
+    console.error("Erro /api/audit/treatments/:id/status:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao atualizar o tratamento." });
+  }
+});
+
 app.get("/api/audit/events", async (req, res) => {
   if (!supabase) return res.status(200).json({ ok: true, events: [] });
 
   try {
-    const schoolId = getSchoolId(req);
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "secretariat", "observer"] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds || [];
+    if (!schoolIds.length) {
+      return res.status(200).json({ ok: true, events: [], scope_mode: scope.scopeMode });
+    }
     const query = supabase
       .from("formal_audit_events")
       .select("id, consultation_id, event_type, severity, actor_type, actor_name, summary, details, created_at")
+      .in("school_id", schoolIds)
       .order("created_at", { ascending: false })
       .limit(200);
-
-    if (schoolId) {
-      query.eq("school_id", schoolId);
-    }
 
     const { data, error } = await query;
     if (error) throw error;
@@ -2349,7 +3283,8 @@ app.get("/api/audit/events", async (req, res) => {
     if (consultationIds.length || requesterIds.length) {
       let consultationsQuery = supabase
         .from("institutional_consultations")
-        .select("id, requester_id, requester_name, channel, assigned_assistant_key, opened_at, resolved_at, metadata")
+        .select("id, school_id, requester_id, requester_name, channel, assigned_assistant_key, opened_at, resolved_at, metadata")
+        .in("school_id", schoolIds)
         .order("opened_at", { ascending: false })
         .limit(500);
 
@@ -2379,12 +3314,14 @@ app.get("/api/audit/events", async (req, res) => {
         const [messagesResult, responsesResult] = await Promise.all([
           supabase
             .from("consultation_messages")
-            .select("id, consultation_id, direction, actor_type, actor_name, message_text, created_at")
+            .select("id, school_id, consultation_id, direction, actor_type, actor_name, message_text, created_at")
+            .in("school_id", schoolIds)
             .in("consultation_id", effectiveConsultationIds)
             .order("created_at", { ascending: true }),
           supabase
             .from("assistant_responses")
-            .select("id, consultation_id, assistant_key, response_text, source_version_id, confidence_score, response_mode, consulted_sources, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, origin_message_id, response_message_id, fallback_to_human, corrected_from_response_id, corrected_at, corrected_by, delivered_at, created_at")
+            .select("id, school_id, consultation_id, assistant_key, response_text, source_version_id, confidence_score, response_mode, consulted_sources, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, origin_message_id, response_message_id, fallback_to_human, corrected_from_response_id, corrected_at, corrected_by, delivered_at, created_at")
+            .in("school_id", schoolIds)
             .in("consultation_id", effectiveConsultationIds)
             .order("delivered_at", { ascending: false })
         ]);
@@ -2515,6 +3452,9 @@ app.get("/api/audit/events", async (req, res) => {
         reviewed_by: details.reviewed_by || '-',
         reviewed_at: details.reviewed_at || null,
         review_notes: details.review_notes || '-',
+        treatment_destination: normalizeAuditTreatmentDestination(details.treatment_destination) || '',
+        treatment_progress_status: normalizeAuditTreatmentProgress(details.treatment_progress_status || getDefaultTreatmentProgressForReviewStatus(details.review_status, details.treatment_progress_status)) || '',
+        treatment_completion_notes: details.treatment_completion_notes || '',
         abstained: Boolean(details.abstained),
         supporting_source_title: details.supporting_source_title || relatedResponse?.supporting_source_title || consultedSources[0]?.source_title || '-',
         supporting_source_version_label: details.supporting_source_version_label || relatedResponse?.supporting_source_version_label || consultedSources[0]?.source_version_label || '-',
@@ -2530,12 +3470,219 @@ app.get("/api/audit/events", async (req, res) => {
       };
     });
 
-    return res.status(200).json({ ok: true, events });
+    return res.status(200).json({ ok: true, events, scope_mode: scope.scopeMode });
   } catch (error) {
     console.error("Erro /api/audit/events:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar trilha de auditoria." });
   }
 });
+
+// ============================================================================
+// ROTAS DE FAQ - Perguntas/Respostas com versionamento, auditoria e testes
+// ============================================================================
+app.get("/api/faq", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const scopeKey = String(req.query.scope || "school").trim().toLowerCase();
+
+    if (!["school", "network"].includes(scopeKey)) {
+      return res.status(400).json({ ok: false, error: "Escopo deve ser 'school' ou 'network'." });
+    }
+
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
+    const { items, total } = await faqController.listFaqItems(req, access.context, { schoolId, scopeKey });
+
+    return res.json({ ok: true, items, total });
+  } catch (error) {
+    console.error("Erro GET /api/faq:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao listar FAQs." });
+  }
+});
+
+app.post("/api/faq", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const scopeKey = String(req.query.scope || "school").trim().toLowerCase();
+
+    if (!["school", "network"].includes(scopeKey)) {
+      return res.status(400).json({ ok: false, error: "Escopo deve ser 'school' ou 'network'." });
+    }
+
+    const editorRoles = scopeKey === "network" ? OFFICIAL_CONTENT_NETWORK_EDIT_ROLES : OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES;
+    if (!editorRoles.has(access.context.effectiveRole)) {
+      return res.status(403).json({ ok: false, error: "Seu perfil não tem permissão para editar FAQs." });
+    }
+
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
+    const faqItem = await faqController.createOrUpdateFaqItem(req, access.context, { schoolId, scopeKey });
+
+    return res.json({ ok: true, faq: faqItem });
+  } catch (error) {
+    console.error("Erro POST /api/faq:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao criar FAQ." });
+  }
+});
+
+app.put("/api/faq/:id", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const scopeKey = String(req.query.scope || "school").trim().toLowerCase();
+    const faqId = String(req.params.id || "").trim();
+
+    if (!["school", "network"].includes(scopeKey)) {
+      return res.status(400).json({ ok: false, error: "Escopo deve ser 'school' ou 'network'." });
+    }
+
+    if (!faqId) {
+      return res.status(400).json({ ok: false, error: "ID do FAQ é obrigatório." });
+    }
+
+    const editorRoles = scopeKey === "network" ? OFFICIAL_CONTENT_NETWORK_EDIT_ROLES : OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES;
+    if (!editorRoles.has(access.context.effectiveRole)) {
+      return res.status(403).json({ ok: false, error: "Seu perfil não tem permissão para editar FAQs." });
+    }
+
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
+    const faqItem = await faqController.createOrUpdateFaqItem(req, access.context, { schoolId, scopeKey, faqId });
+
+    return res.json({ ok: true, faq: faqItem });
+  } catch (error) {
+    console.error("Erro PUT /api/faq/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao atualizar FAQ." });
+  }
+});
+
+app.delete("/api/faq/:id", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const scopeKey = String(req.query.scope || "school").trim().toLowerCase();
+    const faqId = String(req.params.id || "").trim();
+
+    if (!["school", "network"].includes(scopeKey)) {
+      return res.status(400).json({ ok: false, error: "Escopo deve ser 'school' ou 'network'." });
+    }
+
+    if (!faqId) {
+      return res.status(400).json({ ok: false, error: "ID do FAQ é obrigatório." });
+    }
+
+    const editorRoles = scopeKey === "network" ? OFFICIAL_CONTENT_NETWORK_EDIT_ROLES : OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES;
+    if (!editorRoles.has(access.context.effectiveRole)) {
+      return res.status(403).json({ ok: false, error: "Seu perfil não tem permissão para deletar FAQs." });
+    }
+
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
+    await faqController.deleteFaqItem(req, access.context, { schoolId, faqId });
+
+    return res.json({ ok: true, message: "FAQ deletado com sucesso." });
+  } catch (error) {
+    console.error("Erro DELETE /api/faq/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao deletar FAQ." });
+  }
+});
+
+app.post("/api/faq/:id/publish", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const scopeKey = String(req.query.scope || "school").trim().toLowerCase();
+    const faqId = String(req.params.id || "").trim();
+
+    if (!["school", "network"].includes(scopeKey)) {
+      return res.status(400).json({ ok: false, error: "Escopo deve ser 'school' ou 'network'." });
+    }
+
+    if (!faqId) {
+      return res.status(400).json({ ok: false, error: "ID do FAQ é obrigatório." });
+    }
+
+    const editorRoles = scopeKey === "network" ? OFFICIAL_CONTENT_NETWORK_EDIT_ROLES : OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES;
+    if (!editorRoles.has(access.context.effectiveRole)) {
+      return res.status(403).json({ ok: false, error: "Seu perfil não tem permissão para publicar FAQs." });
+    }
+
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
+    const faqItem = await faqController.publishFaqItem(req, access.context, { schoolId, faqId });
+
+    return res.json({ ok: true, faq: faqItem, message: "FAQ publicado com sucesso." });
+  } catch (error) {
+    console.error("Erro POST /api/faq/:id/publish:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao publicar FAQ." });
+  }
+});
+
+app.post("/api/faq/:id/test", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+    const scopeKey = String(req.query.scope || "school").trim().toLowerCase();
+    const faqId = String(req.params.id || "").trim();
+
+    if (!["school", "network"].includes(scopeKey)) {
+      return res.status(400).json({ ok: false, error: "Escopo deve ser 'school' ou 'network'." });
+    }
+
+    if (!faqId) {
+      return res.status(400).json({ ok: false, error: "ID do FAQ é obrigatório." });
+    }
+
+    const schoolId = scopeKey === "network" ? scopeContext.networkScopeSchool.id : scopeContext.schoolScopeSchool.id;
+    const testResult = await faqController.testFaqWithAi(req, access.context, { schoolId, faqId });
+
+    return res.json({ ok: true, testResult, message: "Teste de IA concluído." });
+  } catch (error) {
+    console.error("Erro POST /api/faq/:id/test:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao testar FAQ." });
+  }
+});
+
+app.get("/api/faq/conflicts", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const scopeContext = await resolveOfficialContentScopeContext(access.context.schoolId);
+
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase não configurado." });
+    }
+
+    const { data: conflicts, error } = await supabase
+      .from("faq_conflicts")
+      .select("*")
+      .eq("school_id", scopeContext.schoolScopeSchool.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw Object.assign(
+        new Error(`Falha ao listar conflitos: ${error.message}`),
+        { statusCode: 500, cause: error }
+      );
+    }
+
+    return res.json({ ok: true, conflicts: conflicts || [] });
+  } catch (error) {
+    console.error("Erro GET /api/faq/conflicts:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao listar conflitos." });
+  }
+});
+
 setInterval(() => {
   void processIdleConversations();
 }, IDLE_SWEEP_INTERVAL_MS);

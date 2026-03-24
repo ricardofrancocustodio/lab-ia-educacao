@@ -60,7 +60,6 @@
                                                     Salvar Fuso
                                                 </button>
                                             </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -72,25 +71,17 @@
                                 </div>
                                 <div class="card-body">
                                     <p class="text-muted mb-3">
-                                        Escolha qual provedor de IA sera usado no atendimento institucional.
-                                        A variavel de ambiente continua como fallback, mas esta escolha permite alternar pelo painel.
+                                        Este ambiente usa Groq no atendimento institucional.
+                                        O painel abaixo permite apenas ajustar o modelo Groq ativo para a escola.
                                     </p>
                                     <div class="alert alert-light border small" id="ai-provider-status">Carregando configuracao atual...</div>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label for="aiProviderSelect">Provedor ativo</label>
-                                                <select class="form-control" id="aiProviderSelect">
-                                                    <option value="openai">OpenAI</option>
-                                                    <option value="groq">Groq</option>
-                                                    <option value="gemini">Gemini</option>
+                                                <select class="form-control" id="aiProviderSelect" disabled>
+                                                    <option value="groq" selected>Groq</option>
                                                 </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 ai-model-field" data-provider="openai">
-                                            <div class="form-group">
-                                                <label for="openaiChatModel">Modelo OpenAI</label>
-                                                <input type="text" class="form-control" id="openaiChatModel" placeholder="gpt-4o-mini">
                                             </div>
                                         </div>
                                         <div class="col-md-4 ai-model-field" data-provider="groq">
@@ -103,7 +94,7 @@
                                     <div class="alert alert-secondary small d-none" id="ai-provider-model-hint"></div>
                                     <div class="d-flex flex-wrap" style="gap: 8px;">
                                         <button id="btn-save-ai-provider" type="button" class="btn btn-success" onclick="salvarConfiguracaoIA()">
-                                            <i class="fas fa-save mr-1"></i>Salvar provedor de IA
+                                            <i class="fas fa-save mr-1"></i>Salvar modelo Groq
                                         </button>
                                         <button id="btn-reload-ai-provider" type="button" class="btn btn-outline-secondary" onclick="carregarConfiguracaoIA()">
                                             Recarregar

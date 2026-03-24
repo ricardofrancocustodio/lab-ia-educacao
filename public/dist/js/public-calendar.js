@@ -1,4 +1,4 @@
-﻿const PublicCalendarPage = (() => {
+const PublicCalendarPage = (() => {
   const state = { schools: [], networks: [], filteredSchools: [] };
   const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -17,6 +17,15 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function formatSecretariatName(value) {
+    const name = String(value || '').trim();
+    if (!name) return 'Secretaria de Educação';
+    if (normalize(name).startsWith('rede ')) {
+      return name.replace(/^Rede\s+/i, 'Secretaria de Educação ');
+    }
+    return name;
   }
 
   function getTypeColor(type) {
@@ -116,6 +125,7 @@
       cells.push(`
         <div class="calendar-day${events.length ? ' has-event' : ''}${isToday ? ' is-today' : ''}" title="${escapeHtml(events.map((entry) => `${entry.title || 'Evento sem título'} (${formatEventRange(entry)})`).join(' | '))}">
           <span class="calendar-day-number"${primaryColor ? ` style="background:${primaryColor};"` : ''}>${day}</span>
+          ${events.length > 1 ? `<span class="calendar-day-total">${events.length}</span>` : ''}
           ${colors.length ? `<span class="calendar-day-markers">${colors.map((color) => `<i class="calendar-day-marker" style="background:${color};"></i>`).join('')}</span>` : ''}
         </div>
       `);
@@ -133,68 +143,96 @@
 
   function populateNetworks() {
     const select = document.getElementById('public-calendar-network');
-    select.innerHTML = ['<option value="">Todas as redes</option>']
-      .concat(state.networks.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
+    select.innerHTML = ['<option value="">Selecione a Secretaria de Educação</option>']
+      .concat(state.networks.map((item) => `<option value="${item.id}">${escapeHtml(formatSecretariatName(item.name))}</option>`))
       .join('');
   }
 
+  function formatSchoolOptionLabel(item) {
+    if (!item) return '';
+    if (item.presentation_kind === 'network_only') {
+      return 'Secretaria de Educação: ' + formatSecretariatName(item.network_name);
+    }
+    return 'Escola: ' + item.school_name;
+  }
+  function updateOverviewCopy() {
+    const intro = document.querySelector('.calendar-intro');
+    if (!intro) return;
+    const networkCount = state.networks.length;
+    const schoolCount = state.schools.filter((item) => item.presentation_kind === 'school_unit').length;
+    intro.textContent = state.schools.length
+      ? networkCount + ' secretarias e ' + schoolCount + ' escolas com calendário publicado. Escolha a secretaria para visualizar a hierarquia correta.'
+      : 'Nenhum calendário publicado foi localizado até o momento.';
+  }
   function populateSchools(schools) {
     const select = document.getElementById('public-calendar-school');
     select.innerHTML = schools.length
-      ? schools.map((item) => `<option value="${item.school_id}">${escapeHtml(item.school_name)}</option>`).join('')
-      : '<option value="">Nenhuma escola encontrada</option>';
+      ? schools.map((item) => '<option value="' + escapeHtml(item.selection_id || item.school_id) + '">' + escapeHtml(formatSchoolOptionLabel(item)) + '</option>').join('')
+      : '<option value="">Selecione a secretaria primeiro</option>';
   }
-
   function applyFilters() {
     const networkId = document.getElementById('public-calendar-network').value;
     const search = normalize(document.getElementById('public-calendar-search').value);
-    state.filteredSchools = state.schools.filter((item) => {
-      const matchesNetwork = !networkId || item.network_id === networkId;
-      const matchesSearch = !search || normalize(item.school_name).includes(search) || normalize(item.network_name).includes(search);
+    state.filteredSchools = networkId ? state.schools.filter((item) => {
+      const matchesNetwork = item.network_id === networkId;
+      const matchesSearch = !search
+        || normalize(item.school_name).includes(search)
+        || normalize(item.network_name).includes(search)
+        || normalize(item.calendar_title).includes(search)
+        || normalize(item.presentation_kind === 'network_only' ? 'secretaria' : 'escola').includes(search);
       return matchesNetwork && matchesSearch;
-    });
+    }) : [];
     populateSchools(state.filteredSchools);
     renderSelectedSchool();
   }
 
   function renderSelectedSchool() {
     const selectedId = document.getElementById('public-calendar-school').value;
-    const school = state.filteredSchools.find((item) => item.school_id === selectedId) || state.filteredSchools[0];
+    const school = state.filteredSchools.find((item) => String(item.selection_id || item.school_id) === selectedId) || state.filteredSchools[0];
     const title = document.getElementById('public-calendar-school-title');
     const subtitle = document.getElementById('public-calendar-school-subtitle');
     const metadata = document.getElementById('public-calendar-metadata');
     const year = document.getElementById('public-calendar-year');
+    const panelContext = document.getElementById('public-calendar-panel-context');
     const grid = document.getElementById('public-calendar-grid');
 
     if (!school) {
-      title.textContent = 'Nenhuma escola encontrada';
-      subtitle.textContent = 'Ajuste os filtros para localizar um calendário publicado.';
+      title.textContent = 'Selecione uma Secretaria de Educação';
+      subtitle.textContent = 'Depois de escolher a secretaria, você poderá alternar entre o calendário-base da secretaria e o calendário da escola vinculada.';
       metadata.innerHTML = '';
       year.textContent = 'Ano';
-      grid.innerHTML = '<div class="calendar-empty-state">Nenhum calendário publicado para os filtros selecionados.</div>';
+      if (panelContext) panelContext.textContent = 'Contexto anual não selecionado.';
+      grid.innerHTML = '<div class="calendar-empty-state">Escolha a secretaria para carregar o calendário correto.</div>';
       return;
     }
 
     const isNetworkOnly = school.presentation_kind === 'network_only';
-    document.getElementById('public-calendar-school').value = school.school_id;
+    document.getElementById('public-calendar-school').value = String(school.selection_id || school.school_id);
 
-    title.textContent = school.school_name;
+    title.textContent = isNetworkOnly ? formatSecretariatName(school.network_name) : school.school_name;
     subtitle.textContent = isNetworkOnly
-      ? `${school.network_name}`
-      : `${school.network_name}`;
+      ? 'Contexto ativo: calendário-base da ' + formatSecretariatName(school.network_name)
+      : 'Contexto ativo: ' + school.school_name + ' vinculada a ' + formatSecretariatName(school.network_name);
 
     const entries = (school.merged_entries || []).slice().sort(compareCalendarDates);
     const yearValue = inferYear(entries);
     year.textContent = yearValue;
 
+    if (panelContext) {
+      panelContext.textContent = isNetworkOnly
+        ? 'Visualizando agora: calendário anual da ' + formatSecretariatName(school.network_name)
+        : 'Visualizando agora: calendário anual de ' + school.school_name + ' vinculada a ' + formatSecretariatName(school.network_name);
+    }
+
     const firstEntry = entries[0];
     const lastEntry = entries[entries.length - 1];
     metadata.innerHTML = [
-      ['Rede / Secretaria', school.network_name],
-      ['Escopo de exibição', isNetworkOnly ? 'Rede / Secretaria' : 'Unidade escolar'],
-      ['Título do calendário', school.calendar_title || 'Calendário Escolar'],
-      ['Resumo', school.calendar_summary || (isNetworkOnly ? 'Calendário-base oficial publicado pela rede.' : 'Calendário-base da rede com complementos da unidade escolar.')],
-      ['Início e término', entries.length ? `${firstEntry?.start_date || '-'} até ${lastEntry?.end_date || lastEntry?.start_date || '-'}` : '-'],
+      ['Contexto selecionado', isNetworkOnly ? 'Secretaria de Educação' : 'Escola'],
+      ['Secretaria de Educação', formatSecretariatName(school.network_name)],
+      ['Tipo do calendário', isNetworkOnly ? 'Calendário-base da secretaria' : 'Calendário da escola com base da secretaria'],
+      ['Título publicado', school.calendar_title || 'Calendário Escolar'],
+      ['Resumo', school.calendar_summary || (isNetworkOnly ? 'Calendário-base oficial publicado pela secretaria.' : 'Calendário-base da secretaria com complementos da unidade escolar.')],
+      ['Período coberto', entries.length ? `${firstEntry?.start_date || '-'} até ${lastEntry?.end_date || lastEntry?.start_date || '-'}` : '-'],
       ['Última atualização', formatUpdatedAt(school.updated_at)]
     ].map(([label, value]) => `
       <div class="calendar-meta-item">
@@ -225,7 +263,7 @@
             ${notes.length ? notes.map((entry) => `
               <div class="calendar-month-note">
                 <i class="calendar-dot" style="background:${getTypeColor(entry.event_type)};"></i>
-                <span><strong>${escapeHtml(entry.title || 'Evento')}</strong></span>
+                <span><strong>${escapeHtml(entry.title || 'Evento')}</strong><small>${escapeHtml(formatEventRange(entry))}</small></span>
               </div>
             `).join('') : '<div class="calendar-empty">Sem eventos destacados neste mês.</div>'}
           </div>
@@ -241,9 +279,11 @@
     state.networks = data.networks || [];
     state.schools = data.schools || [];
     populateNetworks();
-    state.filteredSchools = state.schools.slice();
-    populateSchools(state.filteredSchools);
-    renderSelectedSchool();
+    updateOverviewCopy();
+    if (state.networks[0]?.id) {
+      document.getElementById('public-calendar-network').value = state.networks[0].id;
+    }
+    applyFilters();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -256,3 +296,15 @@
     });
   });
 })();
+
+
+
+
+
+
+
+
+
+
+
+

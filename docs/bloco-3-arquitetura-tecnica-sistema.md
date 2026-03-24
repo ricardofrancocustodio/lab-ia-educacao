@@ -6,7 +6,7 @@
 **Natureza do documento:** Arquitetura tecnica do sistema  
 **Versao:** 1.0  
 **Data:** 21 de marco de 2026  
-**Escopo:** Infraestrutura, APIs, banco de dados, seguranca, autenticacao e logs da plataforma LAB-AI Educacao
+**Escopo:** Infraestrutura, APIs, banco de dados, seguranca, autenticacao e logs da plataforma LAB-IA Educacao
 
 ---
 
@@ -155,7 +155,7 @@ O `package.json` indica como dependencias nucleares:
 - `axios`
 - `dotenv`
 
-Em conjunto, isso confirma o papel do backend como orquestrador de integrações, persistencia e IA.
+Em conjunto, isso confirma o papel do backend como orquestrador de integraï¿½ï¿½es, persistencia e IA.
 
 ---
 
@@ -172,7 +172,7 @@ As APIs do sistema se distribuem em dois grandes grupos:
 
 | Rota | Metodo | Funcao principal |
 |---|---|---|
-| `/health` | GET | verificação basica de saude da aplicacao |
+| `/health` | GET | verificaï¿½ï¿½o basica de saude da aplicacao |
 | `/api/knowledge/sources` | GET | listar fontes de conhecimento |
 | `/api/knowledge/sources/:id/versions` | GET | listar versoes de uma fonte |
 | `/api/knowledge/sources/import` | POST | importar nova fonte de conhecimento |
@@ -342,7 +342,7 @@ A arquitetura utiliza autorizacao em pelo menos tres camadas:
 Controle de menus e paginas visiveis.
 
 2. **backend**  
-Validação efetiva por rota e por papel.
+Validaï¿½ï¿½o efetiva por rota e por papel.
 
 3. **banco**  
 Roadmap de RLS e policies por escola e perfil.
@@ -394,7 +394,7 @@ A documentacao LGPD e tecnica ja reconhece riscos importantes, entre eles:
 
 ### 7.4 Avaliacao sintetica de seguranca
 
-A arquitetura atual demonstra boa preocupacao com seguranca funcional e governanca, mas ainda esta em processo de endurecimento de seguranca estrutural. Isso e compatível com piloto controlado, mas exige acompanhamento para escala.
+A arquitetura atual demonstra boa preocupacao com seguranca funcional e governanca, mas ainda esta em processo de endurecimento de seguranca estrutural. Isso e compatï¿½vel com piloto controlado, mas exige acompanhamento para escala.
 
 ---
 

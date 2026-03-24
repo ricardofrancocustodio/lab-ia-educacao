@@ -1,4 +1,4 @@
-const path = require("path");
+ï»¿const path = require("path");
 
 const { askAI } = require(path.resolve("./.qodo/services/ai/index.js"));
 const { findMatchingEntries } = require(path.resolve("./.qodo/services/supabase.js"));
@@ -34,14 +34,43 @@ function mapConsultedSources(entries = []) {
   }));
 }
 
+function hasReliableInstitutionalSource(source = {}) {
+  return Boolean(
+    source?.source_version_id ||
+    source?.source_document_id ||
+    String(source?.source_version_label || '').trim() ||
+    String(source?.retrieval_method || '').trim() === 'official_content'
+  );
+}
+
+function buildSourceCard(source = {}) {
+  if (!source || !hasReliableInstitutionalSource(source)) return null;
+  return {
+    title: source.source_title || 'Fonte institucional',
+    version: source.source_version_label || 'publicado',
+    excerpt: String(source.source_excerpt || '').replace(/\s+/g, ' ').trim().slice(0, 220),
+    evidence_score: source.evidence_score ?? null
+  };
+}
+
+function appendSourceCitation(reply, source = {}) {
+  const normalizedReply = String(reply || '').trim();
+  if (!normalizedReply || !hasReliableInstitutionalSource(source)) return normalizedReply;
+  const title = String(source.source_title || 'Fonte institucional').trim();
+  const version = String(source.source_version_label || 'publicado').trim();
+  const citation = `Fonte: ${title} (${version}).`;
+  if (normalizedReply.includes(citation) || normalizedReply.includes(title)) return normalizedReply;
+  return `${normalizedReply}\n\n${citation}`.trim();
+}
+
 function buildEvidenceAssessment(entries = []) {
   const best = entries[0] || null;
   const supportingSource = best ? mapConsultedSources([best])[0] : null;
   const consultedSources = mapConsultedSources(entries);
   const evidenceScore = Number(best?.evidence_score || 0);
-  const sourceCount = consultedSources.filter((item) => item.source_version_id).length;
+  const sourceCount = consultedSources.filter((item) => hasReliableInstitutionalSource(item)).length;
 
-  if (!best || !best.source_version_id || evidenceScore < WARNING_EVIDENCE_SCORE) {
+  if (!best || !hasReliableInstitutionalSource(supportingSource) || evidenceScore < WARNING_EVIDENCE_SCORE) {
     return {
       decision: 'ABSTAIN_AND_REVIEW',
       evidence_score: evidenceScore,
@@ -80,11 +109,31 @@ function buildEvidenceAssessment(entries = []) {
 }
 
 function buildAbstentionReply(areaLabel) {
-  return `Nao encontrei base institucional suficiente e versionada para responder com seguranca sobre este tema na area ${areaLabel}. Para manter a governanca da informacao, prefiro nao afirmar algo sem evidencias. Recomendo revisao humana e atualizacao da base de conhecimento, se necessario.`;
+  return `Quero te ajudar com esse tema da area ${areaLabel}, mas ainda nao encontrei base institucional suficiente e versionada para responder com seguranca. Se voce puder detalhar melhor o que precisa, eu tento localizar a orientacao correta sem inventar informacoes.`;
 }
 
 function buildWarningPrefix() {
   return 'Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado.';
+}
+
+function buildSourceBackedFallback(entries = []) {
+  if (!entries.length) {
+    return 'Nao encontrei base institucional suficiente para responder com seguranca.';
+  }
+
+  const primary = entries[0] || {};
+  const sourceTitle = primary.source_title || 'fonte institucional';
+  const sourceVersion = primary.source_version_label || primary.source_version_number || 'sem versao identificada';
+  const excerpt = String(primary.answer || primary.question || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 420);
+
+  if (!excerpt) {
+    return 'Localizei a fonte ' + sourceTitle + ' (' + sourceVersion + '), mas o trecho recuperado esta incompleto para uma resposta segura.';
+  }
+
+  return excerpt + ' Fonte utilizada: ' + sourceTitle + ' (' + sourceVersion + ').';
 }
 
 function createAgent(config) {
@@ -107,7 +156,8 @@ function createAgent(config) {
 
     async handleMessage(from, userMessage) {
       const text = String(userMessage?.text || userMessage || "").trim();
-      if (!text || /audio|áudio/i.test(text)) {
+      const resolvedSchoolId = String(userMessage?.school_id || userMessage?.metadata?.school_id || SCHOOL_ID || '').trim();
+      if (!text || String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("audio")) {
         return {
           text: "Este canal atende somente por texto. Envie sua duvida por escrito.",
           audit: {
@@ -131,7 +181,7 @@ function createAgent(config) {
       const session = getSession(sessionId) || { step: 0, data: { history: [] } };
       session.data.history = Array.isArray(session.data.history) ? session.data.history : [];
 
-      const entries = await findMatchingEntries(text, SCHOOL_ID, {
+      const entries = await findMatchingEntries(text, resolvedSchoolId || SCHOOL_ID, {
         categories: knowledgeCategories,
         limit: 3
       });
@@ -152,7 +202,8 @@ function createAgent(config) {
             consulted_sources: assessment.consulted_sources,
             supporting_source: assessment.supporting_source,
             fallback_to_human: true,
-            abstained: true
+            abstained: true,
+            source_card: buildSourceCard(assessment.supporting_source)
           }
         };
       }
@@ -160,6 +211,7 @@ function createAgent(config) {
       const prompt = [
         `Voce e ${name}, assistente da area ${areaLabel}.`,
         `Escopo principal: ${scopeDescription}.`,
+        'Tom esperado: linguagem acolhedora, simples e objetiva, como um atendimento institucional humano.',
         'Regras:',
         '1. Responda em portugues do Brasil.',
         '2. Nao invente regras, prazos, politicas, documentos ou compromissos institucionais.',
@@ -173,10 +225,15 @@ function createAgent(config) {
       ].filter(Boolean).join("\n");
 
       const reply = await askAI(prompt, text, session.data.history);
-      let finalReply = String(reply || '').trim() || 'Nao consegui responder com seguranca agora.';
+      const normalizedReply = String(reply || '').trim();
+      let finalReply = normalizedReply || 'Nao consegui responder com seguranca agora.';
+      if (String(normalizedReply || '').toLowerCase().includes('instabilidade tecnica no momento')) {
+        finalReply = buildSourceBackedFallback(entries);
+      }
       if (assessment.decision === 'ANSWER_WITH_WARNING') {
         finalReply = `${buildWarningPrefix()} ${finalReply}`.trim();
       }
+      finalReply = appendSourceCitation(finalReply, assessment.supporting_source);
 
       session.data.history = [
         ...session.data.history,
@@ -199,7 +256,8 @@ function createAgent(config) {
           consulted_sources: assessment.consulted_sources,
           supporting_source: assessment.supporting_source,
           fallback_to_human: assessment.review_required,
-          abstained: false
+          abstained: false,
+          source_card: buildSourceCard(assessment.supporting_source)
         }
       };
     }
@@ -207,3 +265,4 @@ function createAgent(config) {
 }
 
 module.exports = { createAgent };
+

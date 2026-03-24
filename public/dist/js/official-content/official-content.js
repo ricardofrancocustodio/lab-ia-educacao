@@ -1,5 +1,40 @@
-﻿const OfficialContentPage = (() => {
-  const state = { schoolId: null, records: {}, effectiveRole: '', history: {} };
+const OfficialContentPage = (() => {
+  const state = { schoolId: null, contextSchoolId: null, records: {}, effectiveRole: '', history: {}, context: null, institutions: [], calendarImportedFileName: { network: null, school: null }, enrollmentScope: 'network' };
+  const SUPPORT_MODULE_CONFIG = {
+    enrollment: {
+      scopeKey: 'school',
+      title: 'Matricula e Documentos Exigidos',
+      statusSelectId: 'enrollment-status-select',
+      statusBadgeId: 'enrollment-status-badge',
+      versionGridId: 'enrollment-version-grid',
+      historyId: 'enrollment-history',
+      shellTarget: '#official-enrollment .card-body',
+      helpTitle: 'Como publicar este modulo',
+      helpText: 'Estruture regras, periodos e documentos exigidos. Ao salvar, o sistema gera uma versao tecnica rastreavel para consulta humana e uso da IA.'
+    },
+    faq: {
+      scopeKey: 'school',
+      title: 'FAQ Oficial',
+      statusSelectId: 'faq-status-select',
+      statusBadgeId: 'faq-status-badge',
+      versionGridId: 'faq-version-grid',
+      historyId: 'faq-history',
+      shellTarget: '#official-faq .card-body',
+      helpTitle: 'Como publicar este modulo',
+      helpText: 'Cadastre perguntas e respostas curtas, com linguagem institucional e pronta para consulta da comunidade e da IA.'
+    },
+    notices: {
+      scopeKey: 'school',
+      title: 'Comunicados Oficiais',
+      statusSelectId: 'notices-status-select',
+      statusBadgeId: 'notices-status-badge',
+      versionGridId: 'notices-version-grid',
+      historyId: 'notices-history',
+      shellTarget: '#official-notices .card-body',
+      helpTitle: 'Como publicar este modulo',
+      helpText: 'Use este bloco para avisos temporarios, campanhas, suspensoes e comunicados administrativos com vigencia definida.'
+    }
+  };
   const CALENDAR_COLUMNS = ['start_date', 'end_date', 'title', 'event_type', 'audience', 'location', 'shift', 'required_action', 'notes', 'source_reference'];
   const NETWORK_EDIT_ROLES = new Set(['superadmin', 'network_manager', 'content_curator']);
   const SCHOOL_EDIT_ROLES = new Set(['superadmin', 'network_manager', 'content_curator', 'secretariat', 'direction', 'coordination']);
@@ -71,6 +106,10 @@
     return sessionStorage.getItem('SCHOOL_ID') || '';
   }
 
+  function getRequestedSchoolId() {
+    return String(state.contextSchoolId || state.schoolId || '').trim();
+  }
+
   function normalizeRoleKey(role) {
     return String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   }
@@ -89,6 +128,7 @@
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
+      'x-school-id': getRequestedSchoolId(),
       ...extraHeaders
     };
   }
@@ -120,6 +160,120 @@
 
   function getHistory(moduleKey, scopeKey) {
     return state.history[key(moduleKey, scopeKey)] || [];
+  }
+
+  function getEnrollmentRecord(scopeKey) {
+    return getRecord('enrollment', scopeKey);
+  }
+
+  function setEnrollmentScope(scopeKey) {
+    if (scopeKey !== 'network' && scopeKey !== 'school') return;
+    state.enrollmentScope = scopeKey;
+    const btnNetwork = document.getElementById('enrollment-scope-network-btn');
+    const btnSchool = document.getElementById('enrollment-scope-school-btn');
+    if (btnNetwork && btnSchool) {
+      btnNetwork.classList.toggle('active', scopeKey === 'network');
+      btnSchool.classList.toggle('active', scopeKey === 'school');
+    }
+    const wrapper = document.getElementById('enrollment-scope-wrapper');
+    if (wrapper) {
+      wrapper.dataset.activeScope = scopeKey;
+    }
+    fillEnrollment(scopeKey);
+  }
+
+  function getCurrentEnrollmentScope() {
+    return state.enrollmentScope || 'network';
+  }
+
+  function setCalendarFileName(scopeKey, fileName) {
+    if (!scopeKey) return;
+    state.calendarImportedFileName[scopeKey] = String(fileName || '').trim() || null;
+  }
+
+  function normalizeInstitutionType(value) {
+    return String(value || 'education_department').trim().toLowerCase() || 'education_department';
+  }
+
+  function getInstitutionTypeLabel(value) {
+    return normalizeInstitutionType(value) === 'school_unit' ? 'Unidade escolar' : 'Rede / Secretaria';
+  }
+
+  function buildInstitutionOptionLabel(item = {}) {
+    const typeLabel = getInstitutionTypeLabel(item.institution_type);
+    const parent = String(item.parent_name || '').trim();
+    return parent ? `${item.name} (${typeLabel} | ${parent})` : `${item.name} (${typeLabel})`;
+  }
+
+  function ensureContextUI() {
+    if (document.getElementById('official-context-summary')) return;
+    const loading = document.getElementById('official-loading');
+    if (!loading || !loading.parentElement) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'alert alert-light border d-flex flex-column flex-lg-row justify-content-between align-items-lg-start';
+    wrap.style.gap = '16px';
+    wrap.style.borderRadius = '14px';
+    wrap.style.marginBottom = '1rem';
+    wrap.innerHTML = `
+      <div id="official-context-summary" style="color:#17324d;font-size:.92rem;">
+        <strong style="display:block;margin-bottom:4px;">Carregando contexto institucional...</strong>
+        <span>Identificando a rede e a unidade vinculadas a este perfil.</span>
+      </div>
+      <div id="official-context-picker-wrap" style="display:none;min-width:300px;max-width:420px;width:100%;">
+        <label for="official-context-picker" style="font-size:.85rem;font-weight:600;color:#17324d;margin-bottom:6px;display:block;">Contexto institucional do superadmin</label>
+        <select id="official-context-picker" class="form-control"></select>
+        <small style="display:block;color:#5f6b7a;margin-top:6px;">Ao selecionar uma unidade escolar, o bloco de rede usa automaticamente a secretaria/rede pai.</small>
+      </div>`;
+    loading.parentElement.insertBefore(wrap, loading);
+  }
+
+  function renderContextSummary() {
+    ensureContextUI();
+    const summary = document.getElementById('official-context-summary');
+    if (!summary) return;
+    const context = state.context || {};
+    const requested = context.requested_school || null;
+    const networkScope = context.network_scope || null;
+    const schoolScope = context.school_scope || null;
+    const requestedName = requested?.name || 'Instituicao atual';
+    const networkName = networkScope?.name || requestedName;
+    const schoolName = schoolScope?.name || requestedName;
+    const intro = state.effectiveRole === 'superadmin'
+      ? 'Superadmin operando em um contexto institucional explicito.'
+      : 'O sistema separa automaticamente o que e documento da rede e o que e documento local.';
+    const legacyNote = context.using_legacy_network_fallback
+      ? '<div class="mt-2 text-warning">Foi encontrado um calendario de rede legado salvo na propria unidade. Ao salvar novamente, ele passa a valer no nivel da rede.</div>'
+      : '';
+    summary.innerHTML = `
+      <strong style="display:block;margin-bottom:4px;">${requestedName}</strong>
+      <span>${intro}</span>
+      <div class="mt-2">
+        <span><strong>Rede:</strong> ${networkName}</span><br>
+        <span><strong>Escopo local:</strong> ${schoolName}</span>
+      </div>
+      ${legacyNote}`;
+  }
+
+  function renderContextPicker() {
+    ensureContextUI();
+    const wrap = document.getElementById('official-context-picker-wrap');
+    const select = document.getElementById('official-context-picker');
+    if (!wrap || !select) return;
+    const isSuperadmin = state.effectiveRole === 'superadmin';
+    wrap.style.display = isSuperadmin ? '' : 'none';
+    if (!isSuperadmin) return;
+    const options = (state.institutions || []).map((item) => {
+      const selected = String(item.id) === String(getRequestedSchoolId()) ? ' selected' : '';
+      return `<option value="${item.id}"${selected}>${buildInstitutionOptionLabel(item)}</option>`;
+    }).join('');
+    select.innerHTML = options;
+    if (select.dataset.bound !== '1') {
+      select.dataset.bound = '1';
+      select.addEventListener('change', async () => {
+        state.contextSchoolId = select.value || state.schoolId;
+        await load();
+      });
+    }
   }
 
   function splitCsvRow(line) {
@@ -272,6 +426,20 @@
     return normalized.length > 12 ? normalized.slice(0, 8) + '...' + normalized.slice(-4) : normalized;
   }
 
+  function getKnowledgeSyncLabel(record) {
+    return record?._source_version_meta?.id || record?._source_document_meta?.id || record?.source_version_id || record?.source_document_id
+      ? 'Sim, vinculada a base oficial'
+      : 'Sera criada ao salvar';
+  }
+
+  function getTechnicalDocumentLabel(record) {
+    const fileName = String(record?._source_version_meta?.file_name || '').trim();
+    const documentTitle = String(record?._source_document_meta?.title || '').trim();
+    if (fileName) return fileName;
+    if (documentTitle) return documentTitle;
+    return formatShortId(record?._source_version_meta?.id || record?.source_version_id || record?._source_document_meta?.id || record?.source_document_id);
+  }
+
   function getCalendarStatusLabel(record) {
     const status = String(record?.status || 'draft').toLowerCase();
     if (status === 'published') return 'Publicado';
@@ -299,6 +467,118 @@
     return '#1f7a3e';
   }
 
+  function getModuleItemCount(moduleKey, record) {
+    const payload = record?.content_payload || {};
+    if (moduleKey === 'faq') return Array.isArray(payload.items) ? payload.items.length : 0;
+    if (moduleKey === 'notices') return Array.isArray(payload.items) ? payload.items.length : 0;
+    if (moduleKey === 'enrollment') {
+      return (Array.isArray(payload.required_documents) ? payload.required_documents.length : 0)
+        + (Array.isArray(payload.optional_documents) ? payload.optional_documents.length : 0);
+    }
+    return 0;
+  }
+
+  function ensureSupportModuleShells() {
+    Object.entries(SUPPORT_MODULE_CONFIG).forEach(([moduleKey, config]) => {
+      const host = document.querySelector(config.shellTarget);
+      if (!host || host.querySelector('.official-version-box')) return;
+
+      const shell = document.createElement('div');
+      shell.innerHTML =         '<div class="official-version-box">' +
+          '<div class="d-flex justify-content-between align-items-start flex-wrap">' +
+            '<div>' +
+              '<strong>Estado da publicacao</strong>' +
+              '<p class="official-help mb-0 mt-1">' + config.helpText + '</p>' +
+            '</div>' +
+            '<span class="badge badge-light border" id="' + config.statusBadgeId + '">Aguardando carregamento</span>' +
+          '</div>' +
+          '<div class="official-version-grid" id="' + config.versionGridId + '"></div>' +
+          '<div class="official-toolbar mt-3 mb-2">' +
+            '<select id="' + config.statusSelectId + '" class="form-control form-control-sm" style="max-width:220px;">' +
+              '<option value="draft">Rascunho</option>' +
+              '<option value="published">Publicado</option>' +
+              '<option value="archived">Arquivado</option>' +
+            '</select>' +
+            '<button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateModuleStatus(&quot;' + moduleKey + '&quot;)">Atualizar status</button>' +
+          '</div>' +
+          '<div id="' + config.historyId + '" class="official-list"></div>' +
+        '</div>' +
+        '<div class="official-template">' +
+          '<strong>' + config.helpTitle + '</strong>' +
+          '<p class="official-help mb-0 mt-2">' + config.helpText + '</p>' +
+        '</div>';
+      host.insertBefore(shell, host.firstChild);
+    });
+  }
+
+  function renderSupportModuleVersion(moduleKey) {
+    const config = SUPPORT_MODULE_CONFIG[moduleKey];
+    if (!config) return;
+    const record = getRecord(moduleKey, config.scopeKey);
+    const grid = document.getElementById(config.versionGridId);
+    const badge = document.getElementById(config.statusBadgeId);
+    const select = document.getElementById(config.statusSelectId);
+    if (!grid || !badge || !select) return;
+
+    const statusLabel = getCalendarStatusLabel(record);
+    badge.textContent = statusLabel;
+    badge.className = 'badge border ' + getCalendarStatusBadgeClass(record);
+    select.value = String(record?.status || 'draft').toLowerCase();
+    const sourceVersion = record?._source_version_meta;
+    const currentPublishedFile = sourceVersion?.file_name || 'Sem arquivo definido';
+    const cards = [
+      { label: 'Versao atual', value: sourceVersion?.version_label || statusLabel },
+      { label: 'Arquivo publicado', value: currentPublishedFile },
+      { label: 'Ultima atualizacao', value: formatDateTimeLabel(record?.updated_at) },
+      { label: 'Fonte sincronizada', value: getKnowledgeSyncLabel(record) },
+      { label: 'Documento tecnico', value: getTechnicalDocumentLabel(record) },
+      { label: 'Itens estruturados', value: String(getModuleItemCount(moduleKey, record)) },
+      { label: 'Resumo oficial', value: record?.summary ? 'Preenchido' : 'Pendente' }
+    ];
+    grid.innerHTML = cards.map((item) =>       '<div class="official-version-item">' +
+        '<div class="official-version-label">' + item.label + '</div>' +
+        '<div class="official-version-value">' + (item.value || '-') + '</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  function renderEnrollmentVersion(scopeKey = 'network') {
+    const record = getEnrollmentRecord(scopeKey);
+    const statusLabel = record?.status ? String(record.status).toUpperCase() : 'DRAFT';
+    document.getElementById('enrollment-status-label').textContent = statusLabel;
+    document.getElementById('enrollment-scope-label').textContent = scopeKey === 'network' ? 'Rede / Secretaria' : 'Escola / Unidade';
+    const validFrom = formatDateTimeLabel(record?.content_payload?.validFrom || record?.validFrom);
+    const validTo = formatDateTimeLabel(record?.content_payload?.validTo || record?.validTo);
+    document.getElementById('enrollment-validity-label').textContent = (validFrom || '-') + ' até ' + (validTo || '-');
+    document.getElementById('enrollment-published-label').textContent = formatDateTimeLabel(record?.published_at);
+  }
+
+  function renderSupportModuleHistory(moduleKey) {
+    const config = SUPPORT_MODULE_CONFIG[moduleKey];
+    if (!config) return;
+    const list = document.getElementById(config.historyId);
+    const history = getHistory(moduleKey, config.scopeKey);
+    if (!list) return;
+    if (!history.length) {
+      list.innerHTML = '<div class="official-empty">Nenhuma versao anterior registrada ainda. Depois da primeira publicacao, o historico completo aparece aqui.</div>';
+      return;
+    }
+    list.innerHTML = history.map((item) => {
+      const currentBadge = item.is_current ? '<span class="badge badge-success ml-2">Em uso</span>' : '';
+      return         '<div class="official-list-item">' +
+          '<div class="d-flex justify-content-between align-items-start flex-wrap">' +
+            '<div>' +
+              '<strong>' + (item.version_label || 'Versao sem rotulo') + currentBadge + '</strong>' +
+              '<div class="official-help mt-1">Status: ' + (item.status || '-') + ' | Publicado em: ' + formatDateTimeLabel(item.published_at) + ' | Responsavel: ' + (item.actor_name || '-') + ' | Arquivo: ' + (item.file_name || '-') + '</div>' +
+            '</div>' +
+            '<div class="mt-2 mt-lg-0">' +
+              '<button class="btn btn-outline-primary btn-sm" ' + (item.snapshot_available ? '' : 'disabled') + ' onclick="OfficialContentPage.restoreModuleVersion(&quot;' + moduleKey + '&quot;, &quot;' + item.id + '&quot;)">Reativar esta versao</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
   function renderCalendarHistory(scopeKey) {
     const list = document.getElementById('calendar-' + scopeKey + '-history');
     const select = document.getElementById('calendar-' + scopeKey + '-status-select');
@@ -319,7 +599,7 @@
           <div class="d-flex justify-content-between align-items-start flex-wrap">
             <div>
               <strong>${item.version_label || 'Versao sem rotulo'}${currentBadge}</strong>
-              <div class="official-help mt-1">Status: ${status} ? Publicado em: ${formatDateTimeLabel(item.published_at)} ? Responsavel: ${item.actor_name || '-'}</div>
+              <div class="official-help mt-1">Status: ${status} | Publicado em: ${formatDateTimeLabel(item.published_at)} | Responsavel: ${item.actor_name || '-'} | Arquivo: ${item.file_name || '-'}</div>
             </div>
             <div class="mt-2 mt-lg-0">
               <button class="btn btn-outline-primary btn-sm" ${canRestore ? '' : 'disabled'} onclick="OfficialContentPage.restoreCalendarVersion('${scopeKey}', '${item.id}')">Reativar esta versao</button>
@@ -340,11 +620,13 @@
     badge.textContent = statusLabel;
     badge.className = 'badge border ' + getCalendarStatusBadgeClass(record);
     const sourceVersion = record?._source_version_meta;
+    const currentPublishedFile = sourceVersion?.file_name || state.calendarImportedFileName[scopeKey] || 'Sem arquivo definido';
     const cards = [
       { label: 'Versao atual', value: sourceVersion?.version_label || statusLabel },
+      { label: 'Arquivo publicado', value: currentPublishedFile },
       { label: 'Ultima atualizacao', value: formatDateTimeLabel(record?.updated_at) },
-      { label: 'Fonte sincronizada', value: sourceVersion?.id ? 'Sim, vinculada a base oficial' : 'Sera criada ao salvar' },
-      { label: 'Documento tecnico', value: sourceVersion?.id ? formatShortId(sourceVersion.id) : formatShortId(record?.source_version_id) },
+      { label: 'Fonte sincronizada', value: getKnowledgeSyncLabel(record) },
+      { label: 'Documento tecnico', value: getTechnicalDocumentLabel(record) },
       { label: 'Quantidade de eventos', value: String(entries.length || 0) },
       { label: 'Ano de referencia', value: inferCalendarYear(entries) }
     ];
@@ -356,7 +638,6 @@
     `).join('');
     renderCalendarHistory(scopeKey);
   }
-
   function renderCalendarPreview(scopeKey, entries = null) {
     const previewEl = document.getElementById('calendar-' + scopeKey + '-preview');
     const noteEl = document.getElementById('calendar-' + scopeKey + '-preview-note');
@@ -453,7 +734,25 @@
       await window.initSession();
     }
     state.schoolId = getSchoolId();
+    state.contextSchoolId = state.contextSchoolId || state.schoolId;
     state.effectiveRole = getEffectiveRole();
+  }
+
+  async function loadInstitutionOptionsIfNeeded() {
+    ensureContextUI();
+    if (state.effectiveRole !== 'superadmin') {
+      state.institutions = [];
+      renderContextPicker();
+      return;
+    }
+    if (Array.isArray(state.institutions) && state.institutions.length) {
+      renderContextPicker();
+      return;
+    }
+    const data = await request('/api/official-content/institutions');
+    state.institutions = Array.isArray(data.institutions) ? data.institutions : [];
+    state.contextSchoolId = state.contextSchoolId || data.default_school_id || state.schoolId;
+    renderContextPicker();
   }
 
   function toggleEmpty(kind) {
@@ -521,13 +820,26 @@
     document.getElementById(`calendar-${scopeKey}-title`).value = record.title || '';
     document.getElementById(`calendar-${scopeKey}-summary`).value = record.summary || '';
     document.getElementById(`calendar-${scopeKey}-lines`).value = stringifyCalendarCsv(entries);
+    setCalendarFileName(scopeKey, record._source_version_meta?.file_name || record._source_document_meta?.title || null);
     renderCalendarVersion(scopeKey);
     renderCalendarPreview(scopeKey, entries);
   }
 
-  function fillEnrollment() {
-    const record = getRecord('enrollment', 'school');
-    if (!record) return;
+  function fillEnrollment(scopeKey = 'network') {
+    const record = getEnrollmentRecord(scopeKey);
+    renderEnrollmentVersion(scopeKey);
+    if (!record) {
+      document.getElementById('enrollment-period').value = '';
+      document.getElementById('reenrollment-period').value = '';
+      document.getElementById('enrollment-target').value = '';
+      document.getElementById('enrollment-required').value = '';
+      document.getElementById('enrollment-optional').value = '';
+      document.getElementById('enrollment-rules').value = '';
+      document.getElementById('enrollment-link').value = '';
+      document.getElementById('enrollment-summary').value = '';
+      document.getElementById('enrollment-document-title').textContent = 'Nenhum documento cadastrado';
+      return;
+    }
     const payload = record.content_payload || {};
     document.getElementById('enrollment-period').value = payload.enrollment_period || '';
     document.getElementById('reenrollment-period').value = payload.reenrollment_period || '';
@@ -537,6 +849,7 @@
     document.getElementById('enrollment-rules').value = payload.special_rules || '';
     document.getElementById('enrollment-link').value = payload.official_link || '';
     document.getElementById('enrollment-summary').value = record.summary || '';
+    document.getElementById('enrollment-document-title').textContent = record.title || 'Documento carregado';
   }
 
   function fillFaq() {
@@ -545,6 +858,7 @@
     (record?.content_payload?.items || []).forEach(createFaqItem);
     document.getElementById('faq-summary').value = record?.summary || '';
     toggleEmpty('faq');
+    renderSupportModuleVersion('faq');
   }
 
   function fillNotices() {
@@ -553,26 +867,38 @@
     (record?.content_payload?.items || []).forEach(createNoticeItem);
     document.getElementById('notices-summary').value = record?.summary || '';
     toggleEmpty('notice');
+    renderSupportModuleVersion('notices');
   }
 
   async function load() {
     try {
       await ensureSessionReady();
+      ensureContextUI();
       if (!state.schoolId) {
         Swal.fire('Atencao', 'School ID nao encontrado na sessao.', 'warning');
         showLoadError('School ID nao encontrado na sessao.');
         return;
       }
+      await loadInstitutionOptionsIfNeeded();
       const data = await request('/api/official-content');
+      state.context = data.context || null;
+      renderContextSummary();
+      renderContextPicker();
+      ensureSupportModuleShells();
       state.records = {};
       (data.records || []).forEach(setRecord);
       fillCalendar('network');
       fillCalendar('school');
       await loadCalendarHistory('network');
       await loadCalendarHistory('school');
-      fillEnrollment();
+      fillEnrollment('network');
+      fillEnrollment('school');
+      setEnrollmentScope(state.enrollmentScope);
       fillFaq();
       fillNotices();
+      await loadSupportModuleHistory('enrollment', 'network');
+      await loadSupportModuleHistory('enrollment', 'school');
+      await Promise.all(Object.keys(SUPPORT_MODULE_CONFIG).filter((m) => m !== 'enrollment').map(loadSupportModuleHistory));
       applyAccessRules();
       document.getElementById('official-loading').style.display = 'none';
       document.getElementById('official-content-root').style.display = '';
@@ -583,14 +909,22 @@
     }
   }
 
-  async function save(moduleKey, scopeKey, title, summary, contentPayload) {
+  async function save(moduleKey, scopeKey, title, summary, contentPayload, options = {}) {
     if (!canEditScope(scopeKey)) {
       throw new Error(scopeKey === 'network' ? 'Seu perfil nao pode editar conteudo oficial da rede.' : 'Seu perfil nao pode editar conteudo oficial da escola.');
     }
     const updatedBy = sessionStorage.getItem('USER_NAME') || sessionStorage.getItem('USER_EMAIL') || 'Gestao da escola';
     const data = await request(`/api/official-content/${moduleKey}/${scopeKey}`, {
       method: 'POST',
-      body: JSON.stringify({ title, summary, content_payload: contentPayload, updated_by: updatedBy, user_id: sessionStorage.getItem('USER_ID') || null, status: 'published' })
+      body: JSON.stringify({
+        title,
+        summary,
+        content_payload: contentPayload,
+        updated_by: updatedBy,
+        user_id: sessionStorage.getItem('USER_ID') || null,
+        status: 'published',
+        file_name: options.file_name || null
+      })
     });
     const enrichedRecord = {
       ...data.record,
@@ -602,6 +936,9 @@
       renderCalendarVersion(scopeKey);
       renderCalendarPreview(scopeKey, contentPayload.entries || []);
       await loadCalendarHistory(scopeKey);
+    } else if (SUPPORT_MODULE_CONFIG[moduleKey]) {
+      renderSupportModuleVersion(moduleKey);
+      await loadSupportModuleHistory(moduleKey);
     }
     Swal.fire('Sucesso', 'Conteudo oficial salvo com sucesso.', 'success');
   }
@@ -674,6 +1011,18 @@
     URL.revokeObjectURL(url);
   }
 
+  function downloadCsv(filename, csvContent) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function loadCalendarHistory(scopeKey) {
     try {
       const data = await request('/api/official-content/calendar/' + scopeKey + '/history');
@@ -684,6 +1033,30 @@
     }
   }
 
+  async function loadSupportModuleHistory(moduleKey, scopeKey = null) {
+    const config = SUPPORT_MODULE_CONFIG[moduleKey];
+    if (!config) return;
+    const actualScope = scopeKey || config.scopeKey;
+    try {
+      const data = await request('/api/official-content/' + moduleKey + '/' + actualScope + '/history');
+      setHistory(moduleKey, actualScope, data.history || []);
+      if (moduleKey === 'enrollment') {
+        renderEnrollmentVersion(actualScope);
+      } else {
+        renderSupportModuleHistory(moduleKey);
+        if (data.current) {
+          setRecord(data.current);
+          renderSupportModuleVersion(moduleKey);
+        }
+      }
+      if (data.current) {
+        setRecord(data.current);
+      }
+    } catch (error) {
+      console.error('Falha ao carregar historico de ' + moduleKey + ':', error);
+    }
+  }
+
   async function importCalendarCsv(scopeKey, file) {
     if (!file) return;
     try {
@@ -691,14 +1064,68 @@
       const entries = parseCalendarCsv(text);
       document.getElementById(`calendar-${scopeKey}-lines`).value = stringifyCalendarCsv(entries);
       document.getElementById(`calendar-${scopeKey}-file`).value = '';
+      setCalendarFileName(scopeKey, file.name);
       renderCalendarPreview(scopeKey, entries);
-      Swal.fire('CSV importado', `${entries.length} evento(s) carregado(s) no template.`, 'success');
+      renderCalendarVersion(scopeKey);
+      Swal.fire('CSV importado', `${entries.length} evento(s) carregado(s) no template. Revise o preview e clique em Salvar conteudo oficial para publicar no contexto selecionado.`, 'success');
     } catch (error) {
       Swal.fire('Erro', error.message || 'Nao foi possivel ler o CSV informado.', 'error');
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  function initializeOfficialContentTabs() {
+    const tabLinks = document.querySelectorAll('#official-content-root .nav-tabs .nav-link');
+    if (!tabLinks || !tabLinks.length) return;
+
+    tabLinks.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const targetId = String(link.getAttribute('href') || '').trim();
+        if (!targetId || !targetId.startsWith('#')) return;
+        const targetPanel = document.querySelector(targetId);
+        if (!targetPanel) return;
+
+        event.preventDefault();
+        setActiveContentTab(targetId);
+      });
+    });
+  }
+
+  function setActiveContentTab(rawTabId) {
+    const targetId = String(rawTabId || '').trim();
+    if (!targetId) return;
+    const normalizedId = targetId.startsWith('#') ? targetId : `#${targetId}`;
+    const tabLinks = document.querySelectorAll('#official-content-root .nav-tabs .nav-link');
+    const panes = document.querySelectorAll('#official-content-root .tab-pane');
+
+    tabLinks.forEach((link) => {
+      if (String(link.getAttribute('href') || '').trim() === normalizedId) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+
+    panes.forEach((pane) => {
+      if (pane.id === normalizedId.replace('#', '')) {
+        pane.classList.add('active', 'show');
+      } else {
+        pane.classList.remove('active', 'show');
+      }
+    });
+  }
+
+  function ready(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  }
+
+  ready(() => {
+    initializeOfficialContentTabs();
+    setActiveContentTab('#official-calendar');
+    ensureSupportModuleShells();
     ['network', 'school'].forEach((scopeKey) => {
       const textarea = document.getElementById(`calendar-${scopeKey}-lines`);
       if (textarea) {
@@ -715,6 +1142,20 @@
   });
 
   return {
+    setActiveContentTab: (tabId) => setActiveContentTab(tabId),
+    setEnrollmentScope: (scopeKey) => setEnrollmentScope(scopeKey),
+    createNewEnrollmentDocument: () => {
+      const scope = getCurrentEnrollmentScope();
+      document.getElementById('enrollment-period').value = '';
+      document.getElementById('reenrollment-period').value = '';
+      document.getElementById('enrollment-target').value = '';
+      document.getElementById('enrollment-required').value = '';
+      document.getElementById('enrollment-optional').value = '';
+      document.getElementById('enrollment-rules').value = '';
+      document.getElementById('enrollment-link').value = '';
+      document.getElementById('enrollment-summary').value = '';
+      document.getElementById('enrollment-document-title').textContent = `Novo documento (${scope})`;
+    },
     addFaqItem: () => createFaqItem(),
     updateCalendarStatus: async (scopeKey) => {
       try {
@@ -744,6 +1185,7 @@
           _source_document_meta: data.source_document || null
         };
         setRecord(enrichedRecord);
+        setCalendarFileName(scopeKey, data.source_version?.file_name || null);
         fillCalendar(scopeKey);
         await loadCalendarHistory(scopeKey);
         Swal.fire('Versao reativada', 'A versao anterior voltou a ser a referencia oficial ativa.', 'success');
@@ -752,25 +1194,70 @@
       }
     },
     addNoticeItem: () => createNoticeItem(),
+    updateModuleStatus: async (moduleKey) => {
+      const config = SUPPORT_MODULE_CONFIG[moduleKey];
+      if (!config) return;
+      try {
+        const record = getRecord(moduleKey, config.scopeKey);
+        const nextStatus = document.getElementById(config.statusSelectId).value;
+        const data = await request('/api/official-content/' + moduleKey + '/' + config.scopeKey + '/status', {
+          method: 'POST',
+          body: JSON.stringify({ status: nextStatus, updated_by: sessionStorage.getItem('USER_NAME') || sessionStorage.getItem('USER_EMAIL') || 'Gestao da escola' })
+        });
+        setRecord({ ...record, ...data.record });
+        renderSupportModuleVersion(moduleKey);
+        await loadSupportModuleHistory(moduleKey);
+        Swal.fire('Status atualizado', 'O modulo oficial foi atualizado para o status selecionado.', 'success');
+      } catch (error) {
+        Swal.fire('Erro', error.message || 'Nao foi possivel atualizar o status.', 'error');
+      }
+    },
+    restoreModuleVersion: async (moduleKey, versionId) => {
+      const config = SUPPORT_MODULE_CONFIG[moduleKey];
+      if (!config) return;
+      try {
+        const data = await request('/api/official-content/' + moduleKey + '/' + config.scopeKey + '/restore/' + versionId, {
+          method: 'POST',
+          body: JSON.stringify({ updated_by: sessionStorage.getItem('USER_NAME') || sessionStorage.getItem('USER_EMAIL') || 'Gestao da escola' })
+        });
+        const enrichedRecord = {
+          ...data.record,
+          _source_version_meta: data.source_version || null,
+          _source_document_meta: data.source_document || null
+        };
+        setRecord(enrichedRecord);
+        if (moduleKey === 'enrollment') fillEnrollment(getCurrentEnrollmentScope());
+        if (moduleKey === 'faq') fillFaq();
+        if (moduleKey === 'notices') fillNotices();
+        await loadSupportModuleHistory(moduleKey, moduleKey === 'enrollment' ? getCurrentEnrollmentScope() : null);
+        Swal.fire('Versao reativada', 'A versao anterior voltou a ser a referencia oficial ativa.', 'success');
+      } catch (error) {
+        Swal.fire('Erro', error.message || 'Nao foi possivel reativar esta versao.', 'error');
+      }
+    },
     downloadCalendarTemplate,
     importCalendarCsv,
     saveCalendar: async (scopeKey) => {
       try {
         const entries = parseCalendarLines(document.getElementById(`calendar-${scopeKey}-lines`).value);
+        const fileName = state.calendarImportedFileName[scopeKey] || `calendario-${scopeKey}.csv`;
         await save('calendar', scopeKey, document.getElementById(`calendar-${scopeKey}-title`).value, document.getElementById(`calendar-${scopeKey}-summary`).value, {
           template_version: 'calendar_csv_v1',
           columns: CALENDAR_COLUMNS,
           display_columns: CALENDAR_COLUMNS.map((column) => CALENDAR_COLUMN_LABELS[column]),
           locale: 'pt-BR',
           entries
-        });
+        }, { file_name: fileName });
+        setCalendarFileName(scopeKey, fileName);
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
     },
-    saveEnrollment: async () => {
+    saveEnrollment: async (scopeKey) => {
       try {
-        await save('enrollment', 'school', 'Matricula e Documentos Exigidos', document.getElementById('enrollment-summary').value, {
+        const scope = scopeKey || getCurrentEnrollmentScope();
+        const title = scope === 'network' ? 'Matricula e Documentos da Rede' : 'Matricula e Documentos Exigidos';
+        await save('enrollment', scope, title, document.getElementById('enrollment-summary').value, {
           enrollment_period: document.getElementById('enrollment-period').value,
           reenrollment_period: document.getElementById('reenrollment-period').value,
           target_audience: document.getElementById('enrollment-target').value,
@@ -778,7 +1265,8 @@
           optional_documents: splitLines(document.getElementById('enrollment-optional').value),
           special_rules: document.getElementById('enrollment-rules').value,
           official_link: document.getElementById('enrollment-link').value
-        });
+        }, { file_name: `enrollment-${scope}.csv` });
+        setEnrollmentScope(scope);
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
@@ -796,11 +1284,110 @@
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
+    },
+    downloadEnrollmentTemplate: () => {
+      const csv = 'enrollment_period,reenrollment_period,target_audience,required_documents,optional_documents,special_rules,official_link,summary\n';
+      downloadCsv('template-matricula.csv', csv);
+    },
+    importEnrollmentCsv: async (file) => {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) throw new Error('CSV deve ter pelo menos uma linha de dados.');
+        const headers = lines[0].split(',').map(h => h.trim());
+        const data = lines[1].split(',').map(d => d.trim());
+        const expectedHeaders = ['enrollment_period', 'reenrollment_period', 'target_audience', 'required_documents', 'optional_documents', 'special_rules', 'official_link', 'summary'];
+        if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
+          throw new Error('Cabeçalhos do CSV não correspondem ao template esperado.');
+        }
+        document.getElementById('enrollment-period').value = data[0] || '';
+        document.getElementById('reenrollment-period').value = data[1] || '';
+        document.getElementById('enrollment-target').value = data[2] || '';
+        document.getElementById('enrollment-required').value = (data[3] || '').split(';').join('\n');
+        document.getElementById('enrollment-optional').value = (data[4] || '').split(';').join('\n');
+        document.getElementById('enrollment-rules').value = data[5] || '';
+        document.getElementById('enrollment-link').value = data[6] || '';
+        document.getElementById('enrollment-summary').value = data[7] || '';
+        document.getElementById('enrollment-file').value = '';
+        Swal.fire('CSV importado', 'Dados de matrícula carregados com sucesso.', 'success');
+      } catch (error) {
+        Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
+      }
+    },
+    downloadFaqTemplate: () => {
+      const csv = 'question,category,audience,answer,scope,version,source\n';
+      downloadCsv('template-faq.csv', csv);
+    },
+    importFaqCsv: async (file) => {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) throw new Error('CSV deve ter pelo menos uma linha de dados.');
+        const headers = lines[0].split(',').map(h => h.trim());
+        const expectedHeaders = ['question', 'category', 'audience', 'answer', 'scope', 'version', 'source'];
+        if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
+          throw new Error('Cabeçalhos do CSV não correspondem ao template esperado.');
+        }
+        document.getElementById('faq-items').innerHTML = '';
+        for (let i = 1; i < lines.length; i++) {
+          const data = lines[i].split(',').map(d => d.trim());
+          createFaqItem({
+            question: data[0] || '',
+            category: data[1] || '',
+            audience: data[2] || '',
+            answer: data[3] || '',
+            scope: data[4] || 'school',
+            version: data[5] || '',
+            source: data[6] || ''
+          });
+        }
+        document.getElementById('faq-file').value = '';
+        Swal.fire('CSV importado', `${lines.length - 1} pergunta(s) carregada(s) com sucesso.`, 'success');
+      } catch (error) {
+        Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
+      }
+    },
+    downloadNoticesTemplate: () => {
+      const csv = 'title,type,start_date,end_date,message,attachment_url\n';
+      downloadCsv('template-comunicados.csv', csv);
+    },
+    importNoticesCsv: async (file) => {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) throw new Error('CSV deve ter pelo menos uma linha de dados.');
+        const headers = lines[0].split(',').map(h => h.trim());
+        const expectedHeaders = ['title', 'type', 'start_date', 'end_date', 'message', 'attachment_url'];
+        if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
+          throw new Error('Cabeçalhos do CSV não correspondem ao template esperado.');
+        }
+        document.getElementById('notice-items').innerHTML = '';
+        for (let i = 1; i < lines.length; i++) {
+          const data = lines[i].split(',').map(d => d.trim());
+          createNoticeItem({
+            title: data[0] || '',
+            type: data[1] || '',
+            start_date: data[2] || '',
+            end_date: data[3] || '',
+            message: data[4] || '',
+            attachment_url: data[5] || ''
+          });
+        }
+        document.getElementById('notices-file').value = '';
+        Swal.fire('CSV importado', `${lines.length - 1} comunicado(s) carregado(s) com sucesso.`, 'success');
+      } catch (error) {
+        Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
+      }
     }
   };
 })();
 
 window.OfficialContentPage = OfficialContentPage;
+
+
 
 
 

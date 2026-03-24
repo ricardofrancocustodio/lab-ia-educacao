@@ -1,4 +1,41 @@
 ﻿let auditEvents = [];
+const AUDIT_REASON_LABELS = {
+  '-': 'Sem motivo registrado',
+  sem_motivo: 'Sem motivo registrado',
+  source_evidence_found: 'Fonte institucional suficiente encontrada',
+  insufficient_institutional_evidence: 'Evidencia institucional insuficiente para resposta segura',
+  no_reliable_source_found: 'Nenhuma fonte institucional confiavel localizada',
+  weak_evidence_requires_follow_up: 'Evidencia parcial; requer complemento ou revisao humana'
+};
+const AUDIT_TREATMENT_DESTINATION_LABELS = {
+  content_curation: 'Curadoria de conteudo',
+  network_secretariat: 'Secretaria / Rede',
+  service_operation: 'Operacao de atendimento',
+  direction_compliance: 'Direcao / Compliance'
+};
+const AUDIT_TREATMENT_PROGRESS_LABELS = {
+  OPEN: 'Aberto',
+  IN_PROGRESS: 'Em andamento',
+  COMPLETED: 'Concluido',
+  DISMISSED: 'Descartado'
+};
+const AUDIT_TREATMENT_DESTINATION_OPTIONS = [
+  { value: 'content_curation', label: 'Curadoria de conteudo' },
+  { value: 'network_secretariat', label: 'Secretaria / Rede' },
+  { value: 'service_operation', label: 'Operacao de atendimento' },
+  { value: 'direction_compliance', label: 'Direcao / Compliance' }
+];
+
+function formatAuditReason(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized || normalized === '-') return AUDIT_REASON_LABELS.sem_motivo;
+  if (AUDIT_REASON_LABELS[normalized]) return AUDIT_REASON_LABELS[normalized];
+  return normalized
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, (char) => char.toUpperCase());
+}
 function getReviewStatusTone(value) {
   const normalized = String(value || 'NOT_REQUIRED').toUpperCase();
   if (normalized === 'PENDING_REVIEW') return 'pending';
@@ -9,15 +46,15 @@ function getReviewStatusTone(value) {
 }
 
 function getNormalizedReviewStatus(event) {
-  return String(event?.review_status || (event?.review_required ? 'PENDING_REVIEW' : 'NOT_REQUIRED')).toUpperCase();
+  return String(event.review_status || (event.review_required ? 'PENDING_REVIEW' : 'NOT_REQUIRED')).toUpperCase();
 }
 
 function hasHumanTreatment(event) {
   const reviewStatus = getNormalizedReviewStatus(event);
-  const reviewedBy = String(event?.reviewed_by || '').trim();
-  const reviewNotes = String(event?.review_notes || '').trim();
+  const reviewedBy = String(event.reviewed_by || '').trim();
+  const reviewNotes = String(event.review_notes || '').trim();
   return Boolean(
-    event?.review_required ||
+    event.review_required ||
     reviewStatus !== 'NOT_REQUIRED' ||
     (reviewedBy && reviewedBy !== '-') ||
     (reviewNotes && reviewNotes !== '-')
@@ -25,13 +62,13 @@ function hasHumanTreatment(event) {
 }
 
 function getTreatmentOwner(event) {
-  const reviewedBy = String(event?.reviewed_by || '').trim();
+  const reviewedBy = String(event.reviewed_by || '').trim();
   if (reviewedBy && reviewedBy !== '-') return reviewedBy;
-  return 'Sem respons?vel';
+  return 'Sem responsável';
 }
 
 function getEventAgeInDays(event) {
-  const createdAt = event?.created_at ? new Date(event.created_at) : null;
+  const createdAt = event.created_at ? new Date(event.created_at) : null;
   if (!createdAt || Number.isNaN(createdAt.getTime())) return 0;
   const diff = Date.now() - createdAt.getTime();
   return Math.max(0, Math.floor(diff / 86400000));
@@ -80,7 +117,7 @@ function formatDate(value) {
 }
 
 function csvEscape(value) {
-  const normalized = String(value ?? '').replace(/\r?\n/g, ' ').trim();
+  const normalized = String(value ?? '').replace(/\r\n/g, ' ').trim();
   return `"${normalized.replace(/"/g, '""')}"`;
 }
 
@@ -121,19 +158,19 @@ const AUDIT_EXPORT_COLUMNS = [
   { key: 'pergunta_original', label: 'Pergunta Original' },
   { key: 'resposta_entregue', label: 'Resposta Entregue' },
   { key: 'resumo', label: 'Resumo do Log' },
-  { key: 'score_evidencia', label: 'Score de Evidência' },
-  { key: 'risco_alucinacao', label: 'Risco de Alucinação' },
-  { key: 'revisao_requerida', label: 'Revisão Requerida' },
+  { key: 'score_evidencia', label: 'Score de EvidÃªncia' },
+  { key: 'risco_alucinacao', label: 'Risco de AlucinaÃ§Ã£o' },
+  { key: 'revisao_requerida', label: 'RevisÃ£o Requerida' },
   { key: 'status_tratamento', label: 'Status de Tratamento' },
   { key: 'revisado_por', label: 'Revisado Por' },
   { key: 'revisado_em', label: 'Revisado em' },
   { key: 'notas_tratamento', label: 'Notas de Tratamento' },
   { key: 'motivo', label: 'Motivo' },
-  { key: 'motivo_revisao', label: 'Motivo da Revisão' },
+  { key: 'motivo_revisao', label: 'Motivo da RevisÃ£o' },
   { key: 'resposta_contida', label: 'Resposta Contida' },
   { key: 'fallback_sugerido', label: 'Fallback Sugerido' },
   { key: 'fonte_principal', label: 'Fonte Principal' },
-  { key: 'versao_fonte', label: 'Versão da Fonte' },
+  { key: 'versao_fonte', label: 'VersÃ£o da Fonte' },
   { key: 'trecho_usado', label: 'Trecho Usado' },
   { key: 'fontes_consultadas', label: 'Fontes Consultadas' },
   { key: 'ator_registro', label: 'Ator do Registro' },
@@ -149,6 +186,19 @@ async function ensureAuthenticatedContext() {
   }
 }
 
+async function getAuthenticatedHeaders(extraHeaders = {}) {
+  const token = await window.getAccessToken();
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    ...extraHeaders
+  };
+  if (headers['Content-Type'] === undefined) {
+    delete headers['Content-Type'];
+  }
+  return headers;
+}
+
 function eventConversationLabel(event) {
   if (event.conversation_label) return event.conversation_label;
   if (event.consultation_id) return `Conversa ${String(event.consultation_id).slice(0, 8)}`;
@@ -158,13 +208,22 @@ function eventConversationLabel(event) {
 
 function getReviewStatusLabel(value) {
   const normalized = String(value || 'NOT_REQUIRED').toUpperCase();
-  if (normalized === 'PENDING_REVIEW') return 'Pendente de revisão';
+  if (normalized === 'PENDING_REVIEW') return 'Pendente de revisao';
   if (normalized === 'REVIEWED') return 'Revisado';
   if (normalized === 'KNOWLEDGE_CREATED') return 'Virou curadoria';
   if (normalized === 'DISMISSED') return 'Descartado';
-  return 'Não requer revisão';
+  return 'Nao requer revisao';
 }
 
+function getTreatmentDestinationLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return AUDIT_TREATMENT_DESTINATION_LABELS[normalized] || 'Nao definido';
+}
+
+function getTreatmentProgressLabel(value) {
+  const normalized = String(value || 'OPEN').trim().toUpperCase();
+  return AUDIT_TREATMENT_PROGRESS_LABELS[normalized] || 'Aberto';
+}
 function populateFilterOptions() {
   const setOptions = (elementId, values, defaultLabel) => {
     const element = document.getElementById(elementId);
@@ -190,15 +249,15 @@ function populateFilterOptions() {
 }
 
 function getFilteredEvents() {
-  const scenario = String(document.getElementById('audit-scenario-filter')?.value || 'all');
-  const conversationId = String(document.getElementById('audit-conversation-filter')?.value || 'all');
-  const assistant = String(document.getElementById('audit-assistant-filter')?.value || 'all');
-  const eventType = String(document.getElementById('audit-event-filter')?.value || 'all');
-  const channel = String(document.getElementById('audit-channel-filter')?.value || 'all');
-  const reviewStatus = String(document.getElementById('audit-review-filter')?.value || 'all');
-  const dateFrom = String(document.getElementById('audit-date-from')?.value || '');
-  const dateTo = String(document.getElementById('audit-date-to')?.value || '');
-  const term = String(document.getElementById('audit-search')?.value || '').toLowerCase().trim();
+  const scenario = String(document.getElementById('audit-scenario-filter').value || 'all');
+  const conversationId = String(document.getElementById('audit-conversation-filter').value || 'all');
+  const assistant = String(document.getElementById('audit-assistant-filter').value || 'all');
+  const eventType = String(document.getElementById('audit-event-filter').value || 'all');
+  const channel = String(document.getElementById('audit-channel-filter').value || 'all');
+  const reviewStatus = String(document.getElementById('audit-review-filter').value || 'all');
+  const dateFrom = String(document.getElementById('audit-date-from').value || '');
+  const dateTo = String(document.getElementById('audit-date-to').value || '');
+  const term = String(document.getElementById('audit-search').value || '').toLowerCase().trim();
 
   return auditEvents.filter((event) => {
     const matchesScenario = scenario === 'all' || event.scenario_code === scenario;
@@ -242,22 +301,21 @@ function updateFilterSummary(rows) {
     if (value && value !== 'all') parts.push(`${label}: ${value}`);
   };
 
-  maybePush('Caso', document.getElementById('audit-scenario-filter')?.value);
-  maybePush('Conversa', document.getElementById('audit-conversation-filter')?.value);
-  maybePush('Assistente', document.getElementById('audit-assistant-filter')?.value);
-  maybePush('Tipo', document.getElementById('audit-event-filter')?.value);
-  maybePush('Canal', document.getElementById('audit-channel-filter')?.value);
-  maybePush('Tratamento', document.getElementById('audit-review-filter')?.value);
-  maybePush('De', document.getElementById('audit-date-from')?.value);
-  maybePush('Até', document.getElementById('audit-date-to')?.value);
-  const term = String(document.getElementById('audit-search')?.value || '').trim();
+  maybePush('Caso', document.getElementById('audit-scenario-filter').value);
+  maybePush('Conversa', document.getElementById('audit-conversation-filter').value);
+  maybePush('Assistente', document.getElementById('audit-assistant-filter').value);
+  maybePush('Tipo', document.getElementById('audit-event-filter').value);
+  maybePush('Canal', document.getElementById('audit-channel-filter').value);
+  maybePush('Tratamento', document.getElementById('audit-review-filter').value);
+  maybePush('De', document.getElementById('audit-date-from').value);
+  maybePush('AtÃ©', document.getElementById('audit-date-to').value);
+  const term = String(document.getElementById('audit-search').value || '').trim();
   if (term) parts.push(`Busca: ${term}`);
 
-  summary.textContent = parts.length
-    ? `${rows.length} log(s) encontrados. Filtros ativos: ${parts.join(' | ')}`
+  summary.textContent = parts.length ?
+    `${rows.length} log(s) encontrados. Filtros ativos: ${parts.join(' | ')}`
     : `${rows.length} log(s) encontrados. Sem filtros ativos.`;
 }
-
 function renderRiskModule() {
   const summaryEl = document.getElementById('audit-risk-module-summary');
   const assistantsEl = document.getElementById('audit-risk-module-assistants');
@@ -280,10 +338,10 @@ function renderRiskModule() {
   summaryEl.innerHTML = [
     '<div class="mb-2"><strong>Logs avaliados:</strong> ' + auditEvents.length + '</div>',
     '<div class="mb-2"><strong>Risco alto:</strong> ' + high + '</div>',
-    '<div class="mb-2"><strong>Risco medio:</strong> ' + medium + '</div>',
-    '<div class="mb-2"><strong>Revisão requerida:</strong> ' + reviewRequired + '</div>',
+    '<div class="mb-2"><strong>Risco mÃ©dio:</strong> ' + medium + '</div>',
+    '<div class="mb-2"><strong>RevisÃ£o requerida:</strong> ' + reviewRequired + '</div>',
     '<div class="mb-2"><strong>Respostas contidas:</strong> ' + abstained + '</div>',
-    '<div><strong>Evidência média:</strong> ' + (evidenceValues.length ? (evidenceValues.reduce((sum, value) => sum + value, 0) / evidenceValues.length).toFixed(2) : '0.00') + '</div>'
+    '<div><strong>EvidÃªncia mÃ©dia:</strong> ' + (evidenceValues.length ? (evidenceValues.reduce((sum, value) => sum + value, 0) / evidenceValues.length).toFixed(2) : '0.00') + '</div>'
   ].join('');
 
   const assistantRows = Object.values(auditEvents.reduce((acc, event) => {
@@ -296,9 +354,10 @@ function renderRiskModule() {
     return acc;
   }, {})).sort((a, b) => b.review - a.review || b.high - a.high || b.total - a.total).slice(0, 5);
 
-  assistantsEl.innerHTML = assistantRows.length
-    ? assistantRows.map((row) => '<div class="mb-2"><strong>' + escapeHtml(row.assistant_name) + '</strong>: ' + row.review + ' revisões | ' + row.high + ' alto risco</div>').join('')
+  assistantsEl.innerHTML = assistantRows.length ?
+    assistantRows.map((row) => '<div class="mb-2"><strong>' + escapeHtml(row.assistant_name) + '</strong>: ' + row.review + ' revisoes | ' + row.high + ' alto risco</div>').join('')
     : '<div class="text-muted">Sem assistentes avaliados.</div>';
+
 
   const reasonRows = Object.entries(auditEvents.reduce((acc, event) => {
     const key = String(event.review_reason || event.reason || 'sem_motivo').trim() || 'sem_motivo';
@@ -306,8 +365,8 @@ function renderRiskModule() {
     return acc;
   }, {})).map(([reason, total]) => ({ reason, total })).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  reasonsEl.innerHTML = reasonRows.length
-    ? reasonRows.map((row) => '<div class="mb-2"><strong>' + escapeHtml(row.reason) + '</strong>: ' + row.total + '</div>').join('')
+  reasonsEl.innerHTML = reasonRows.length ?
+    reasonRows.map((row) => '<div class="mb-2"><strong>' + escapeHtml(formatAuditReason(row.reason)) + '</strong>: ' + row.total + '</div>').join('')
     : '<div class="text-muted">Sem motivos registrados.</div>';
 }
 
@@ -344,7 +403,7 @@ function renderTreatmentDashboard(rows) {
   const pendingRows = treatmentRows.filter((event) => getNormalizedReviewStatus(event) === 'PENDING_REVIEW');
   const completedRows = treatmentRows.filter((event) => ['REVIEWED', 'KNOWLEDGE_CREATED', 'DISMISSED'].includes(getNormalizedReviewStatus(event)));
   const knowledgeRows = treatmentRows.filter((event) => getNormalizedReviewStatus(event) === 'KNOWLEDGE_CREATED');
-  const unassignedRows = pendingRows.filter((event) => getTreatmentOwner(event) === 'Sem respons?vel');
+  const unassignedRows = pendingRows.filter((event) => getTreatmentOwner(event) === 'Sem responsÃ¡vel');
 
   totalEl.textContent = String(treatmentRows.length);
   pendingEl.textContent = String(pendingRows.length);
@@ -355,7 +414,7 @@ function renderTreatmentDashboard(rows) {
   if (!treatmentRows.length) {
     ownerEl.innerHTML = '<div class="text-muted">Nenhum log com tratamento humano no filtro atual.</div>';
     statusEl.innerHTML = '<div class="text-muted">Nenhum status para consolidar.</div>';
-    priorityEl.innerHTML = '<div class="text-muted">Nenhuma pend?ncia humana no filtro atual.</div>';
+    priorityEl.innerHTML = '<div class="text-muted">Nenhuma pendÃªncia humana no filtro atual.</div>';
     return;
   }
 
@@ -375,7 +434,7 @@ function renderTreatmentDashboard(rows) {
     <table class="treatment-table">
       <thead>
         <tr>
-          <th>Respons?vel</th>
+          <th>ResponsÃ¡vel</th>
           <th>Pend.</th>
           <th>Conc.</th>
           <th>Total</th>
@@ -384,7 +443,7 @@ function renderTreatmentDashboard(rows) {
       <tbody>
         ${owners.map((row) => `
           <tr>
-            <td><strong>${escapeHtml(row.owner)}</strong><div class="treatment-meta">Última ação: ${escapeHtml(formatDateTime(row.lastActionAt))}</div></td>
+            <td><strong>${escapeHtml(row.owner)}</strong><div class="treatment-meta">Ãšltima aÃ§Ã£o: ${escapeHtml(formatDateTime(row.lastActionAt))}</div></td>
             <td>${row.pending}</td>
             <td>${row.completed}</td>
             <td>${row.total}</td>
@@ -424,18 +483,18 @@ function renderTreatmentDashboard(rows) {
     .sort((a, b) => b.ageDays - a.ageDays || new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     .slice(0, 5);
 
-  priorityEl.innerHTML = priorityRows.length
-    ? priorityRows.map((row) => `
-        <div class="treatment-list-item">
+  priorityEl.innerHTML = priorityRows.length ?
+    priorityRows.map((row) => 
+      `        <div class="treatment-list-item">
           <div class="d-flex justify-content-between align-items-start mb-1">
             <strong>${escapeHtml(row.scenario)}</strong>
             <span class="treatment-pill pending">${escapeHtml(formatElapsedAge(row.ageDays))}</span>
           </div>
           <div>${escapeHtml(row.summary)}</div>
-          <div class="treatment-meta">${escapeHtml(row.consultation)} ? ${escapeHtml(row.owner)}</div>
+          <div class="treatment-meta">${escapeHtml(row.consultation)} - ${escapeHtml(row.owner)}</div>
         </div>
       `).join('')
-    : '<div class="text-muted">Nenhuma pend?ncia priorit?ria no filtro atual.</div>';
+    : '<div class="text-muted">Nenhuma pendencia prioritaria no filtro atual.</div>';
 }
 
 function renderAuditTable() {
@@ -480,29 +539,33 @@ function renderAuditDetail(event) {
   }
 
   const consultedSources = Array.isArray(event.consulted_sources) ? event.consulted_sources : [];
-  const consultedSourcesHtml = consultedSources.length
-    ? consultedSources.map((source) => `
+  const consultedSourcesHtml = consultedSources.length ?
+    consultedSources.map((source) => `
       <div class="audit-source-item">
         <div class="font-weight-bold mb-1">${escapeHtml(source.source_title || 'Fonte institucional')}</div>
-        <div class="small text-muted mb-2">Versão: ${escapeHtml(source.source_version_label || 'sem versão')}</div>
+        <div class="small text-muted mb-2">VersÃ£o: ${escapeHtml(source.source_version_label || 'sem versÃ£o')}</div>
         <div class="small">${escapeHtml(source.source_excerpt || 'Sem trecho registrado.')}</div>
       </div>
     `).join('')
     : '<div class="text-muted">Nenhuma fonte consultada registrada.</div>';
 
   const statusOptions = [
-    { value: 'PENDING_REVIEW', label: 'Pendente de revisão' },
+    { value: 'PENDING_REVIEW', label: 'Pendente de revisao' },
     { value: 'REVIEWED', label: 'Revisado' },
     { value: 'KNOWLEDGE_CREATED', label: 'Virou curadoria' },
     { value: 'DISMISSED', label: 'Descartado' }
   ].map((option) => `<option value="${option.value}" ${String(event.review_status || '').toUpperCase() === option.value ? 'selected' : ''}>${option.label}</option>`).join('');
 
+  const destinationOptions = [`<option value="">Selecione o destino</option>`]
+    .concat(AUDIT_TREATMENT_DESTINATION_OPTIONS.map((option) => `<option value="${option.value}" ${String(event.treatment_destination || '').toLowerCase() === option.value ? 'selected' : ''}>${option.label}</option>`))
+    .join('');
+
   panel.innerHTML = `
     <div class="audit-detail-section">
-      <div class="audit-detail-label">Caso Auditável</div>
+      <div class="audit-detail-label">Caso AuditÃ¡vel</div>
       <div class="audit-detail-box">
         <div class="font-weight-bold">${escapeHtml(event.scenario_label)}</div>
-        <div class="small text-muted mt-1">${escapeHtml(event.event_type || '-')} • ${escapeHtml(event.severity || '-')}</div>
+        <div class="small text-muted mt-1">${escapeHtml(event.event_type || '-')} â€¢ ${escapeHtml(event.severity || '-')}</div>
       </div>
     </div>
 
@@ -525,18 +588,18 @@ function renderAuditDetail(event) {
     </div>
 
     <div class="audit-detail-section">
-      <div class="audit-detail-label">Evidências</div>
+      <div class="audit-detail-label">EvidÃªncias</div>
       <div class="audit-detail-box mb-2">
         <div><strong>Fonte principal:</strong> ${escapeHtml(event.supporting_source_title || '-')}</div>
-        <div><strong>Versão da fonte:</strong> ${escapeHtml(event.supporting_source_version_label || '-')}</div>
+        <div><strong>VersÃ£o da fonte:</strong> ${escapeHtml(event.supporting_source_version_label || '-')}</div>
         <div><strong>Trecho usado:</strong> ${escapeHtml(event.supporting_source_excerpt || '-')}</div>
-        <div><strong>Score de evidência:</strong> ${escapeHtml(formatConfidence(event.evidence_score))}</div>
-        <div><strong>Risco de alucinação:</strong> ${escapeHtml(event.hallucination_risk_level || '-')}</div>
-        <div><strong>Revisão requerida:</strong> ${event.review_required ? 'sim' : 'não'}</div>
-        <div><strong>Motivo:</strong> ${escapeHtml(event.reason || '-')}</div>
-        <div><strong>Motivo da revisão:</strong> ${escapeHtml(event.review_reason || '-')}</div>
+        <div><strong>Score de evidÃªncia:</strong> ${escapeHtml(formatConfidence(event.evidence_score))}</div>
+        <div><strong>Risco de alucinaÃ§Ã£o:</strong> ${escapeHtml(event.hallucination_risk_level || '-')}</div>
+        <div><strong>RevisÃ£o requerida:</strong> ${event.review_required ? 'sim' : 'nao'}</div>
+        <div><strong>Motivo:</strong> ${escapeHtml(formatAuditReason(event.reason))}</div>
+        <div><strong>Motivo da revisÃ£o:</strong> ${escapeHtml(formatAuditReason(event.review_reason))}</div>
         <div><strong>Fallback sugerido:</strong> ${escapeHtml(event.fallback_area || '-')}</div>
-        <div><strong>Resposta contida:</strong> ${event.abstained ? 'sim' : 'não'}</div>
+        <div><strong>Resposta contida:</strong> ${event.abstained ? 'sim' : 'nao'}</div>
       </div>
       ${consultedSourcesHtml}
     </div>
@@ -545,15 +608,24 @@ function renderAuditDetail(event) {
       <div class="audit-detail-label">Tratamento Humano</div>
       <div class="audit-detail-box">
         <div class="mb-2"><strong>Status atual:</strong> ${escapeHtml(getReviewStatusLabel(event.review_status))}</div>
-        <div class="mb-2"><strong>Última revisão:</strong> ${escapeHtml(formatDateTime(event.reviewed_at))}</div>
-        <div class="mb-2"><strong>Responsável:</strong> ${escapeHtml(event.reviewed_by || '-')}</div>
-        <div class="mb-3"><strong>Notas:</strong> ${escapeHtml(event.review_notes || '-')}</div>
+        <div class="mb-2"><strong>Destino atual:</strong> ${escapeHtml(getTreatmentDestinationLabel(event.treatment_destination))}</div>
+        <div class="mb-2"><strong>Fila operacional:</strong> ${escapeHtml(getTreatmentProgressLabel(event.treatment_progress_status))}</div>
+        <div class="mb-2"><strong>Ultima revisao:</strong> ${escapeHtml(formatDateTime(event.reviewed_at))}</div>
+        <div class="mb-2"><strong>Responsavel:</strong> ${escapeHtml(event.reviewed_by || '-')}</div>
+        <div class="mb-2"><strong>Ultima atualizacao da fila:</strong> ${escapeHtml(formatDateTime(event.treatment_last_updated_at || event.reviewed_at))}</div>
+        <div class="mb-2"><strong>Notas do auditor:</strong> ${escapeHtml(event.review_notes || '-')}</div>
+        <div class="mb-3"><strong>Notas da execucao:</strong> ${escapeHtml(event.treatment_completion_notes || '-')}</div>
         <div class="form-group mb-2">
           <label class="small text-muted">Atualizar status</label>
           <select class="form-control form-control-sm" id="audit-review-status">${statusOptions}</select>
         </div>
         <div class="form-group mb-2">
-          <label class="small text-muted">Responsável</label>
+          <label class="small text-muted">Destino do tratamento</label>
+          <select class="form-control form-control-sm" id="audit-treatment-destination">${destinationOptions}</select>
+          <small class="form-text text-muted">Defina qual fila vai receber essa demanda para execucao.</small>
+        </div>
+        <div class="form-group mb-2">
+          <label class="small text-muted">Responsavel</label>
           <input class="form-control form-control-sm" id="audit-reviewer-name" value="${escapeHtml(event.reviewed_by && event.reviewed_by !== '-' ? event.reviewed_by : 'Operador institucional')}">
         </div>
         <div class="form-group mb-3">
@@ -585,7 +657,7 @@ function renderAuditDetail(event) {
         <div class="audit-detail-box">
           <div class="audit-detail-label">Quem registrou</div>
           <div>${escapeHtml(event.actor_name || '-')}</div>
-          <div class="small text-muted">${escapeHtml(event.actor_type || '-')} • ${escapeHtml(formatDateTime(event.created_at))}</div>
+          <div class="small text-muted">${escapeHtml(event.actor_type || '-')} â€¢ ${escapeHtml(formatDateTime(event.created_at))}</div>
         </div>
       </div>
     </div>
@@ -616,14 +688,14 @@ function buildExportRows() {
     resumo: event.summary || '',
     score_evidencia: formatConfidence(event.evidence_score),
     risco_alucinacao: event.hallucination_risk_level || '',
-    revisao_requerida: event.review_required ? 'sim' : 'não',
+    revisao_requerida: event.review_required ? 'sim' : 'nao',
     status_tratamento: getReviewStatusLabel(event.review_status),
     revisado_por: event.reviewed_by || '',
     revisado_em: formatDateTime(event.reviewed_at),
     notas_tratamento: event.review_notes || '',
-    motivo: event.reason || '',
-    motivo_revisao: event.review_reason || '',
-    resposta_contida: event.abstained ? 'sim' : 'não',
+    motivo: formatAuditReason(event.reason),
+    motivo_revisao: formatAuditReason(event.review_reason),
+    resposta_contida: event.abstained ? 'sim' : 'nao',
     fallback_sugerido: event.fallback_area || '',
     fonte_principal: event.supporting_source_title || '',
     versao_fonte: event.supporting_source_version_label || '',
@@ -672,7 +744,7 @@ function exportAuditXls() {
 }
 function exportAuditPdf() {
   if (!window.jspdf || !window.jspdf.jsPDF) {
-    Swal.fire('Erro', 'A biblioteca de PDF não foi carregada nesta página.', 'error');
+    Swal.fire('Erro', 'A biblioteca de PDF nÃ£o foi carregada nesta pÃ¡gina.', 'error');
     return;
   }
 
@@ -704,10 +776,10 @@ function exportAuditPdf() {
     y += lines.length * gap + 4;
   }
 
-  addLine('Exportacao da Auditoria Formal', { fontSize: 16, fontStyle: 'bold', gap: 18 });
+  addLine('ExportaÃ§Ã£o da Auditoria Formal', { fontSize: 16, fontStyle: 'bold', gap: 18 });
   addLine(`Gerado em: ${formatDateTime(new Date().toISOString())}`);
   addLine(`Total de logs exportados: ${rows.length}`);
-  addLine(document.getElementById('audit-filter-summary')?.textContent || '');
+  addLine(document.getElementById('audit-filter-summary').textContent || '');
   y += 8;
 
   rows.forEach((event, index) => {
@@ -719,11 +791,11 @@ function exportAuditPdf() {
     addLine(`Assistente: ${event.assistant_name}`);
     addLine(`Pergunta: ${event.original_question}`);
     addLine(`Resposta: ${event.response_text}`);
-    addLine(`Fonte principal: ${event.supporting_source_title} | Versao: ${event.supporting_source_version_label}`);
+    addLine(`Fonte principal: ${event.supporting_source_title} | VersÃ£o: ${event.supporting_source_version_label}`);
     addLine(`Trecho: ${event.supporting_source_excerpt}`);
     addLine(`Status de tratamento: ${getReviewStatusLabel(event.review_status)} | Revisado por: ${event.reviewed_by || '-'}`);
     addLine(`Notas de tratamento: ${event.review_notes || '-'}`);
-    addLine(`Motivo: ${event.reason} | Fallback sugerido: ${event.fallback_area}`);
+    addLine(`Motivo: ${formatAuditReason(event.reason)} | Fallback sugerido: ${event.fallback_area}`);
     addLine(`Resumo: ${event.summary}`);
     y += 8;
   });
@@ -750,40 +822,64 @@ function clearAuditFilters() {
 }
 
 async function saveAuditReview(eventId) {
-  const status = String(document.getElementById('audit-review-status')?.value || 'PENDING_REVIEW');
-  const reviewedBy = String(document.getElementById('audit-reviewer-name')?.value || 'Operador institucional').trim();
-  const reviewNotes = String(document.getElementById('audit-review-notes')?.value || '').trim();
+  await ensureAuthenticatedContext();
+  const status = String(document.getElementById('audit-review-status').value || 'PENDING_REVIEW');
+  const treatmentDestination = String(document.getElementById('audit-treatment-destination').value || '').trim();
+  const reviewedBy = String(document.getElementById('audit-reviewer-name').value || 'Operador institucional').trim();
+  const reviewNotes = String(document.getElementById('audit-review-notes').value || '').trim();
   const button = document.getElementById('btn-save-audit-review');
+
+  if (!reviewedBy) {
+    Swal.fire('Responsavel obrigatorio', 'Informe quem esta registrando o encaminhamento.', 'warning');
+    return;
+  }
+  if (!treatmentDestination && status !== 'DISMISSED') {
+    Swal.fire('Destino obrigatorio', 'Defina para qual fila o auditor esta encaminhando este caso.', 'warning');
+    return;
+  }
+  if (status === 'KNOWLEDGE_CREATED' && treatmentDestination && treatmentDestination !== 'content_curation') {
+    Swal.fire('Destino inconsistente', 'Casos marcados como curadoria devem seguir para Curadoria de conteudo.', 'warning');
+    return;
+  }
+
   if (button) button.disabled = true;
 
   try {
     const res = await fetch(`/api/audit/events/${encodeURIComponent(eventId)}/review`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getAuthenticatedHeaders(),
       body: JSON.stringify({
         review_status: status,
         reviewed_by: reviewedBy,
-        review_notes: reviewNotes
+        review_notes: reviewNotes,
+        treatment_destination: treatmentDestination || null
       })
     });
     const body = await res.json();
-    if (!res.ok) throw new Error(body?.error || 'Falha ao salvar tratamento.');
+    if (!res.ok) throw new Error(body.error || 'Falha ao salvar tratamento.');
 
+    const details = body.event.details || {};
     const index = auditEvents.findIndex((item) => item.id === eventId);
     if (index >= 0) {
       auditEvents[index] = {
         ...auditEvents[index],
         review_status: status,
         reviewed_by: reviewedBy,
-        reviewed_at: body?.event?.details?.reviewed_at || new Date().toISOString(),
-        review_notes: reviewNotes || '-'
+        reviewed_at: details.reviewed_at || new Date().toISOString(),
+        review_notes: reviewNotes || '-',
+        treatment_destination: details.treatment_destination || treatmentDestination || '',
+        treatment_progress_status: details.treatment_progress_status || auditEvents[index].treatment_progress_status || 'OPEN',
+        treatment_last_updated_at: details.treatment_last_updated_at || details.reviewed_at || new Date().toISOString(),
+        treatment_last_updated_by: details.treatment_last_updated_by || reviewedBy,
+        treatment_completion_notes: details.treatment_completion_notes || auditEvents[index].treatment_completion_notes || ''
       };
     }
 
     renderAuditTable();
-    Swal.fire('Tratamento salvo', 'O status de revisão foi atualizado na trilha de auditoria.', 'success');
+    document.dispatchEvent(new CustomEvent('audit:treatment-updated', { detail: { eventId } }));
+    Swal.fire('Tratamento salvo', 'O encaminhamento do auditor foi atualizado e enviado para a fila correta.', 'success');
   } catch (error) {
-    Swal.fire('Erro', error.message || 'Não foi possível salvar o tratamento.', 'error');
+    Swal.fire('Erro', error.message || 'Nao foi possivel salvar o tratamento.', 'error');
   } finally {
     if (button) button.disabled = false;
   }
@@ -791,8 +887,13 @@ async function saveAuditReview(eventId) {
 
 async function loadAuditEvents() {
   await ensureAuthenticatedContext();
-  const res = await fetch('/api/audit/events');
+  const res = await fetch('/api/audit/events', {
+    headers: await getAuthenticatedHeaders({ 'Content-Type': undefined })
+  });
   const data = await res.json();
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || 'Falha ao carregar trilha de auditoria.');
+  }
   auditEvents = data.events || [];
   populateFilterOptions();
   updateKpis();
@@ -812,14 +913,14 @@ document.addEventListener('DOMContentLoaded', () => {
     'audit-date-from',
     'audit-date-to'
   ].forEach((id) => {
-    document.getElementById(id)?.addEventListener('change', renderAuditTable);
+    document.getElementById(id).addEventListener('change', renderAuditTable);
   });
 
-  document.getElementById('audit-search')?.addEventListener('input', renderAuditTable);
-  document.getElementById('btn-clear-audit-filters')?.addEventListener('click', clearAuditFilters);
-  document.getElementById('btn-export-audit-csv')?.addEventListener('click', exportAuditCsv);
-  document.getElementById('btn-export-audit-xls')?.addEventListener('click', exportAuditXls);
-  document.getElementById('btn-export-audit-pdf')?.addEventListener('click', exportAuditPdf);
+  document.getElementById('audit-search').addEventListener('input', renderAuditTable);
+  document.getElementById('btn-clear-audit-filters').addEventListener('click', clearAuditFilters);
+  document.getElementById('btn-export-audit-csv').addEventListener('click', exportAuditCsv);
+  document.getElementById('btn-export-audit-xls').addEventListener('click', exportAuditXls);
+  document.getElementById('btn-export-audit-pdf').addEventListener('click', exportAuditPdf);
 
   loadAuditEvents().catch((error) => {
     console.error(error);

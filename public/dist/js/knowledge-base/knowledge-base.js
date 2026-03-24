@@ -190,7 +190,7 @@ async function salvarResposta(id) {
     
     Swal.fire({
         title: 'Atualizando...',
-        text: 'Gerando embedding e palavras-chave',
+        text: 'Gerando palavras-chave e indice textual',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -226,7 +226,7 @@ async function salvarResposta(id) {
             Swal.fire({ 
                 icon: 'success', 
                 title: 'Salvo!', 
-                text: embedding ? 'Embedding e palavras-chave atualizados' : 'Resposta salva (sem embedding)',
+                text: embedding ? 'Palavras-chave atualizadas' : 'Resposta salva sem indexacao semantica',
                 toast: true, 
                 position: 'top-end', 
                 showConfirmButton: false, 
@@ -253,7 +253,7 @@ async function salvarResposta(id) {
         Swal.fire({ 
             icon: 'success', 
             title: 'Salvo!', 
-            text: 'Resposta salva (sem embedding)',
+            text: 'Resposta salva sem indexacao semantica',
             toast: true, 
             position: 'top-end', 
             showConfirmButton: false, 
@@ -377,7 +377,7 @@ async function salvarDadosPergunta() {
 
     Swal.fire({
         title: 'Salvando...',
-        text: 'Gerando embedding e palavras-chave',
+        text: 'Gerando palavras-chave e indice textual',
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
@@ -425,7 +425,7 @@ async function salvarDadosPergunta() {
             Swal.fire({ 
                 icon: 'success', 
                 title: 'Sucesso!', 
-                text: embedding ? 'Base estruturada atualizada com palavras-chave' : 'Item estruturado salvo',
+                text: embedding ? 'Base estruturada atualizada com indexacao textual' : 'Item estruturado salvo',
                 toast: true, 
                 position: 'top-end', 
                 showConfirmButton: false, 
@@ -459,7 +459,7 @@ async function salvarDadosPergunta() {
             Swal.fire({ 
                 icon: 'warning', 
                 title: 'Salvo com fallback', 
-                text: 'Item estruturado salvo com keywords locais',
+                text: 'Item estruturado salvo com palavras-chave locais',
                 toast: true, 
                 position: 'top-end', 
                 showConfirmButton: false, 
@@ -507,7 +507,7 @@ async function excluirPergunta(id, event) {
 async function gerarEmbeddingETags(pergunta, resposta) {
     try {
         const textoCompleto = `${pergunta}\n${resposta}`;
-        console.log('ðŸ” Tentando gerar embedding via Supabase Edge Function...');
+        console.log('ðŸ” Gerando palavras-chave via Supabase Edge Function...');
 
         // Verifica se o cliente Supabase estÃ¡ disponÃ­vel
         if (!window.supabaseClient) {
@@ -529,14 +529,14 @@ async function gerarEmbeddingETags(pergunta, resposta) {
             throw error; // ForÃ§a a ida para o catch (fallback)
         }
 
-        // Sucesso: Retorna os dados vindos da OpenAI via Supabase
+        // Sucesso: retorna palavras-chave e metadados de indexacao
         return {
             embedding: data.embedding || null,
             keywords: data.keywords || []
         };
 
     } catch (error) {
-        console.error('âš ï¸ Erro ao gerar embedding (usando fallback local):', error);
+        console.error('âš ï¸ Erro ao gerar indexacao textual (usando fallback local):', error);
         
         // --- FALLBACK ---
         // Se a API falhar, acabar os crÃ©ditos ou der erro de rede,

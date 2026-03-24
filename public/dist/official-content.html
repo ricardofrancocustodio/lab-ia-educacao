@@ -71,10 +71,10 @@
                 <div class="card card-outline card-primary">
                     <div class="card-header">
                         <ul class="nav nav-tabs" role="tablist">
-                            <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#official-calendar" role="tab"><i class="fas fa-calendar-alt mr-1"></i> Calendario Oficial</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-enrollment" role="tab"><i class="fas fa-file-signature mr-1"></i> Matricula e Documentos</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-faq" role="tab"><i class="fas fa-question-circle mr-1"></i> FAQ Oficial</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-notices" role="tab"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li>
+                            <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#official-calendar" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-calendar')"><i class="fas fa-calendar-alt mr-1"></i> Calendario Oficial</a></li>
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-enrollment" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-enrollment')"><i class="fas fa-file-signature mr-1"></i> Matricula e Documentos</a></li>
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-faq" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-faq')"><i class="fas fa-question-circle mr-1"></i> FAQ Oficial</a></li>
+                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-notices" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-notices')"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li>
                         </ul>
                     </div>
                     <div class="card-body">
@@ -197,28 +197,65 @@
                                 </div>
                                 <div class="tab-pane fade" id="official-enrollment" role="tabpanel">
                                     <div class="official-card card">
-                                        <div class="card-header"><h3 class="card-title">Matricula e Documentos Exigidos</h3></div>
+                                        <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start">
+                                            <h3 class="card-title">Matricula e Documentos</h3>
+                                            <div>
+                                                <button id="enrollment-scope-network-btn" class="btn btn-sm btn-outline-primary mr-1" onclick="OfficialContentPage.setEnrollmentScope('network')">Rede / Secretaria</button>
+                                                <button id="enrollment-scope-school-btn" class="btn btn-sm btn-outline-primary" onclick="OfficialContentPage.setEnrollmentScope('school')">Escola / Unidade</button>
+                                            </div>
+                                        </div>
                                         <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-6 form-group"><label>Periodo de matricula</label><input id="enrollment-period" class="form-control"></div>
-                                                <div class="col-md-6 form-group"><label>Periodo de rematricula</label><input id="reenrollment-period" class="form-control"></div>
+                                            <div id="enrollment-scope-wrapper" data-active-scope="network">
+                                                <div class="mb-3 d-flex justify-content-between align-items-center">
+                                                    <div><strong>Documento atual:</strong> <span id="enrollment-document-title">Nenhum documento cadastrado</span></div>
+                                                    <button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.createNewEnrollmentDocument()">Novo documento</button>
+                                                </div>
+                                                <div class="official-status-card mb-3" id="enrollment-status-card">
+                                                    <div class="row">
+                                                        <div class="col-sm-6"><strong>Status</strong>: <span id="enrollment-status-label">-</span></div>
+                                                        <div class="col-sm-6"><strong>Escopo</strong>: <span id="enrollment-scope-label">Rede / Secretaria</span></div>
+                                                    </div>
+                                                    <div class="row mt-2">
+                                                        <div class="col-sm-6"><strong>Validade</strong>: <span id="enrollment-validity-label">-</span></div>
+                                                        <div class="col-sm-6"><strong>Publicado em</strong>: <span id="enrollment-published-label">-</span></div>
+                                                    </div>
+                                                </div>
+                                                <div class="official-toolbar mb-3">
+                                                    <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+                                                    <label class="btn btn-outline-secondary btn-sm mb-0"><i class="fas fa-upload mr-1"></i>Importar CSV
+                                                        <input id="enrollment-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importEnrollmentCsv(this.files && this.files[0])">
+                                                    </label>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 form-group"><label>Periodo de matricula</label><input id="enrollment-period" class="form-control"></div>
+                                                    <div class="col-md-6 form-group"><label>Periodo de rematricula</label><input id="reenrollment-period" class="form-control"></div>
+                                                </div>
+                                                <div class="form-group"><label>Publico-alvo</label><textarea id="enrollment-target" class="form-control" rows="2"></textarea></div>
+                                                <div class="row">
+                                                    <div class="col-md-6 form-group"><label>Documentos obrigatorios (um por linha)</label><textarea id="enrollment-required" class="form-control" rows="8"></textarea></div>
+                                                    <div class="col-md-6 form-group"><label>Documentos opcionais (um por linha)</label><textarea id="enrollment-optional" class="form-control" rows="8"></textarea></div>
+                                                </div>
+                                                <div class="form-group"><label>Regras especiais</label><textarea id="enrollment-rules" class="form-control" rows="3"></textarea></div>
+                                                <div class="form-group"><label>Link da norma oficial</label><input id="enrollment-link" class="form-control"></div>
+                                                <div class="form-group"><label>Resumo</label><textarea id="enrollment-summary" class="form-control" rows="2"></textarea></div>
+                                                <div class="official-actions">
+                                                    <button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollment()">Salvar regras de matricula</button>
+                                                </div>
                                             </div>
-                                            <div class="form-group"><label>Publico-alvo</label><textarea id="enrollment-target" class="form-control" rows="2"></textarea></div>
-                                            <div class="row">
-                                                <div class="col-md-6 form-group"><label>Documentos obrigatorios (um por linha)</label><textarea id="enrollment-required" class="form-control" rows="8"></textarea></div>
-                                                <div class="col-md-6 form-group"><label>Documentos opcionais (um por linha)</label><textarea id="enrollment-optional" class="form-control" rows="8"></textarea></div>
-                                            </div>
-                                            <div class="form-group"><label>Regras especiais</label><textarea id="enrollment-rules" class="form-control" rows="3"></textarea></div>
-                                            <div class="form-group"><label>Link da norma oficial</label><input id="enrollment-link" class="form-control"></div>
-                                            <div class="form-group"><label>Resumo</label><textarea id="enrollment-summary" class="form-control" rows="2"></textarea></div>
-                                            <div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollment()">Salvar regras de matricula</button></div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="official-faq" role="tabpanel">
                                     <div class="official-card card">
-                                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">FAQ Oficial</h3><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addFaqItem()"><i class="fas fa-plus mr-1"></i>Nova pergunta</button></div>
+                                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">FAQ Oficial</h3><div><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addFaqItem()"><i class="fas fa-plus mr-1"></i>Nova pergunta</button></div></div>
                                         <div class="card-body">
+                                            <div class="official-toolbar">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadFaqTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+                                                <label class="btn btn-outline-secondary btn-sm mb-0">
+                                                    <i class="fas fa-upload mr-1"></i>Importar CSV
+                                                    <input id="faq-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importFaqCsv(this.files && this.files[0])">
+                                                </label>
+                                            </div>
                                             <div id="faq-items" class="official-list"></div>
                                             <div id="faq-empty" class="official-empty mt-2">Nenhuma pergunta cadastrada ainda.</div>
                                             <div class="form-group mt-3"><label>Resumo</label><textarea id="faq-summary" class="form-control" rows="2"></textarea></div>
@@ -228,8 +265,15 @@
                                 </div>
                                 <div class="tab-pane fade" id="official-notices" role="tabpanel">
                                     <div class="official-card card">
-                                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Comunicados Oficiais</h3><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addNoticeItem()"><i class="fas fa-plus mr-1"></i>Novo comunicado</button></div>
+                                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Comunicados Oficiais</h3><div><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addNoticeItem()"><i class="fas fa-plus mr-1"></i>Novo comunicado</button></div></div>
                                         <div class="card-body">
+                                            <div class="official-toolbar">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadNoticesTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+                                                <label class="btn btn-outline-secondary btn-sm mb-0">
+                                                    <i class="fas fa-upload mr-1"></i>Importar CSV
+                                                    <input id="notices-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importNoticesCsv(this.files && this.files[0])">
+                                                </label>
+                                            </div>
                                             <div id="notice-items" class="official-list"></div>
                                             <div id="notice-empty" class="official-empty mt-2">Nenhum comunicado cadastrado ainda.</div>
                                             <div class="form-group mt-3"><label>Resumo</label><textarea id="notices-summary" class="form-control" rows="2"></textarea></div>
@@ -257,6 +301,8 @@
 <script src="./js/cache.js"></script>
 <script src="./js/coordinator/carregar-componentes.js"></script>
 <script src="./js/official-content/official-content.js"></script>
+<script src="./js/official-content/faq-extended.js"></script>
+<script src="./js/audit/treatment-inbox.js"></script>
 </body>
 </html>
 

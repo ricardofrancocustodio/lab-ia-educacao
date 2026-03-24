@@ -1,7 +1,7 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
 
-const { createWebchatSession, normalizeIncomingWebchat, isWebchatSessionId } = require("../services/channels/webchat");
+const { createWebchatSession, normalizeIncomingWebchat, isWebchatSessionId, getSchoolIdFromWebchatSession } = require("../services/channels/webchat");
 const { handleInboundChat } = require("../services/chat/inbound");
 const { closeConversation } = require("../services/chat/handoffStore");
 const { supabase, closeConsultationEvent } = require("../services/supabase");
@@ -31,6 +31,35 @@ function getAssistantLabel(key) {
 function isMissingRelationError(error) {
   const message = String(error?.message || error?.details || '').toLowerCase();
   return message.includes('does not exist') || (message.includes('relation') && message.includes('does not exist'));
+}
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+function getRequestedSchoolId(req, fallbackSessionId = '') {
+  const explicitSchoolId = String(req.headers['x-school-id'] || req.query.school_id || '').trim();
+  if (explicitSchoolId) return explicitSchoolId;
+  const derivedSchoolId = getSchoolIdFromWebchatSession(fallbackSessionId);
+  if (derivedSchoolId) return String(derivedSchoolId).trim();
+  return String(process.env.SCHOOL_ID || '').trim();
+}
+function resolveConversationLookup(req, rawIdentifier) {
+  const identifier = String(rawIdentifier || '').trim();
+  if (!identifier) return null;
+  if (isWebchatSessionId(identifier)) {
+    return {
+      schoolId: getRequestedSchoolId(req, identifier),
+      lookupField: 'requester_id',
+      lookupValue: identifier
+    };
+  }
+  if (isUuid(identifier)) {
+    return {
+      schoolId: getRequestedSchoolId(req),
+      lookupField: 'id',
+      lookupValue: identifier
+    };
+  }
+  return null;
 }
 
 function normalizeRoleKey(role) {
@@ -96,7 +125,8 @@ function mapConversationRow(row, messages = []) {
   }));
 
   return {
-    id: row.requester_id,
+    id: row.id,
+    consultation_id: row.id,
     user_id: row.requester_id,
     display_name: row.requester_name || row.metadata?.parent_name || row.metadata?.school_name || row.requester_id,
     channel: row.channel,
@@ -133,6 +163,11 @@ router.post("/session", async (req, res) => {
 router.post("/message", async (req, res) => {
   try {
     const { sessionId, text, metadata } = normalizeIncomingWebchat(req.body || {});
+    const derivedSchoolId = getSchoolIdFromWebchatSession(sessionId);
+    const enrichedMetadata = {
+      ...(metadata || {}),
+      school_id: String(metadata?.school_id || derivedSchoolId || process.env.SCHOOL_ID || '').trim() || null
+    };
     if (!isWebchatSessionId(sessionId)) {
       return res.status(400).json({ ok: false, error: "session_id invalido." });
     }
@@ -144,7 +179,7 @@ router.post("/message", async (req, res) => {
       channel: "webchat",
       userId: sessionId,
       text,
-      metadata
+      metadata: enrichedMetadata
     });
 
     return res.status(200).json(result);
@@ -160,7 +195,7 @@ router.get("/conversations", async (req, res) => {
       return res.status(200).json({ ok: true, conversations: [] });
     }
 
-    const schoolId = String(process.env.SCHOOL_ID || "").trim();
+    const schoolId = getRequestedSchoolId(req);
     const query = supabase
       .from("institutional_consultations")
       .select("id, requester_id, requester_name, channel, status, primary_topic, assigned_assistant_key, opened_at, resolved_at, metadata")
@@ -267,12 +302,16 @@ router.get("/conversations/:id", async (req, res) => {
       return res.status(404).json({ ok: false, error: "Conversa nao encontrada." });
     }
 
-    const schoolId = String(process.env.SCHOOL_ID || "").trim();
+    const lookup = resolveConversationLookup(req, req.params.id);
+    if (!lookup) {
+      return res.status(400).json({ ok: false, error: "Identificador de conversa invalido." });
+    }
+    const schoolId = lookup.schoolId;
     let query = supabase
       .from("institutional_consultations")
       .select("id, requester_id, requester_name, channel, status, primary_topic, assigned_assistant_key, opened_at, resolved_at, metadata")
       .eq("channel", "webchat")
-      .eq("requester_id", req.params.id)
+      .eq(lookup.lookupField, lookup.lookupValue)
       .order("opened_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -508,7 +547,7 @@ router.post("/responses/:id/feedback", async (req, res) => {
       return res.status(400).json({ ok: false, error: "feedback_type invalido." });
     }
 
-    const schoolId = String(process.env.SCHOOL_ID || '').trim();
+    const schoolId = getRequestedSchoolId(req);
     let query = supabase
       .from('assistant_responses')
       .select('id, school_id, consultation_id')
@@ -531,9 +570,22 @@ router.post("/responses/:id/feedback", async (req, res) => {
       created_by: createdBy || 'Operador institucional'
     };
 
+    const { error: cleanupError } = await supabase
+      .from('interaction_feedback')
+      .delete()
+      .eq('response_id', responseRow.id)
+      .eq('created_by', createdBy || 'Operador institucional');
+
+    if (cleanupError) {
+      if (isMissingRelationError(cleanupError)) {
+        return res.status(501).json({ ok: false, error: 'Tabela interaction_feedback ainda nao foi criada no banco.' });
+      }
+      throw cleanupError;
+    }
+
     const { data, error } = await supabase
       .from('interaction_feedback')
-      .upsert(payload, { onConflict: 'response_id,feedback_type,created_by' })
+      .insert(payload)
       .select('*')
       .single();
 
@@ -582,7 +634,7 @@ router.post("/responses/:id/incident", async (req, res) => {
     if (!responseId) return res.status(400).json({ ok: false, error: "Resposta invalida." });
     if (!allowedSeverity.has(severity)) return res.status(400).json({ ok: false, error: "severity invalido." });
 
-    const schoolId = String(process.env.SCHOOL_ID || '').trim();
+    const schoolId = getRequestedSchoolId(req);
     let query = supabase
       .from('assistant_responses')
       .select('id, school_id, consultation_id, assistant_key')
@@ -649,13 +701,35 @@ router.post("/conversations/:id/resolve", async (req, res) => {
     if (!capabilities.resolveConversation) {
       return res.status(403).json({ ok: false, error: "Perfil sem permissao para encerrar conversas nesta tela." });
     }
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+    }
+
     const finalText = String(req.body?.text || "").trim();
-    closeConversation(req.params.id, finalText);
+    const schoolId = getRequestedSchoolId(req);
+    let consultationQuery = supabase
+      .from("institutional_consultations")
+      .select("id, requester_id, school_id")
+      .eq("channel", "webchat")
+      .eq("id", req.params.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (schoolId) consultationQuery = consultationQuery.eq("school_id", schoolId);
+
+    const { data: consultationRow, error: consultationError } = await consultationQuery;
+    if (consultationError) throw consultationError;
+    if (!consultationRow) {
+      return res.status(404).json({ ok: false, error: "Conversa nao encontrada." });
+    }
+
+    closeConversation(consultationRow.requester_id, finalText);
 
     await closeConsultationEvent({
-      school_id: process.env.SCHOOL_ID || null,
+      school_id: consultationRow.school_id || schoolId || null,
+      consultation_id: consultationRow.id,
+      requester_id: consultationRow.requester_id,
       channel: "webchat",
-      requester_id: req.params.id,
       actor_type: "HUMAN",
       actor_name: "Monitoramento institucional",
       event_type: "MANUAL_CLOSURE",
@@ -671,6 +745,8 @@ router.post("/conversations/:id/resolve", async (req, res) => {
 });
 
 module.exports = router;
+
+
 
 
 

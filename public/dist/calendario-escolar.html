@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -6,24 +6,23 @@
   <title>Calendário Escolar</title>
   <style>
     :root {
-      --green-950: #0f3e1f;
-      --green-900: #14532d;
-      --green-800: #196231;
-      --green-700: #277a3c;
-      --green-600: #3d8d4d;
+      --blue-900: #0c326f;
+      --blue-800: #1351b4;
+      --blue-700: #2670e8;
+      --blue-050: #f4f8ff;
+      --green-700: #168821;
       --green-100: #edf7ef;
-      --green-050: #f7fbf7;
-      --yellow-500: #f2b400;
-      --yellow-400: #f7c948;
-      --text: #17324d;
-      --muted: #5f6b7a;
-      --border: #d7e5d7;
-      --shadow: 0 18px 40px rgba(15, 23, 42, .08);
-      --legend-letivo: #2f8a4b;
-      --legend-reuniao: #e49b22;
-      --legend-recesso: #cf2f2f;
-      --legend-evento: #2f67d9;
-      --legend-ferias: #1fa79a;
+      --yellow-500: #ffcd07;
+      --yellow-400: #ffe066;
+      --text: #1f2937;
+      --muted: #5b6573;
+      --border: #d7e3f4;
+      --shadow: 0 18px 42px rgba(19, 81, 180, .10);
+      --legend-letivo: #168821;
+      --legend-reuniao: #ff9f1c;
+      --legend-recesso: #c92a2a;
+      --legend-evento: #1351b4;
+      --legend-ferias: #00a3a3;
     }
 
     * { box-sizing: border-box; }
@@ -33,8 +32,8 @@
       font-family: 'Segoe UI', Tahoma, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top, rgba(47, 138, 75, .12), transparent 26%),
-        linear-gradient(180deg, #f6faf6 0%, #ffffff 38%);
+        linear-gradient(180deg, #f3f6fb 0%, #ffffff 22%),
+        radial-gradient(circle at top right, rgba(19, 81, 180, .08), transparent 24%);
     }
 
     .calendar-shell {
@@ -45,8 +44,9 @@
 
     .calendar-topbar {
       background: #fff;
-      border-bottom: 1px solid #dbe7d8;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
+      border-top: 6px solid var(--blue-800);
+      border-bottom: 1px solid #d7e3f4;
+      box-shadow: 0 10px 28px rgba(19, 81, 180, .08);
     }
 
     .calendar-topbar-inner {
@@ -63,7 +63,7 @@
     .calendar-gov {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
     }
 
     .calendar-seal {
@@ -77,41 +77,62 @@
 
     .calendar-brand-title {
       font-weight: 900;
-      font-size: 1.55rem;
-      line-height: .95;
+      font-size: 1.45rem;
+      line-height: 1;
       letter-spacing: -.02em;
-      color: var(--green-900);
-      text-transform: uppercase;
+      color: var(--blue-900);
     }
 
     .calendar-brand-subtitle,
     .calendar-gov-subtitle {
-      font-size: .8rem;
+      font-size: .88rem;
       color: var(--muted);
     }
 
     .calendar-gov-mark {
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 14px;
-      background: linear-gradient(135deg, #fff 0%, #f4faf5 100%);
-      border: 1px solid #d9e8d8;
+      background: linear-gradient(135deg, #fff 0%, #f4f8ff 100%);
+      border: 1px solid #d7e3f4;
       text-align: right;
+      box-shadow: 0 10px 24px rgba(19, 81, 180, .08);
     }
 
     .calendar-gov-title {
-      font-size: 1rem;
+      font-size: .98rem;
+      font-weight: 800;
+      color: var(--blue-900);
+    }
+
+    .calendar-govbr-logo {
+      display: inline-flex;
+      align-items: baseline;
+      font-size: 2.4rem;
       font-weight: 900;
-      text-transform: uppercase;
-      color: var(--green-900);
+      line-height: 1;
+      letter-spacing: -.05em;
+      flex: 0 0 auto;
+    }
+
+    .calendar-govbr-blue { color: #1351b4; }
+    .calendar-govbr-yellow { color: #ffcd07; }
+    .calendar-govbr-green { color: #168821; }
+
+    .calendar-brand-divider {
+      width: 1px;
+      height: 40px;
+      background: #d7e3f4;
     }
 
     .calendar-search-band {
       margin: 18px auto 0;
-      background: linear-gradient(180deg, var(--green-800) 0%, var(--green-700) 100%);
-      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(12, 50, 111, .98) 0%, rgba(19, 81, 180, .98) 100%),
+        radial-gradient(circle at top right, rgba(255, 205, 7, .22), transparent 28%);
+      border-radius: 18px;
       padding: 22px 24px;
       color: #fff;
-      box-shadow: 0 20px 48px rgba(20, 83, 45, .18);
+      box-shadow: 0 24px 56px rgba(19, 81, 180, .18);
     }
 
     .calendar-search-title {
@@ -129,9 +150,9 @@
     }
 
     .calendar-filters-panel {
-      background: rgba(10, 46, 21, .18);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 18px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 16px;
       padding: 18px;
       display: grid;
       grid-template-columns: 1.1fr 1.1fr 1.1fr auto;
@@ -150,14 +171,14 @@
     .calendar-field select,
     .calendar-field input {
       width: 100%;
-      border: 0;
+      border: 1px solid #cbd5e1;
       border-radius: 10px;
       background: #fff;
       min-height: 44px;
       padding: 10px 14px;
       font-size: .98rem;
       color: var(--text);
-      box-shadow: inset 0 0 0 1px rgba(10, 46, 21, .06);
+      box-shadow: none;
     }
 
     .calendar-search-button {
@@ -165,11 +186,11 @@
       padding: 0 22px;
       border: 0;
       border-radius: 10px;
-      background: linear-gradient(180deg, #ffd04c 0%, var(--yellow-500) 100%);
+      background: linear-gradient(180deg, #ffd966 0%, var(--yellow-500) 100%);
       color: #2f2602;
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, .14);
+      box-shadow: 0 12px 22px rgba(0, 0, 0, .18);
     }
 
     .calendar-intro {
@@ -177,7 +198,7 @@
       font-size: 2rem;
       font-weight: 800;
       line-height: 1.2;
-      color: #123a63;
+      color: var(--blue-900);
       padding: 30px 0 20px;
     }
 
@@ -198,7 +219,7 @@
     .calendar-card {
       background: #fff;
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
     }
 
@@ -230,7 +251,7 @@
       gap: 10px;
       align-items: flex-start;
       padding: 10px 0;
-      border-bottom: 1px solid #edf3ec;
+      border-bottom: 1px solid #edf3f9;
     }
 
     .calendar-meta-item:last-child { border-bottom: 0; }
@@ -240,7 +261,7 @@
       height: 10px;
       border-radius: 999px;
       margin-top: 5px;
-      background: var(--green-700);
+      background: var(--blue-800);
       flex: 0 0 auto;
     }
 
@@ -267,7 +288,18 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+    }
+
+    .calendar-panel-context {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid #d7e3f4;
+      border-radius: 10px;
+      background: #f7faff;
+      color: #22405d;
+      font-size: .92rem;
+      font-weight: 700;
     }
 
     .calendar-panel-title {
@@ -277,11 +309,11 @@
     }
 
     .calendar-year-chip {
-      border: 1px solid #d6e5d7;
+      border: 1px solid #d7e3f4;
       border-radius: 999px;
       padding: 6px 12px;
-      background: #f8fbf8;
-      color: var(--green-900);
+      background: #f7faff;
+      color: var(--blue-900);
       font-weight: 800;
     }
 
@@ -298,17 +330,19 @@
       gap: 6px;
       padding: 6px 10px;
       border-radius: 999px;
-      border: 1px solid #d7e4d7;
-      background: #fff;
-      font-size: .8rem;
+      border: 1px solid #d7e3f4;
+      background: #f8fbff;
+      font-size: .82rem;
+      font-weight: 700;
       color: #203247;
     }
 
     .calendar-dot {
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       display: inline-block;
+      box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 0 0 3px rgba(19,81,180,.12);
     }
 
     .calendar-grid {
@@ -318,15 +352,15 @@
     }
 
     .calendar-month {
-      border: 1px solid #cadbc9;
-      border-radius: 10px;
+      border: 1px solid #d7e3f4;
+      border-radius: 12px;
       overflow: hidden;
       background: #fff;
       min-height: 232px;
     }
 
     .calendar-month-head {
-      background: linear-gradient(180deg, var(--green-700) 0%, var(--green-800) 100%);
+      background: linear-gradient(135deg, var(--blue-900) 0%, var(--blue-800) 100%);
       color: #fff;
       padding: 7px 10px;
       font-size: .95rem;
@@ -353,8 +387,8 @@
     }
 
     .calendar-weekdays {
-      background: #f3f8f3;
-      border-bottom: 1px solid #e1ece1;
+      background: #f4f8ff;
+      border-bottom: 1px solid #dfe8f5;
     }
 
     .calendar-weekday {
@@ -362,16 +396,16 @@
       padding: 5px 0;
       font-size: .67rem;
       font-weight: 800;
-      color: #5b6d61;
+      color: #5d6b7d;
       text-transform: uppercase;
     }
 
     .calendar-day {
       position: relative;
-      min-height: 27px;
-      border-right: 1px solid #edf3ec;
-      border-bottom: 1px solid #edf3ec;
-      padding: 3px;
+      min-height: 44px;
+      border-right: 1px solid #edf3f9;
+      border-bottom: 1px solid #edf3f9;
+      padding: 5px;
       display: flex;
       align-items: flex-start;
       justify-content: flex-start;
@@ -383,17 +417,23 @@
     }
 
     .calendar-day.is-empty {
-      background: #fafcf9;
+      background: #f9fbff;
+    }
+
+    .calendar-day.has-event {
+      background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
     }
 
     .calendar-day-number {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: .72rem;
+      font-size: .84rem;
+      font-weight: 800;
+      background: #eef4ff;
       color: #24374b;
       position: relative;
       z-index: 2;
@@ -402,7 +442,8 @@
     .calendar-day.has-event .calendar-day-number {
       font-weight: 800;
       color: #fff;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, .16);
+      box-shadow: 0 8px 18px rgba(12, 50, 111, .24);
+      border: 2px solid #fff;
     }
 
     .calendar-day.is-today .calendar-day-number {
@@ -412,40 +453,75 @@
 
     .calendar-day-markers {
       position: absolute;
-      left: 3px;
-      right: 3px;
-      bottom: 3px;
+      left: 5px;
+      right: 5px;
+      bottom: 5px;
       display: flex;
-      gap: 2px;
+      gap: 4px;
       justify-content: center;
       z-index: 1;
     }
 
     .calendar-day-marker {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
+      width: 14px;
+      height: 6px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px #fff;
+    }
+
+    .calendar-day-total {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--blue-900);
+      color: #fff;
+      font-size: .64rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      box-shadow: 0 2px 8px rgba(12,50,111,.18);
     }
 
     .calendar-month-notes {
-      padding: 8px 10px 10px;
+      padding: 10px 12px 12px;
       display: grid;
-      gap: 4px;
-      background: #fcfefc;
-      min-height: 64px;
+      gap: 6px;
+      background: #fbfdff;
+      min-height: 104px;
     }
 
     .calendar-month-note {
       display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: .73rem;
-      color: #3f4f62;
-      line-height: 1.2;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: .76rem;
+      color: #32465b;
+      line-height: 1.35;
+      padding: 6px 0;
+      border-bottom: 1px dashed #e6edf8;
+    }
+
+    .calendar-month-note:last-child {
+      border-bottom: 0;
     }
 
     .calendar-month-note strong {
-      color: #233449;
+      display: block;
+      color: #14345d;
+      margin-bottom: 1px;
+    }
+
+    .calendar-month-note small {
+      display: block;
+      margin-top: 2px;
+      color: #607286;
+      font-size: .73rem;
+      font-weight: 600;
     }
 
     .calendar-empty {
@@ -470,6 +546,7 @@
     @media (max-width: 860px) {
       .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .calendar-topbar-inner { flex-direction: column; align-items: flex-start; }
+      .calendar-brand-divider { display: none; }
       .calendar-intro { font-size: 1.6rem; }
     }
 
@@ -490,16 +567,17 @@
   <header class="calendar-topbar">
     <div class="calendar-topbar-inner">
       <div class="calendar-branding">
-        <div class="calendar-seal" aria-hidden="true"></div>
+        <div class="calendar-govbr-logo" aria-label="gov.br"><span class="calendar-govbr-blue">gov</span><span class="calendar-govbr-yellow">.</span><span class="calendar-govbr-green">br</span></div>
+        <div class="calendar-brand-divider" aria-hidden="true"></div>
         <div>
-          <div class="calendar-brand-title">Calendário<br>Escolar Nacional</div>
-          <div class="calendar-brand-subtitle">Consulta pública do calendário escolar oficial</div>
+          <div class="calendar-brand-title">Calendário Escolar Público</div>
+          <div class="calendar-brand-subtitle">Consulta pública do calendário oficial por secretaria e escola</div>
         </div>
       </div>
       <div class="calendar-gov">
         <div class="calendar-gov-mark">
-          <div class="calendar-gov-subtitle">Texto demonstrativo</div>
-          <div class="calendar-gov-title">Ministério da Educação<br>Brasil</div>
+          <div class="calendar-gov-subtitle">Portal público educacional</div>
+          <div class="calendar-gov-title">Governo Federal<br>Educação</div>
         </div>
       </div>
     </div>
@@ -507,33 +585,33 @@
 
   <div class="calendar-shell">
     <section class="calendar-search-band">
-      <h1 class="calendar-search-title">Busque e visualize o calendário escolar</h1>
-      <p class="calendar-search-copy">Selecione a rede, a escola e consulte a agenda oficial publicada a partir do CSV estruturado. O resultado abaixo combina o calendário da secretaria com complementos da unidade escolar quando existirem.</p>
+      <h1 class="calendar-search-title">Consulte o calendário escolar oficial</h1>
+      <p class="calendar-search-copy">Selecione a Secretaria de Educação e depois escolha se deseja visualizar o calendário-base da secretaria ou o calendário da escola vinculada.</p>
       <div class="calendar-filters-panel">
         <div class="calendar-field">
-          <label for="public-calendar-network">Rede / Secretaria</label>
+          <label for="public-calendar-network">Secretaria de Educação</label>
           <select id="public-calendar-network"></select>
         </div>
         <div class="calendar-field">
-          <label for="public-calendar-school">Escola</label>
+          <label for="public-calendar-school">Hierarquia da secretaria</label>
           <select id="public-calendar-school"></select>
         </div>
         <div class="calendar-field">
-          <label for="public-calendar-search">Nome da escola</label>
-          <input id="public-calendar-search" placeholder="Digite o nome da escola">
+          <label for="public-calendar-search">Secretaria ou escola</label>
+          <input id="public-calendar-search" placeholder="Filtre por secretaria ou escola">
         </div>
         <button id="public-calendar-apply" class="calendar-search-button">Buscar</button>
       </div>
     </section>
 
-    <div class="calendar-intro">Todas as escolas publicadas em um só lugar. Busque e visualize o calendário.</div>
+<div class="calendar-intro">Selecione a secretaria para visualizar apenas a própria secretaria e a escola vinculada a ela.</div>
 
-    <h2 class="calendar-results-title">Resultados da escola</h2>
+    <h2 class="calendar-results-title">Contexto selecionado</h2>
 
     <div id="public-calendar-root" class="calendar-layout">
       <aside class="calendar-card calendar-school-card">
         <div class="calendar-school-title" id="public-calendar-school-title">Carregando...</div>
-        <div class="calendar-school-location" id="public-calendar-school-subtitle">Aguardando dados da escola.</div>
+        <div class="calendar-school-location" id="public-calendar-school-subtitle">Aguardando dados do calendário publicado.</div>
         <div class="calendar-metadata" id="public-calendar-metadata"></div>
       </aside>
 
@@ -542,6 +620,8 @@
           <div class="calendar-panel-title">Calendário anual</div>
           <div class="calendar-year-chip" id="public-calendar-year">Ano</div>
         </div>
+
+        <div class="calendar-panel-context" id="public-calendar-panel-context">Contexto anual não selecionado.</div>
 
         <div class="calendar-legend">
           <span><i class="calendar-dot" style="background: var(--legend-letivo);"></i> Letivo</span>
@@ -556,6 +636,9 @@
     </div>
   </div>
 
-  <script src="./js/public-calendar.js"></script>
+  <script src="./js/public-calendar.js?v=20260323"></script>
 </body>
 </html>
+
+
+
