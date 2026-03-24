@@ -3652,6 +3652,8 @@ app.post("/api/faq/:id/test", async (req, res) => {
   }
 });
 
+app.post("/api/faq/test-mock", async (req, res) => {\n  const score = Math.random() * 0.4 + 0.6; // Mock score entre 0.6 e 1.0\n  res.json({ ok: true, score });\n});
+
 app.get("/api/faq/conflicts", async (req, res) => {
   try {
     const access = await requireRequestContext(req, res, { allowedRoles: [...OFFICIAL_CONTENT_ALLOWED_ROLES] });
