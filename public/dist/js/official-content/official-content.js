@@ -1098,8 +1098,8 @@ const OfficialContentPage = (() => {
     const targetId = String(rawTabId || '').trim();
     if (!targetId) return;
     const normalizedId = targetId.startsWith('#') ? targetId : `#${targetId}`;
-    const tabLinks = document.querySelectorAll('#official-content-root .nav-tabs .nav-link');
-    const panes = document.querySelectorAll('#official-content-root .tab-pane');
+    const tabLinks = document.querySelectorAll('.nav-tabs .nav-link');
+    const panes = document.querySelectorAll('.tab-content .tab-pane');
 
     tabLinks.forEach((link) => {
       if (String(link.getAttribute('href') || '').trim() === normalizedId) {

@@ -1,5 +1,5 @@
 // 📁 public/dist/js/official-content/faq-extended.js
-// Implementação robusta para garantir a renderização da FAQ
+// Implementação robusta para garantir a renderização da FAQ e navegação correta
 
 (function() {
   const log = (msg) => console.log(`[FAQ-Extended] ${msg}`);
@@ -18,13 +18,12 @@
     Page.saveFaq = async () => await saveFaqItems();
     
     // Interceptar a função de preenchimento original
-    const originalFillFaq = Page.fillFaq;
     Page.fillFaq = function() {
       log("Chamando fillFaq customizado...");
       const container = document.getElementById('faq-items');
       if (container) container.innerHTML = '';
       
-      const record = Page.getRecord('faq', 'school');
+      const record = Page.getRecord ? Page.getRecord('faq', 'school') : null;
       const items = record?.content_payload?.items || [];
       
       if (items.length > 0) {
@@ -34,12 +33,18 @@
       updateEmptyState();
     };
 
+    // Garantir que ao clicar na aba FAQ, a renderização aconteça
+    const faqTabLink = document.querySelector('a[href="#official-faq"]');
+    if (faqTabLink) {
+      faqTabLink.addEventListener('click', () => {
+        log("Aba FAQ clicada, forçando preenchimento...");
+        setTimeout(() => Page.fillFaq(), 50);
+      });
+    }
+
     function renderFaqItemUI(item = {}) {
       const container = document.getElementById('faq-items');
-      if (!container) {
-        console.error("[FAQ-Extended] Container #faq-items não encontrado!");
-        return;
-      }
+      if (!container) return;
 
       const el = document.createElement('div');
       el.className = 'card mb-3 border-left-primary shadow-sm faq-item-row';
@@ -61,8 +66,8 @@
             </div>
             <div class="col-md-12 mt-2"><label class="small font-weight-bold mb-1">Resposta</label><textarea class="form-control form-control-sm faq-answer" rows="2">${item.answer || ''}</textarea></div>
             <div class="col-md-4 mt-2"><label class="small font-weight-bold mb-1">Categoria</label><input class="form-control form-control-sm faq-category" value="${item.category || 'Geral'}"></div>
-            <div class="col-md-4 mt-2"><label class="small font-weight-bold mb-1">Vigência Início</label><input type="date" class="form-control form-control-sm faq-valid-from" value="${validFrom}"></div>
-            <div class="col-md-4 mt-2"><label class="small font-weight-bold mb-1">Vigência Fim</label><input type="date" class="form-control form-control-sm faq-valid-to" value="${validTo}"></div>
+            <div class="col-md-4 mt-2"><label class="small font-weight-bold mb-1">Início</label><input type="date" class="form-control form-control-sm faq-valid-from" value="${validFrom}"></div>
+            <div class="col-md-4 mt-2"><label class="small font-weight-bold mb-1">Fim</label><input type="date" class="form-control form-control-sm faq-valid-to" value="${validTo}"></div>
           </div>
           <div class="mt-2 text-right">
             <button class="btn btn-xs btn-outline-danger remove-faq-btn">Remover</button>
@@ -125,13 +130,10 @@
     `;
     document.head.appendChild(style);
     
-    // Se já houver dados carregados, forçar a renderização inicial
-    if (Page.getRecord('faq', 'school')) {
-      Page.fillFaq();
-    }
+    // Forçar preenchimento inicial
+    setTimeout(() => Page.fillFaq(), 500);
   };
 
-  // Tentar iniciar o módulo
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     startModule();
   } else {
