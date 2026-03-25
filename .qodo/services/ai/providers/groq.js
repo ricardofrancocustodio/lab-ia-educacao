@@ -1,4 +1,4 @@
-const OpenAI = require("openai");
+const axios = require("axios");
 const path = require("path");
 const { checkActivityAvailability } = require(path.resolve("./.qodo/services/activities.js"));
 
@@ -6,7 +6,8 @@ class GroqProvider {
   constructor(apiKey, options = {}) {
     if (!apiKey) throw new Error("API Key da Groq nao fornecida.");
     this.model = options.model || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-    this.client = new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" });
+    this.apiKey = apiKey;
+    this.baseURL = "https://api.groq.com/openai/v1";
     this.tools = [
       {
         type: "function",
@@ -33,7 +34,22 @@ class GroqProvider {
         { role: "user", content: userText }
       ];
 
-      const runner = await this.client.chat.completions.create({
+      // Função auxiliar para chamada HTTP
+      const postChatCompletion = async (payload) => {
+        const response = await axios.post(
+          `${this.baseURL}/chat/completions`,
+          payload,
+          {
+            headers: {
+              "Authorization": `Bearer ${this.apiKey}`,
+              "Content-Type": "application/json"
+            }
+          }
+        );
+        return response.data;
+      };
+
+      const runner = await postChatCompletion({
         model: this.model,
         messages,
         tools: this.tools,
@@ -53,7 +69,7 @@ class GroqProvider {
           messages.push(responseMessage);
           messages.push({ role: "tool", tool_call_id: toolCall.id, content: functionResult });
 
-          const finalResponse = await this.client.chat.completions.create({
+          const finalResponse = await postChatCompletion({
             model: this.model,
             messages,
             temperature: 0.1
@@ -65,7 +81,7 @@ class GroqProvider {
 
       return responseMessage.content || "Desculpe, nao consegui gerar resposta no momento.";
     } catch (error) {
-      console.error("Erro Groq Provider:", error);
+      console.error("Erro Groq Provider:", error?.response?.data || error);
       throw error;
     }
   }

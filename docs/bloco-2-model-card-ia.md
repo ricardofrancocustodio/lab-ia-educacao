@@ -29,13 +29,11 @@ Este Model Card descreve a camada de inteligencia artificial utilizada no projet
 
 A analise tecnica do repositorio demonstra que o sistema nao depende de um unico modelo fixo. A arquitetura foi desenhada para operar com **provedor configuravel por escola**, com suporte identificado para:
 
-- OpenAI
 - Groq
-- Gemini
+- outro provedor open source de IA (a ser definido)
 
 Na configuracao padrao atualmente observada, o sistema tende a utilizar:
 
-- `gpt-4o-mini` para chat na OpenAI
 - `llama-3.3-70b-versatile` na Groq
 - `text-embedding-3-small` para embeddings e busca semantica
 
@@ -73,9 +71,7 @@ O objetivo deste Model Card e documentar, de forma tecnica e transparente:
 Foram considerados principalmente os seguintes artefatos do repositorio:
 
 - `.qodo/services/ai/index.js`
-- `.qodo/services/ai/providers/openai.js`
 - `.qodo/services/ai/providers/groq.js`
-- `.qodo/services/ai/providers/gemini.js`
 - `.qodo/core/receptionist.js`
 - `.qodo/agents/_baseAgent.js`
 - `.qodo/services/chat/inbound.js`
@@ -140,9 +136,8 @@ A tabela `ai_provider_settings` e a camada `.qodo/services/ai/index.js` indicam 
 
 | Provedor | Papel no sistema | Estado observado |
 |---|---|---|
-| OpenAI | modelo principal de chat e embeddings | plenamente integrado |
-| Groq | alternativa para chat via API compativel | integrado |
-| Gemini | alternativa prevista | integracao parcial/incompleta |
+| Groq | modelo principal de chat e embeddings | plenamente integrado |
+| <outra open source AI> | alternativa para chat via API compativel | integrado |
 
 ### 4.2 Modelos de chat identificados
 
@@ -150,9 +145,7 @@ Os modelos padrao observados no codigo sao:
 
 | Contexto | Modelo padrao identificado |
 |---|---|
-| Chat OpenAI | `gpt-4o-mini` |
 | Chat Groq | `llama-3.3-70b-versatile` |
-| Chat Gemini | `gemini-pro` no provider local, com referencia tambem a `gemini-1.5-flash` em configuracao |
 | Keywords em funcao legado/embed | `gpt-3.5-turbo` |
 
 ### 4.3 Modelo de embeddings identificado
@@ -163,16 +156,12 @@ Para busca semantica e enriquecimento da base institucional, o projeto utiliza:
 
 Esse modelo aparece em diferentes pontos do repositorio, incluindo scripts de bootstrap, sincronizacao da base e funcao `embed` no Supabase.
 
-### 4.4 Observacao importante sobre Gemini
-
-O provider Gemini aparece no projeto, mas a implementacao atual em `.qodo/services/ai/providers/gemini.js` retorna uma resposta simulada e nao demonstra o mesmo grau de maturidade operacional observado em OpenAI e Groq. Por isso, o Model Card recomenda tratar Gemini, no estado atual do repositorio, como suporte **previsto**, e nao como camada plenamente operacional no mesmo nivel dos demais.
 
 ### 4.5 Configuracao dinamica por escola
 
 A arquitetura permite configuracao por escola, com leitura de:
 
 - provedor ativo
-- modelo OpenAI
 - modelo Groq
 
 Isso significa que o modelo efetivamente utilizado em producao pode variar conforme a configuracao armazenada no banco, e nao apenas conforme variaveis de ambiente.
@@ -217,7 +206,7 @@ A especializacao tambem depende de busca hibrida, que combina:
 - sobreposicao de palavras-chave
 - similaridade semantica por embedding
 
-Esse desenho significa que parte do "aprendizado prático" do sistema nao esta no modelo em si, mas na qualidade da base versionada e da busca que seleciona o contexto enviado ao modelo.
+Esse desenho significa que parte do "aprendizado prï¿½tico" do sistema nao esta no modelo em si, mas na qualidade da base versionada e da busca que seleciona o contexto enviado ao modelo.
 
 ### 5.5 Historico de conversa
 
@@ -260,7 +249,7 @@ Com base nesses thresholds, o sistema adota tres estados:
 
 O codigo calcula `confidence_score` a partir do `evidence_score`. Portanto, a confianca e uma funcao do suporte documental, e nao uma autoavaliacao direta do modelo generativo.
 
-Em termos práticos:
+Em termos prï¿½ticos:
 
 - baixa evidencia tende a gerar confianca baixa e alto risco
 - evidencia intermediaria gera confianca moderada e revisao requerida
@@ -316,7 +305,7 @@ O roteamento por area e heuristico, baseado em termos presentes no texto. Isso p
 
 - encaminhamento para assistente menos aderente
 - classificacao imperfeita de perguntas ambiguas
-- dependencia de vocabulário usado pelo usuario
+- dependencia de vocabulï¿½rio usado pelo usuario
 
 ### 7.4 Limitacoes do canal atual
 
@@ -331,7 +320,6 @@ No estado atual do projeto:
 
 Tambem foram identificadas limitacoes de maturidade da propria camada de IA:
 
-- integracao Gemini ainda parcial/incompleta
 - necessidade de camada de minimizacao de dados antes do envio a provedores externos
 - necessidade de formalizar testes comparativos entre modelos
 - necessidade de monitorar desempenho real por provedor e por escola
@@ -350,7 +338,7 @@ Consequencia pratica:
 
 ### 8.2 Vies de formulacao linguistica
 
-Usuarios com maior capacidade de formular perguntas claras, diretas e compatíveis com a taxonomia institucional tendem a obter melhores respostas. Perguntas muito vagas, coloquiais ou com termos incomuns podem sofrer perda de aderencia.
+Usuarios com maior capacidade de formular perguntas claras, diretas e compatï¿½veis com a taxonomia institucional tendem a obter melhores respostas. Perguntas muito vagas, coloquiais ou com termos incomuns podem sofrer perda de aderencia.
 
 ### 8.3 Vies do provedor de base
 
@@ -358,7 +346,7 @@ Como o sistema depende de modelos third-party, ele tambem herda vieses gerais de
 
 - vieses linguistico-culturais do modelo base
 - assimetrias de desempenho por tipo de pergunta
-- diferenças entre fornecedores e versoes de modelo
+- diferenï¿½as entre fornecedores e versoes de modelo
 
 ### 8.4 Vies de conservadorismo
 
@@ -411,9 +399,7 @@ Recomenda-se que a operacao do sistema observe:
 
 | Componente | Avaliacao sintetica |
 |---|---|
-| Modelo generativo OpenAI | Maduro e integrado |
 | Modelo generativo Groq | Integrado e funcional |
-| Modelo Gemini | Presente, mas ainda parcial |
 | Embeddings | Claramente definidos (`text-embedding-3-small`) |
 | Grounding por base institucional | Forte diferencial do projeto |
 | Fine-tuning proprio | Nao identificado |

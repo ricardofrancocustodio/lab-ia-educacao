@@ -1,8 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="pt-br">
+
+<html lang="pt-BR">
 <head id="component-head">
-    <title>Assistente Publico | Conteudo Oficial</title>
-    <style>
+<title>Assistente Publico | Conteudo Oficial</title>
+<style>
         .official-hero { background: linear-gradient(135deg, #f4f7fb 0%, #ffffff 100%); border: 1px solid #dfe7f1; border-radius: 16px; padding: 20px; margin-bottom: 1rem; }
         .official-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
         .official-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; box-shadow: 0 6px 18px rgba(20, 43, 73, 0.06); }
@@ -43,236 +44,304 @@
         .official-calendar-preview-note { margin-top: 12px; color: #5f6b7a; font-size: .88rem; }
         @media (max-width: 1199px) { .official-calendar-months { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 991px) { .official-grid { grid-template-columns: 1fr; } .official-flow { grid-template-columns: 1fr; } .official-version-grid { grid-template-columns: 1fr; } .official-calendar-months { grid-template-columns: 1fr; } }
-    </style>
+    
+
+        .official-tabs { flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #dee2e6; }
+        .official-tabs .nav-link { border-radius: 10px 10px 0 0; white-space: nowrap; }
+        .official-tab-pane > .official-card { margin-bottom: 0; }
+        .official-single-column { display: block; }
+        .official-grid { align-items: start; }
+        .official-grid > .official-card { align-self: start; height: auto; }
+</style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" data-page="official-content">
 <div class="wrapper">
-    <div id="component-header"></div>
-    <div id="component-sidebar"></div>
-    <div class="content-wrapper">
-        <section class="content-header pb-0">
-            <div class="container-fluid">
-                <div class="official-hero">
-                    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center">
-                        <div>
-                            <h1 class="m-0">Conteudo Oficial</h1>
-                            <p class="official-help mb-0 mt-2">Padronize o que precisa ser publico, rastreavel e facil de consumir pela populacao e pela IA. Documentos longos continuam livres, mas o operacional entra aqui.</p>
-                        </div>
-                        <div class="mt-3 mt-lg-0 text-lg-right">
-                            <div class="small text-muted">Escopo inicial do piloto</div>
-                            <div><strong>Calendario, Matricula, FAQ e Comunicados</strong></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <section class="content">
-            <div class="container-fluid">
-                <div class="card card-outline card-primary">
-                    <div class="card-header">
-                        <ul class="nav nav-tabs" role="tablist">
-                            <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#official-calendar" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-calendar')"><i class="fas fa-calendar-alt mr-1"></i> Calendario Oficial</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-enrollment" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-enrollment')"><i class="fas fa-file-signature mr-1"></i> Matricula e Documentos</a></li>
-                            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#official-notices" role="tab" onclick="OfficialContentPage.setActiveContentTab('#official-notices')"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li>
-                        </ul>
-                    </div>
-                    <div class="card-body">
-                        <div id="official-loading" class="text-center py-4">
-                            <div class="spinner-border text-primary"></div>
-                            <p class="mt-2 mb-0">Carregando conteudo oficial...</p>
-                        </div>
-                        <div id="official-content-root" style="display:none;">
-                            <div class="tab-content">
-                                <div class="tab-pane fade show active" id="official-calendar" role="tabpanel">
-                                    <div class="official-grid">
-                                                                                <div class="official-card card">
-                                            <div class="card-header"><h3 class="card-title">Calendario da Rede / Secretaria</h3></div>
-                                            <div class="card-body">
-                                                <p class="official-help">Calendario-base oficial da rede, com eventos que se aplicam de forma ampla.</p>
-                                                <div class="official-flow">
-                                                    <div class="official-flow-step"><strong>1. Importe ou preencha</strong><span class="official-help">Use o CSV para estruturar os eventos e evitar ambiguidade para a IA.</span></div>
-                                                    <div class="official-flow-step"><strong>2. Revise a apresentacao</strong><span class="official-help">Confira abaixo como o calendario ficara organizado antes de publicar.</span></div>
-                                                    <div class="official-flow-step"><strong>3. Salve a versao oficial</strong><span class="official-help">Ao salvar, o sistema gera uma versao rastreavel para consulta humana e uso da IA.</span></div>
-                                                </div>
-                                                <div class="official-version-box">
-                                                    <div class="d-flex justify-content-between align-items-start flex-wrap">
-                                                        <div>
-                                                            <strong>Estado da publicacao</strong>
-                                                            <p class="official-help mb-0 mt-1">Este quadro mostra qual e a versao publicada hoje e o que acontece quando voce salva uma nova atualizacao.</p>
-                                                        </div>
-                                                        <span class="badge badge-light border" id="calendar-network-status-badge">Aguardando carregamento</span>
-                                                    </div>
-                                                    <div class="official-version-grid" id="calendar-network-version-grid"></div><div class="official-toolbar mt-3 mb-2"><select id="calendar-network-status-select" class="form-control form-control-sm" style="max-width:220px;"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="archived">Arquivado</option></select><button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateCalendarStatus('network')">Atualizar status</button></div><div id="calendar-network-history" class="official-list"></div>
-                                                </div>
-                                                <div class="official-template">
-                                                    <strong>Template recomendado para leitura pela IA</strong>
-                                                    <p class="official-help mb-2 mt-2">Use CSV com uma linha por evento. O usuario preenche em portugues e o sistema converte internamente sem depender do layout visual do PDF.</p>
-                                                    <p class="official-help mb-0">Colunas para o usuario: <code>data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia</code></p>
-                                                </div>
-                                                <div class="form-group"><label>Titulo</label><input id="calendar-network-title" class="form-control"></div>
-                                                <div class="form-group"><label>Resumo</label><textarea id="calendar-network-summary" class="form-control" rows="2"></textarea></div>
-                                                <div class="official-toolbar">
-                                                    <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadCalendarTemplate('network')"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
-                                                    <label class="btn btn-outline-secondary btn-sm mb-0">
-                                                        <i class="fas fa-upload mr-1"></i>Importar CSV
-                                                        <input id="calendar-network-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importCalendarCsv('network', this.files && this.files[0])">
-                                                    </label>
-                                                </div>
-                                                <div class="form-group"><label>Eventos em CSV (modelo em portugues)</label><textarea id="calendar-network-lines" class="form-control" rows="12" placeholder='data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia&#10;2026-02-09,2026-02-09,Inicio do ano letivo,letivo,Rede inteira,,todos,Comparecimento obrigatorio,Primeiro dia com estudantes,Calendario oficial 2026'></textarea></div>
-                                                <div class="official-calendar-preview">
-                                                    <div class="official-calendar-preview-header">
-                                                        <div>
-                                                            <div class="official-calendar-preview-title">Previa de apresentacao do calendario</div>
-                                                            <div class="official-calendar-preview-subtitle">Esqueleto visual para a tela publica e para revisao interna antes da publicacao.</div>
-                                                        </div>
-                                                        <div class="small text-muted" id="calendar-network-preview-count">0 eventos</div>
-                                                    </div>
-                                                    <div class="official-calendar-legend">
-                                                        <span><i class="official-calendar-dot" style="background:#1f7a3e;"></i>Letivo</span>
-                                                        <span><i class="official-calendar-dot" style="background:#d97706;"></i>Reuniao / Conselho</span>
-                                                        <span><i class="official-calendar-dot" style="background:#b91c1c;"></i>Suspensao / Recesso</span>
-                                                        <span><i class="official-calendar-dot" style="background:#2563eb;"></i>Evento institucional</span>
-                                                    </div>
-                                                    <div class="official-calendar-months" id="calendar-network-preview"></div>
-                                                    <div class="official-calendar-preview-note" id="calendar-network-preview-note"></div>
-                                                </div>
-                                                <div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('network')">Salvar calendario da rede</button></div>
-                                            </div>
-                                        </div>
-                                        <div class="official-card card">
-                                            <div class="card-header"><h3 class="card-title">Complementos da Escola</h3></div>
-                                            <div class="card-body">
-                                                <p class="official-help">Complementos especificos da unidade: reunioes locais, eventos internos e avisos da escola.</p>
-                                                <div class="official-flow">
-                                                    <div class="official-flow-step"><strong>1. Separe o que e local</strong><span class="official-help">Inclua apenas eventos da unidade, sem repetir o calendario da rede.</span></div>
-                                                    <div class="official-flow-step"><strong>2. Revise a leitura</strong><span class="official-help">A previa ajuda a conferir se as datas ficaram claras para escola, familia e IA.</span></div>
-                                                    <div class="official-flow-step"><strong>3. Publique o complemento</strong><span class="official-help">O sistema preserva o historico e distingue rede de escola automaticamente.</span></div>
-                                                </div>
-                                                <div class="official-version-box">
-                                                    <div class="d-flex justify-content-between align-items-start flex-wrap">
-                                                        <div>
-                                                            <strong>Estado da publicacao</strong>
-                                                            <p class="official-help mb-0 mt-1">Use este quadro para saber se a escola ja tem uma versao publicada e qual sera a proxima atualizacao.</p>
-                                                        </div>
-                                                        <span class="badge badge-light border" id="calendar-school-status-badge">Aguardando carregamento</span>
-                                                    </div>
-                                                    <div class="official-version-grid" id="calendar-school-version-grid"></div><div class="official-toolbar mt-3 mb-2"><select id="calendar-school-status-select" class="form-control form-control-sm" style="max-width:220px;"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="archived">Arquivado</option></select><button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateCalendarStatus('school')">Atualizar status</button></div><div id="calendar-school-history" class="official-list"></div>
-                                                </div>
-                                                <div class="official-template">
-                                                    <strong>Quando usar este bloco</strong>
-                                                    <p class="official-help mb-0 mt-2">Cadastre apenas eventos locais da unidade. O calendario da rede fica ao lado, separado, para a IA diferenciar o que vale para toda a rede do que vale so para esta escola.</p>
-                                                </div>
-                                                <div class="form-group"><label>Titulo</label><input id="calendar-school-title" class="form-control"></div>
-                                                <div class="form-group"><label>Resumo</label><textarea id="calendar-school-summary" class="form-control" rows="2"></textarea></div>
-                                                <div class="official-toolbar">
-                                                    <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadCalendarTemplate('school')"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
-                                                    <label class="btn btn-outline-secondary btn-sm mb-0">
-                                                        <i class="fas fa-upload mr-1"></i>Importar CSV
-                                                        <input id="calendar-school-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importCalendarCsv('school', this.files && this.files[0])">
-                                                    </label>
-                                                </div>
-                                                <div class="form-group"><label>Eventos em CSV (modelo em portugues)</label><textarea id="calendar-school-lines" class="form-control" rows="12" placeholder='data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia&#10;2026-03-12,2026-03-12,Reuniao de pais,reuniao,Familias,Auditorio da escola,noite,Comparecer no horario informado,Evento local da unidade,Agenda escolar 2026'></textarea></div>
-                                                <div class="official-calendar-preview">
-                                                    <div class="official-calendar-preview-header">
-                                                        <div>
-                                                            <div class="official-calendar-preview-title">Previa de apresentacao do complemento local</div>
-                                                            <div class="official-calendar-preview-subtitle">Visualizacao em formato de agenda escolar, pronta para a tela publica da unidade.</div>
-                                                        </div>
-                                                        <div class="small text-muted" id="calendar-school-preview-count">0 eventos</div>
-                                                    </div>
-                                                    <div class="official-calendar-legend">
-                                                        <span><i class="official-calendar-dot" style="background:#1f7a3e;"></i>Atividade escolar</span>
-                                                        <span><i class="official-calendar-dot" style="background:#d97706;"></i>Reuniao / Conselho</span>
-                                                        <span><i class="official-calendar-dot" style="background:#b91c1c;"></i>Suspensao / Recesso</span>
-                                                        <span><i class="official-calendar-dot" style="background:#2563eb;"></i>Evento da comunidade</span>
-                                                    </div>
-                                                    <div class="official-calendar-months" id="calendar-school-preview"></div>
-                                                    <div class="official-calendar-preview-note" id="calendar-school-preview-note"></div>
-                                                </div>
-                                                <div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('school')">Salvar complementos da escola</button></div>
-                                            </div>
-                                        </div></div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="official-enrollment" role="tabpanel">
-                                    <div class="official-card card">
-                                        <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start">
-                                            <h3 class="card-title">Matricula e Documentos</h3>
-                                            <div>
-                                                <button id="enrollment-scope-network-btn" class="btn btn-sm btn-outline-primary mr-1" onclick="OfficialContentPage.setEnrollmentScope('network')">Rede / Secretaria</button>
-                                                <button id="enrollment-scope-school-btn" class="btn btn-sm btn-outline-primary" onclick="OfficialContentPage.setEnrollmentScope('school')">Escola / Unidade</button>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <div id="enrollment-scope-wrapper" data-active-scope="network">
-                                                <div class="mb-3 d-flex justify-content-between align-items-center">
-                                                    <div><strong>Documento atual:</strong> <span id="enrollment-document-title">Nenhum documento cadastrado</span></div>
-                                                    <button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.createNewEnrollmentDocument()">Novo documento</button>
-                                                </div>
-                                                <div class="official-status-card mb-3" id="enrollment-status-card">
-                                                    <div class="row">
-                                                        <div class="col-sm-6"><strong>Status</strong>: <span id="enrollment-status-label">-</span></div>
-                                                        <div class="col-sm-6"><strong>Escopo</strong>: <span id="enrollment-scope-label">Rede / Secretaria</span></div>
-                                                    </div>
-                                                    <div class="row mt-2">
-                                                        <div class="col-sm-6"><strong>Validade</strong>: <span id="enrollment-validity-label">-</span></div>
-                                                        <div class="col-sm-6"><strong>Publicado em</strong>: <span id="enrollment-published-label">-</span></div>
-                                                    </div>
-                                                </div>
-                                                <div class="official-toolbar mb-3">
-                                                    <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
-                                                    <label class="btn btn-outline-secondary btn-sm mb-0"><i class="fas fa-upload mr-1"></i>Importar CSV
-                                                        <input id="enrollment-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importEnrollmentCsv(this.files && this.files[0])">
-                                                    </label>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-md-6 form-group"><label>Periodo de matricula</label><input id="enrollment-period" class="form-control"></div>
-                                                    <div class="col-md-6 form-group"><label>Periodo de rematricula</label><input id="reenrollment-period" class="form-control"></div>
-                                                </div>
-                                                <div class="form-group"><label>Publico-alvo</label><textarea id="enrollment-target" class="form-control" rows="2"></textarea></div>
-                                                <div class="row">
-                                                    <div class="col-md-6 form-group"><label>Documentos obrigatorios (um por linha)</label><textarea id="enrollment-required" class="form-control" rows="8"></textarea></div>
-                                                    <div class="col-md-6 form-group"><label>Documentos opcionais (um por linha)</label><textarea id="enrollment-optional" class="form-control" rows="8"></textarea></div>
-                                                </div>
-                                                <div class="form-group"><label>Regras especiais</label><textarea id="enrollment-rules" class="form-control" rows="3"></textarea></div>
-                                                <div class="form-group"><label>Link da norma oficial</label><input id="enrollment-link" class="form-control"></div>
-                                                <div class="form-group"><label>Resumo</label><textarea id="enrollment-summary" class="form-control" rows="2"></textarea></div>
-                                                <div class="official-actions">
-                                                    <button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollment()">Salvar regras de matricula</button>
-                                                </div>
-                                                <hr class="my-4">
-                                                <h5 class="mt-4 mb-3"><i class="fas fa-question-circle mr-2 text-primary"></i>Perguntas Frequentes sobre Matrícula</h5>
-                                                <div class="official-toolbar mb-3">
-                                                    <button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.addEnrollmentFaqItem()"><i class="fas fa-plus mr-1"></i>Nova pergunta</button>
-                                                    <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentFaqTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template FAQ CSV</button>
-                                                    <label class="btn btn-outline-secondary btn-sm mb-0">\n                                                        <i class="fas fa-upload mr-1"></i>Importar FAQ CSV\n                                                        <input id="enrollment-faq-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importEnrollmentFaqCsv(this.files && this.files[0])">\n                                                    </label>\n                                                </div>\n                                                <div id="enrollment-faq-items" class="official-list"></div>\n                                                <div id="enrollment-faq-empty" class="official-empty mt-2">Nenhuma pergunta cadastrada ainda.</div>\n                                                <div class="official-actions mt-3">\n                                                    <button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollmentFaq()">Salvar Perguntas Frequentes</button>\n                                                </div>\n                                            </div>\n                                        </div>\n                                    </div>\n                                </div>
-                                <div class="tab-pane fade" id="official-notices" role="tabpanel">
-                                    <div class="official-card card">
-                                        <div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Comunicados Oficiais</h3><div><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addNoticeItem()"><i class="fas fa-plus mr-1"></i>Novo comunicado</button></div></div>
-                                        <div class="card-body">
-                                            <div class="official-toolbar">
-                                                <button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadNoticesTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
-                                                <label class="btn btn-outline-secondary btn-sm mb-0">
-                                                    <i class="fas fa-upload mr-1"></i>Importar CSV
-                                                    <input id="notices-file" type="file" accept=".csv,text/csv" hidden onchange="OfficialContentPage.importNoticesCsv(this.files && this.files[0])">
-                                                </label>
-                                            </div>
-                                            <div id="notice-items" class="official-list"></div>
-                                            <div id="notice-empty" class="official-empty mt-2">Nenhum comunicado cadastrado ainda.</div>
-                                            <div class="form-group mt-3"><label>Resumo</label><textarea id="notices-summary" class="form-control" rows="2"></textarea></div>
-                                            <div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveNotices()">Salvar comunicados oficiais</button></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </div>
-    <div id="component-footer"></div>
+<div id="component-header"></div>
+<div id="component-sidebar"></div>
+<div class="content-wrapper">
+<section class="content-header pb-0">
+<div class="container-fluid">
+<div class="official-hero">
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center">
+<div>
+<h1 class="m-0">Conteudo Oficial</h1>
+<p class="official-help mb-0 mt-2">Padronize o que precisa ser publico, rastreavel e facil de consumir pela populacao e pela IA. Documentos longos continuam livres, mas o operacional entra aqui.</p>
 </div>
+<div class="mt-3 mt-lg-0 text-lg-right">
+<div class="small text-muted">Escopo inicial do piloto</div>
+<div><strong>Calendario, Matricula, FAQ e Comunicados</strong></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="content">
+<div class="container-fluid">
+<div class="card card-outline card-primary">
+<div class="card-header">
+<ul class="nav nav-tabs official-tabs" role="tablist"><li class="nav-item"><a aria-controls="official-calendar-network" aria-selected="true" class="nav-link active" data-toggle="tab" href="#official-calendar-network" role="tab"><i class="fas fa-calendar-alt mr-1"></i> Calendário da Rede</a></li><li class="nav-item"><a aria-controls="official-calendar-school" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-calendar-school" role="tab"><i class="fas fa-school mr-1"></i> Calendário da Escola</a></li><li class="nav-item"><a aria-controls="official-enrollment-network" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-enrollment-network" role="tab"><i class="fas fa-file-signature mr-1"></i> Matrícula da Rede</a></li><li class="nav-item"><a aria-controls="official-enrollment-school" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-enrollment-school" role="tab"><i class="fas fa-folder-open mr-1"></i> Matrícula da Escola</a></li><li class="nav-item"><a aria-controls="official-notices" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-notices" role="tab"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li></ul>
+</div>
+<div class="card-body">
+<div class="text-center py-4" id="official-loading">
+<div class="spinner-border text-primary"></div>
+<p class="mt-2 mb-0">Carregando conteudo oficial...</p>
+</div>
+<div id="official-content-root" style="display:none;">
+<div class="tab-content"><div class="tab-pane fade show active official-tab-pane" id="official-calendar-network" role="tabpanel"><div class="official-card card">
+<div class="card-header"><h3 class="card-title">Calendario da Rede / Secretaria</h3></div>
+<div class="card-body">
+<p class="official-help">Calendario-base oficial da rede, com eventos que se aplicam de forma ampla.</p>
+<div class="official-flow">
+<div class="official-flow-step"><strong>1. Importe ou preencha</strong><span class="official-help">Use o CSV para estruturar os eventos e evitar ambiguidade para a IA.</span></div>
+<div class="official-flow-step"><strong>2. Revise a apresentacao</strong><span class="official-help">Confira abaixo como o calendario ficara organizado antes de publicar.</span></div>
+<div class="official-flow-step"><strong>3. Salve a versao oficial</strong><span class="official-help">Ao salvar, o sistema gera uma versao rastreavel para consulta humana e uso da IA.</span></div>
+</div>
+<div class="official-version-box">
+<div class="d-flex justify-content-between align-items-start flex-wrap">
+<div>
+<strong>Estado da publicacao</strong>
+<p class="official-help mb-0 mt-1">Este quadro mostra qual e a versao publicada hoje e o que acontece quando voce salva uma nova atualizacao.</p>
+</div>
+<span class="badge badge-light border" id="calendar-network-status-badge">Aguardando carregamento</span>
+</div>
+<div class="official-version-grid" id="calendar-network-version-grid"></div><div class="official-toolbar mt-3 mb-2"><select class="form-control form-control-sm" id="calendar-network-status-select" style="max-width:220px;"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="archived">Arquivado</option></select><button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateCalendarStatus('network')">Atualizar status</button></div><div class="official-list" id="calendar-network-history"></div>
+</div>
+<div class="official-template">
+<strong>Template recomendado para leitura pela IA</strong>
+<p class="official-help mb-2 mt-2">Use CSV com uma linha por evento. O usuario preenche em portugues e o sistema converte internamente sem depender do layout visual do PDF.</p>
+<p class="official-help mb-0">Colunas para o usuario: <code>data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia</code></p>
+</div>
+<div class="form-group"><label>Titulo</label><input class="form-control" id="calendar-network-title"/></div>
+<div class="form-group"><label>Resumo</label><textarea class="form-control" id="calendar-network-summary" rows="2"></textarea></div>
+<div class="official-toolbar">
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadCalendarTemplate('network')"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0">
+<i class="fas fa-upload mr-1"></i>Importar CSV
+                                                        <input accept=".csv,text/csv" hidden="" id="calendar-network-file" onchange="OfficialContentPage.importCalendarCsv('network', this.files && this.files[0])" type="file"/>
+</label>
+</div>
+<div class="form-group"><label>Eventos em CSV (modelo em portugues)</label><textarea class="form-control" id="calendar-network-lines" placeholder="data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia
+2026-02-09,2026-02-09,Inicio do ano letivo,letivo,Rede inteira,,todos,Comparecimento obrigatorio,Primeiro dia com estudantes,Calendario oficial 2026" rows="12"></textarea></div>
+<div class="official-calendar-preview">
+<div class="official-calendar-preview-header">
+<div>
+<div class="official-calendar-preview-title">Previa de apresentacao do calendario</div>
+<div class="official-calendar-preview-subtitle">Esqueleto visual para a tela publica e para revisao interna antes da publicacao.</div>
+</div>
+<div class="small text-muted" id="calendar-network-preview-count">0 eventos</div>
+</div>
+<div class="official-calendar-legend">
+<span><i class="official-calendar-dot" style="background:#1f7a3e;"></i>Letivo</span>
+<span><i class="official-calendar-dot" style="background:#d97706;"></i>Reuniao / Conselho</span>
+<span><i class="official-calendar-dot" style="background:#b91c1c;"></i>Suspensao / Recesso</span>
+<span><i class="official-calendar-dot" style="background:#2563eb;"></i>Evento institucional</span>
+</div>
+<div class="official-calendar-months" id="calendar-network-preview"></div>
+<div class="official-calendar-preview-note" id="calendar-network-preview-note"></div>
+</div>
+<div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('network')">Salvar calendario da rede</button></div>
+</div>
+</div></div><div class="tab-pane fade official-tab-pane" id="official-calendar-school" role="tabpanel"><div class="official-card card">
+<div class="card-header"><h3 class="card-title">Complementos da Escola</h3></div>
+<div class="card-body">
+<p class="official-help">Complementos especificos da unidade: reunioes locais, eventos internos e avisos da escola.</p>
+<div class="official-flow">
+<div class="official-flow-step"><strong>1. Separe o que e local</strong><span class="official-help">Inclua apenas eventos da unidade, sem repetir o calendario da rede.</span></div>
+<div class="official-flow-step"><strong>2. Revise a leitura</strong><span class="official-help">A previa ajuda a conferir se as datas ficaram claras para escola, familia e IA.</span></div>
+<div class="official-flow-step"><strong>3. Publique o complemento</strong><span class="official-help">O sistema preserva o historico e distingue rede de escola automaticamente.</span></div>
+</div>
+<div class="official-version-box">
+<div class="d-flex justify-content-between align-items-start flex-wrap">
+<div>
+<strong>Estado da publicacao</strong>
+<p class="official-help mb-0 mt-1">Use este quadro para saber se a escola ja tem uma versao publicada e qual sera a proxima atualizacao.</p>
+</div>
+<span class="badge badge-light border" id="calendar-school-status-badge">Aguardando carregamento</span>
+</div>
+<div class="official-version-grid" id="calendar-school-version-grid"></div><div class="official-toolbar mt-3 mb-2"><select class="form-control form-control-sm" id="calendar-school-status-select" style="max-width:220px;"><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="archived">Arquivado</option></select><button class="btn btn-outline-secondary btn-sm" onclick="OfficialContentPage.updateCalendarStatus('school')">Atualizar status</button></div><div class="official-list" id="calendar-school-history"></div>
+</div>
+<div class="official-template">
+<strong>Quando usar este bloco</strong>
+<p class="official-help mb-0 mt-2">Cadastre apenas eventos locais da unidade. O calendario da rede fica ao lado, separado, para a IA diferenciar o que vale para toda a rede do que vale so para esta escola.</p>
+</div>
+<div class="form-group"><label>Titulo</label><input class="form-control" id="calendar-school-title"/></div>
+<div class="form-group"><label>Resumo</label><textarea class="form-control" id="calendar-school-summary" rows="2"></textarea></div>
+<div class="official-toolbar">
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadCalendarTemplate('school')"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0">
+<i class="fas fa-upload mr-1"></i>Importar CSV
+                                                        <input accept=".csv,text/csv" hidden="" id="calendar-school-file" 
+       onchange="OfficialContentPage.importCalendarCsv('school', this.files && this.files[0])" 
+       type="file"/>
+</label>
+</div>
+<div class="form-group"><label>Eventos em CSV (modelo em portugues)</label><textarea class="form-control" id="calendar-school-lines" placeholder="data_inicio,data_fim,titulo,tipo_evento,publico,local,turno,acao_necessaria,observacoes,fonte_referencia
+2026-03-12,2026-03-12,Reuniao de pais,reuniao,Familias,Auditorio da escola,noite,Comparecer no horario informado,Evento local da unidade,Agenda escolar 2026" rows="12"></textarea></div>
+<div class="official-calendar-preview">
+<div class="official-calendar-preview-header">
+<div>
+<div class="official-calendar-preview-title">Previa de apresentacao do complemento local</div>
+<div class="official-calendar-preview-subtitle">Visualizacao em formato de agenda escolar, pronta para a tela publica da unidade.</div>
+</div>
+<div class="small text-muted" id="calendar-school-preview-count">0 eventos</div>
+</div>
+<div class="official-calendar-legend">
+<span><i class="official-calendar-dot" style="background:#1f7a3e;"></i>Atividade escolar</span>
+<span><i class="official-calendar-dot" style="background:#d97706;"></i>Reuniao / Conselho</span>
+<span><i class="official-calendar-dot" style="background:#b91c1c;"></i>Suspensao / Recesso</span>
+<span><i class="official-calendar-dot" style="background:#2563eb;"></i>Evento da comunidade</span>
+</div>
+<div class="official-calendar-months" id="calendar-school-preview"></div>
+<div class="official-calendar-preview-note" id="calendar-school-preview-note"></div>
+</div>
+<div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('school')">Salvar complementos da escola</button></div>
+</div>
+</div></div><div class="tab-pane fade official-tab-pane" id="official-enrollment-network" role="tabpanel"><div class="official-card card">
+<div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start">
+<h3 class="card-title">Matrícula e Documentos da Rede</h3>
+</div>
+<div class="card-body">
+<div data-active-scope="network" id="enrollment-scope-wrapper-network">
+<div class="mb-3 d-flex justify-content-between align-items-center">
+<div><strong>Documento atual:</strong> <span id="enrollment-document-title-network">Nenhum documento cadastrado</span></div>
+<button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.createNewEnrollmentDocument('network')">Novo documento</button>
+</div>
+<div class="official-status-card mb-3" id="enrollment-status-card-network">
+<div class="row">
+<div class="col-sm-6"><strong>Status</strong>: <span id="enrollment-status-label-network">-</span></div>
+<div class="col-sm-6"><strong>Escopo</strong>: <span id="enrollment-scope-label-network">Rede / Secretaria</span></div>
+</div>
+<div class="row mt-2">
+<div class="col-sm-6"><strong>Validade</strong>: <span id="enrollment-validity-label-network">-</span></div>
+<div class="col-sm-6"><strong>Publicado em</strong>: <span id="enrollment-published-label-network">-</span></div>
+</div>
+</div>
+<div class="official-toolbar mb-3">
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentTemplate('network')"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0"><i class="fas fa-upload mr-1"></i>Importar CSV
+<input accept=".csv,text/csv" hidden="" id="enrollment-file-network" onchange="OfficialContentPage.importEnrollmentCsv('network', this.files && this.files[0])" type="file"/>
+</label>
+</div>
+<div class="row">
+<div class="col-md-6 form-group"><label>Periodo de matricula</label><input class="form-control" id="enrollment-period-network"/></div>
+<div class="col-md-6 form-group"><label>Periodo de rematricula</label><input class="form-control" id="reenrollment-period-network"/></div>
+</div>
+<div class="form-group"><label>Publico-alvo</label><textarea class="form-control" id="enrollment-target-network" rows="2"></textarea></div>
+<div class="row">
+<div class="col-md-6 form-group"><label>Documentos obrigatorios (um por linha)</label><textarea class="form-control" id="enrollment-required-network" rows="8"></textarea></div>
+<div class="col-md-6 form-group"><label>Documentos opcionais (um por linha)</label><textarea class="form-control" id="enrollment-optional-network" rows="8"></textarea></div>
+</div>
+<div class="form-group"><label>Regras especiais</label><textarea class="form-control" id="enrollment-rules-network" rows="3"></textarea></div>
+<div class="form-group"><label>Link da norma oficial</label><input class="form-control" id="enrollment-link-network"/></div>
+<div class="form-group"><label>Resumo</label><textarea class="form-control" id="enrollment-summary-network" rows="2"></textarea></div>
+<div class="official-actions">
+<button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollment('network')">Salvar regras de matricula</button>
+</div>
+<hr class="my-4"/>
+<h5 class="mt-4 mb-3"><i class="fas fa-question-circle mr-2 text-primary"></i>Perguntas Frequentes sobre Matrícula</h5>
+<div class="official-toolbar mb-3">
+<button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.addEnrollmentFaqItem('network')"><i class="fas fa-plus mr-1"></i>Nova pergunta</button>
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentFaqTemplate('network')"><i class="fas fa-file-csv mr-1"></i>Baixar template FAQ CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0">
+<i class="fas fa-upload mr-1"></i>Importar FAQ CSV
+<input accept=".csv,text/csv" hidden="" id="enrollment-faq-file-network" onchange="OfficialContentPage.importEnrollmentFaqCsv('network', this.files && this.files[0])" type="file"/>
+</label>
+</div>
+<div class="official-list" id="enrollment-faq-items-network"></div>
+<div class="official-empty mt-2" id="enrollment-faq-empty-network">Nenhuma pergunta cadastrada ainda.</div>
+<div class="official-actions mt-3">
+<button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollmentFaq('network')">Salvar Perguntas Frequentes</button>
+</div>
+</div>
+</div>
+</div></div><div class="tab-pane fade official-tab-pane" id="official-enrollment-school" role="tabpanel"><div class="official-card card">
+<div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start">
+<h3 class="card-title">Matrícula e Documentos da Escola</h3>
+</div>
+<div class="card-body">
+<div data-active-scope="school" id="enrollment-scope-wrapper-school">
+<div class="mb-3 d-flex justify-content-between align-items-center">
+<div><strong>Documento atual:</strong> <span id="enrollment-document-title-school">Nenhum documento cadastrado</span></div>
+<button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.createNewEnrollmentDocument('school')">Novo documento</button>
+</div>
+<div class="official-status-card mb-3" id="enrollment-status-card-school">
+<div class="row">
+<div class="col-sm-6"><strong>Status</strong>: <span id="enrollment-status-label-school">-</span></div>
+<div class="col-sm-6"><strong>Escopo</strong>: <span id="enrollment-scope-label-school">Escola / Unidade</span></div>
+</div>
+<div class="row mt-2">
+<div class="col-sm-6"><strong>Validade</strong>: <span id="enrollment-validity-label-school">-</span></div>
+<div class="col-sm-6"><strong>Publicado em</strong>: <span id="enrollment-published-label-school">-</span></div>
+</div>
+</div>
+<div class="official-toolbar mb-3">
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentTemplate('school')"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0"><i class="fas fa-upload mr-1"></i>Importar CSV
+                                                        <input accept=".csv,text/csv" hidden="" id="enrollment-file-school" 
+       onchange="OfficialContentPage.importEnrollmentCsv('school', this.files && this.files[0])" 
+       type="file"/>
+</label>
+</div>
+<div class="row">
+<div class="col-md-6 form-group"><label>Periodo de matricula</label><input class="form-control" id="enrollment-period-school"/></div>
+<div class="col-md-6 form-group"><label>Periodo de rematricula</label><input class="form-control" id="reenrollment-period-school"/></div>
+</div>
+<div class="form-group"><label>Publico-alvo</label><textarea class="form-control" id="enrollment-target-school" rows="2"></textarea></div>
+<div class="row">
+<div class="col-md-6 form-group"><label>Documentos obrigatorios (um por linha)</label><textarea class="form-control" id="enrollment-required-school" rows="8"></textarea></div>
+<div class="col-md-6 form-group"><label>Documentos opcionais (um por linha)</label><textarea class="form-control" id="enrollment-optional-school" rows="8"></textarea></div>
+</div>
+<div class="form-group"><label>Regras especiais</label><textarea class="form-control" id="enrollment-rules-school" rows="3"></textarea></div>
+<div class="form-group"><label>Link da norma oficial</label><input class="form-control" id="enrollment-link-school"/></div>
+<div class="form-group"><label>Resumo</label><textarea class="form-control" id="enrollment-summary-school" rows="2"></textarea></div>
+<div class="official-actions">
+<button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollment('school')">Salvar regras de matricula</button>
+</div>
+<hr class="my-4"/>
+<h5 class="mt-4 mb-3"><i class="fas fa-question-circle mr-2 text-primary"></i>Perguntas Frequentes sobre Matrícula</h5>
+<div class="official-toolbar mb-3">
+<button class="btn btn-outline-success btn-sm" onclick="OfficialContentPage.addEnrollmentFaqItem('school')"><i class="fas fa-plus mr-1"></i>Nova pergunta</button>
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadEnrollmentFaqTemplate('school')"><i class="fas fa-file-csv mr-1"></i>Baixar template FAQ CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0">
+<i class="fas fa-upload mr-1"></i>Importar FAQ CSV
+                                                        <input accept=".csv,text/csv" hidden="" id="enrollment-faq-file-school" 
+       onchange="OfficialContentPage.importEnrollmentFaqCsv('school', this.files && this.files[0])" 
+       type="file"/>
+</label>
+</div>
+<div class="official-list" id="enrollment-faq-items-school"></div>
+<div class="official-empty mt-2" id="enrollment-faq-empty-school">Nenhuma pergunta cadastrada ainda.</div>
+<div class="official-actions mt-3">
+<button class="btn btn-primary" onclick="OfficialContentPage.saveEnrollmentFaq('school')">Salvar Perguntas Frequentes</button>
+</div>
+</div>
+</div>
+</div></div><div class="tab-pane fade official-tab-pane" id="official-notices" role="tabpanel">
+<div class="official-card card">
+<div class="card-header d-flex justify-content-between align-items-center"><h3 class="card-title">Comunicados Oficiais</h3><div><button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.addNoticeItem()"><i class="fas fa-plus mr-1"></i>Novo comunicado</button></div></div>
+<div class="card-body">
+<div class="official-toolbar">
+<button class="btn btn-outline-primary btn-sm" onclick="OfficialContentPage.downloadNoticesTemplate()"><i class="fas fa-file-csv mr-1"></i>Baixar template CSV</button>
+<label class="btn btn-outline-secondary btn-sm mb-0">
+<i class="fas fa-upload mr-1"></i>Importar CSV
+                                                    <input accept=".csv,text/csv" hidden="" id="notices-file" 
+       onchange="OfficialContentPage.importNoticesCsv(this.files && this.files[0])" 
+       type="file"/>
+</label>
+</div>
+<div class="official-list" id="notice-items"></div>
+<div class="official-empty mt-2" id="notice-empty">Nenhum comunicado cadastrado ainda.</div>
+<div class="form-group mt-3"><label>Resumo</label><textarea class="form-control" id="notices-summary" rows="2"></textarea></div>
+<div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveNotices()">Salvar comunicados oficiais</button></div>
+</div>
+</div>
+</div></div></div>
+</div>
+</div>
+</div>
+</section></div>
+</div>
+<div id="component-footer"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
@@ -285,6 +354,17 @@
 <script src="./js/coordinator/carregar-componentes.js"></script>
 <script src="./js/official-content/official-content.js"></script>
 <script src="./js/audit/treatment-inbox.js"></script>
+
+<script>
+  // Aguardar carregamento completo do DOM antes de inicializar
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof OfficialContentPage !== 'undefined') {
+      console.log('OfficialContentPage carregado com sucesso');
+    } else {
+      console.error('OfficialContentPage não encontrado');
+    }
+  });
+</script>
+
 </body>
 </html>
-

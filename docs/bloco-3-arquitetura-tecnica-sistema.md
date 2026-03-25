@@ -80,9 +80,9 @@ A implementacao atual sugere os seguintes principios tecnicos:
                     v                     v
 +--------------------------------+   +--------------------------------+
 |           Supabase             |   |      Provedores externos       |
-|  - auth / tokens               |   |  - OpenAI                      |
-|  - banco relacional            |   |  - Groq                        |
-|  - tabelas de negocio          |   |  - Gemini (parcial)            |
+|  - auth / tokens               |   |                                |
+|  - banco relacional            |   |                                |
+|  - tabelas de negocio          |   |  - Groq                        |
 |  - configuracoes por escola    |   |  - APIs auxiliares, quando ha  |
 +--------------------------------+   +--------------------------------+
 ```
@@ -150,7 +150,6 @@ O `package.json` indica como dependencias nucleares:
 
 - `express`
 - `@supabase/supabase-js`
-- `openai`
 - `@google/generative-ai`
 - `axios`
 - `dotenv`

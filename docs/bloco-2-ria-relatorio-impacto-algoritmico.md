@@ -187,7 +187,7 @@ A logica de recuperacao, implementada sobretudo em `.qodo/services/supabase.js`,
 
 - sobreposicao textual entre pergunta e base
 - correspondencia por palavras-chave
-- embeddings semanticos quando o provedor OpenAI esta disponivel
+- embeddings semanticos quando o provedor Groq esta disponivel
 - limitacao do conjunto de resultados a poucas entradas mais aderentes
 
 O sistema opera sobre uma base chamada `knowledge_base`, vinculada a documentos-fonte e versoes. Isso permite que a resposta posterior seja amparada em evidencias estruturadas, e nao apenas em memoria estatistica do modelo.
@@ -222,7 +222,7 @@ Somente apos a etapa de avaliacao de evidencia o sistema monta o prompt para o p
 - citar explicitamente a fonte e a versao usadas
 - deixar claro quando a base estiver incompleta
 
-O provedor utilizado pode ser configurado entre OpenAI, Groq ou Gemini, mas a camada de governanca permanece externa ao modelo. Isso significa que a politica de resposta e controlada pela aplicacao, nao delegada integralmente ao fornecedor.
+O provedor utilizado é configurado para Groq, mas a camada de governanca permanece externa ao modelo. Isso significa que a politica de resposta e controlada pela aplicacao, nao delegada integralmente ao fornecedor.
 
 ### 5.6 Auditoria e classificacao de risco
 

@@ -41,7 +41,7 @@ Prazo sugerido: imediato
   - `.qodo/services/google/services/google/token-ef2.json`
   - `.qodo/services/google/services/google/token-ef3.json`
 - rotacionar as credenciais do Google expostas
-- revisar `.env`, secrets do Supabase, OpenAI, Groq, Gemini e WhatsApp
+- revisar `.env`, secrets do Supabase e  Groq 
 - garantir `.gitignore` para credenciais locais
 
 ### 0.2 Isolamento entre escolas
@@ -269,9 +269,7 @@ Antes de enviar dados ao provedor:
 Arquivos prioritarios:
 
 - `.qodo/core/receptionist.js`
-- `.qodo/services/ai/providers/openai.js`
 - `.qodo/services/ai/providers/groq.js`
-- `.qodo/services/ai/providers/gemini.js`
 - `.qodo/services/chat/inbound.js`
 
 ### 4.2 Registro de transferencia e fornecedor

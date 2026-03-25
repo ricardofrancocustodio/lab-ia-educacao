@@ -3,7 +3,6 @@ const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-const { OpenAI } = require('openai');
 const { supabase } = require('../.qodo/services/supabase.js');
 
 const DEFAULT_TITLE = 'Base FAQ Institucional';
@@ -140,12 +139,23 @@ async function createVersion({ schoolId, sourceDocumentId, versionLabel, rawText
   return data;
 }
 
-async function createEmbedding(openai, text) {
-  const response = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: text
-  });
-  return response.data[0].embedding;
+const axios = require('axios');
+
+async function createEmbedding({ apiKey, model, input }) {
+  const response = await axios.post(
+    'https://api.groq.com/openai/v1/embeddings',
+    {
+      model,
+      input
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  return response.data.data[0].embedding;
 }
 
 async function bootstrapKnowledge() {
@@ -168,7 +178,7 @@ async function bootstrapKnowledge() {
   }
   if (!supabase) throw new Error('Cliente Supabase indisponivel. Verifique .env.');
   if (!schoolId) throw new Error('SCHOOL_ID ausente.');
-  if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY ausente.');
+  if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY ausente.');
 
   const { absolutePath, data } = loadJson(filePath);
   const entries = (Array.isArray(data) ? data : []).map(normalizeEntry).filter(Boolean);
@@ -177,7 +187,6 @@ async function bootstrapKnowledge() {
   console.log(`Arquivo carregado: ${absolutePath}`);
   console.log(`Entradas validas: ${entries.length}`);
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const sourceDocument = await ensureSourceDocument({
     schoolId,
     title,
@@ -207,7 +216,11 @@ async function bootstrapKnowledge() {
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index];
     const textForEmbedding = `Pergunta: ${entry.question}\nResposta: ${entry.answer}`;
-    const embedding = await createEmbedding(openai, textForEmbedding);
+    const embedding = await createEmbedding({
+      apiKey: process.env.GROQ_API_KEY,
+      model: 'text-embedding-3-small',
+      input: textForEmbedding
+    });
     records.push({
       school_id: schoolId,
       category: entry.category,

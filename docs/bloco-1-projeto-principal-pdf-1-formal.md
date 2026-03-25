@@ -246,7 +246,7 @@ Foram identificados, entre outros, os seguintes elementos:
 - modulo de conteudo oficial
 - modulo de base de conhecimento e historico de versoes
 - modulo de relatorios e inteligencia
-- configuracao de provedores OpenAI, Groq e Gemini
+- Provedor Groq
 - mecanismos de feedback e incidente para respostas automatizadas
 
 ### 6.3 Fluxo funcional sintetico
@@ -318,9 +318,7 @@ O uso de IA no projeto contempla:
 
 O sistema ja admite configuracao de multiplos provedores de IA, incluindo:
 
-- OpenAI
-- Groq
-- Gemini
+- Groq (ou qualquer outro provedor definido que tambem seja open-soource)
 
 Essa flexibilidade representa vantagem institucional por permitir:
 

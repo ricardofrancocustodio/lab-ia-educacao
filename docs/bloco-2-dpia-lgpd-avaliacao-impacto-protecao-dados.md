@@ -15,7 +15,7 @@
 | Elemento | Conteudo sugerido |
 |---|---|
 | Titulo | Avaliacao de Impacto de Protecao de Dados (DPIA / LGPD) |
-| Subtitulo | Mapeamento de dados coletados, finalidades, armazenamento, anonimização, retencao e direitos do usuario na plataforma de atendimento escolar com IA |
+| Subtitulo | Mapeamento de dados coletados, finalidades, armazenamento, anonimizaï¿½ï¿½o, retencao e direitos do usuario na plataforma de atendimento escolar com IA |
 | Projeto | Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica |
 | Contexto | Bloco 2 - Documentacao de Governanca |
 | Finalidade do documento | Apoiar governanca interna, piloto institucional, adequacao LGPD e prestacao de contas sobre tratamento de dados |
@@ -27,7 +27,7 @@
 
 A presente Avaliacao de Impacto de Protecao de Dados (DPIA / LGPD) examina o tratamento de dados pessoais realizado no projeto **Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica**, plataforma voltada ao atendimento institucional de redes publicas de educacao com uso de inteligencia artificial auditavel.
 
-A analise indica que o sistema ja opera sobre uma base de governanca minimamente estruturada, com perfis de acesso, trilha de auditoria, versionamento de conhecimento, registros de incidente e modelo de segregacao por escola. Tambem evidencia, contudo, que a agenda de protecao de dados ainda se encontra em consolidacao, especialmente no que se refere a retencao formal, anonimização, minimizacao em prompts, atendimento a direitos do titular e endurecimento completo da segregacao multiunidade.
+A analise indica que o sistema ja opera sobre uma base de governanca minimamente estruturada, com perfis de acesso, trilha de auditoria, versionamento de conhecimento, registros de incidente e modelo de segregacao por escola. Tambem evidencia, contudo, que a agenda de protecao de dados ainda se encontra em consolidacao, especialmente no que se refere a retencao formal, anonimizaï¿½ï¿½o, minimizacao em prompts, atendimento a direitos do titular e endurecimento completo da segregacao multiunidade.
 
 Os principais grupos de dados tratados no escopo principal do projeto incluem:
 
@@ -43,7 +43,7 @@ Do ponto de vista de finalidade, os dados sao tratados para viabilizar autentica
 
 Do ponto de vista de armazenamento, foram identificadas camadas persistentes em Supabase, armazenamento temporario em memoria RAM para sessoes e processamento externo por provedores de IA configuraveis, com potencial de transferencia internacional, a depender do provedor selecionado e da infraestrutura utilizada.
 
-Tambem ficou evidente, a partir do plano tecnico de LGPD existente no projeto, que ainda nao ha politica tecnica plenamente formalizada de retencao, descarte e anonimização. Por essa razao, esta DPIA apresenta, alem do retrato do estado atual, uma proposta de diretrizes para anonimização, retencao e atendimento aos direitos do titular, de modo a apoiar a consolidacao da governanca do sistema.
+Tambem ficou evidente, a partir do plano tecnico de LGPD existente no projeto, que ainda nao ha politica tecnica plenamente formalizada de retencao, descarte e anonimizaï¿½ï¿½o. Por essa razao, esta DPIA apresenta, alem do retrato do estado atual, uma proposta de diretrizes para anonimizaï¿½ï¿½o, retencao e atendimento aos direitos do titular, de modo a apoiar a consolidacao da governanca do sistema.
 
 Em sintese, a conclusao desta avaliacao e de que a plataforma pode ser utilizada em piloto controlado, desde que acompanhada de medidas adicionais de endurecimento tecnico e procedimental. O sistema ja possui base promissora para protecao de dados, mas ainda nao deve ser tratado como plenamente maduro para escala ampla sem formalizacao da politica de retencao, camada de minimizacao de dados e fluxo operacional de atendimento aos direitos do usuario.
 
@@ -58,7 +58,7 @@ Esta DPIA tem por objetivo:
 - identificar quais dados pessoais sao tratados no projeto
 - descrever a finalidade de cada grupo de tratamento
 - avaliar como os dados sao armazenados e compartilhados
-- examinar o estado atual de anonimização e minimizacao
+- examinar o estado atual de anonimizaï¿½ï¿½o e minimizacao
 - propor politica de retencao e descarte
 - organizar diretrizes para atendimento a direitos do usuario sob a LGPD
 - subsidiar governanca interna e evolucao tecnica do produto
@@ -78,11 +78,11 @@ Foram considerados, para fins deste documento, os modulos centrais associados ao
 
 ### 2.3 Modulos fora do foco principal desta DPIA
 
-O repositorio contem componentes herdados e fluxos auxiliares de CRM, eventos, notificacoes e integracoes adicionais. Como esses componentes nao integram o nucleo principal descrito no Bloco 1 e no RIA do projeto atual, recomenda-se que sejam submetidos a avaliacao complementar propria, caso permaneçam no escopo da implantacao.
+O repositorio contem componentes herdados e fluxos auxiliares de CRM, eventos, notificacoes e integracoes adicionais. Como esses componentes nao integram o nucleo principal descrito no Bloco 1 e no RIA do projeto atual, recomenda-se que sejam submetidos a avaliacao complementar propria, caso permaneï¿½am no escopo da implantacao.
 
 ### 2.4 Base documental e tecnica utilizada
 
-Esta avaliacao foi construída a partir de:
+Esta avaliacao foi construï¿½da a partir de:
 
 - `schema.sql`
 - `docs/lgpd-implementation-plan.md`
@@ -159,7 +159,7 @@ No escopo de acesso e administracao, foram identificados os seguintes dados pess
 - email
 - telefone
 - identificador de usuario autenticado (`user_id`)
-- papel/função institucional
+- papel/funï¿½ï¿½o institucional
 - status do vinculo
 - timestamps de convite, criacao e atualizacao
 
@@ -228,7 +228,7 @@ A finalidade geral do tratamento de dados no sistema e viabilizar atendimento in
 | Dados de configuracao de IA | definir provedor, modelo e parametros de operacao |
 | Dados de sessao temporaria | manter contexto curto da conversa durante o uso |
 
-### 5.3 Finalidade secundária e melhoria continua
+### 5.3 Finalidade secundï¿½ria e melhoria continua
 
 Parte dos dados tambem e tratada para fins de monitoramento, inteligencia de gestao e melhoria continua, tais como:
 
@@ -281,17 +281,15 @@ O banco Supabase concentra a persistencia dos dados principais do projeto. No es
 
 ### 6.3 Armazenamento temporario de sessoes
 
-O arquivo `.qodo/store/sessions.js` indica que o historico curto de interacao e mantido em memoria RAM por meio de um `Map`, com expiração por inatividade configurada em 30 minutos (`SESSION_TIMEOUT_MS = 30 * 60 * 1000`).
+O arquivo `.qodo/store/sessions.js` indica que o historico curto de interacao e mantido em memoria RAM por meio de um `Map`, com expiraï¿½ï¿½o por inatividade configurada em 30 minutos (`SESSION_TIMEOUT_MS = 30 * 60 * 1000`).
 
 Esse ponto e positivo do ponto de vista de minimizacao temporal, pois reduz persistencia desnecessaria de contexto conversacional em memoria local do processo. Por outro lado, como o backend ainda pode persistir mensagens no banco, a expiracao da sessao nao equivale a exclusao do historico institucional.
 
 ### 6.4 Compartilhamento com provedores de IA
 
-O sistema suporta, na configuracao atual, pelo menos tres provedores:
+O sistema suporta, na configuracao atual, apenas um provedor (com flexibilidade de implementaÃ§Ã£o de outros provedores de IA opensource (a definir)):
 
-- OpenAI
 - Groq
-- Gemini
 
 Isso significa que parte do conteudo da interacao pode ser processado por fornecedores externos de IA. Nesses casos, a plataforma atua como controladora ou co-controladora do fluxo decisorio sobre o envio, e os provedores atuam como operadores ou suboperadores, conforme arranjo contratual efetivo a ser formalizado.
 
@@ -309,7 +307,7 @@ A documentacao LGPD do projeto ja recomenda endurecimento de logs para evitar ex
 
 ### 7.1 Estado atual
 
-Com base nos artefatos analisados, a anonimização ainda nao aparece como camada plenamente implementada no nucleo do projeto. O plano tecnico existente reconhece explicitamente a ausencia de politica consolidada de anonimização e propõe sua implementacao em fase posterior.
+Com base nos artefatos analisados, a anonimizaï¿½ï¿½o ainda nao aparece como camada plenamente implementada no nucleo do projeto. O plano tecnico existente reconhece explicitamente a ausencia de politica consolidada de anonimizaï¿½ï¿½o e propï¿½e sua implementacao em fase posterior.
 
 Tambem foi identificada ausencia, no estado atual, de uma camada abrangente de mascaramento/redacao antes do envio de dados aos provedores de IA. Isso significa que, em determinadas situacoes, o conteudo enviado ao provedor pode conter identificadores ou metadados desnecessarios.
 
@@ -317,19 +315,19 @@ Tambem foi identificada ausencia, no estado atual, de uma camada abrangente de m
 
 Apesar dos gaps, ha alguns elementos tecnicos que ja favorecem minimizacao parcial:
 
-- sessao temporaria em RAM com expiração por inatividade
+- sessao temporaria em RAM com expiraï¿½ï¿½o por inatividade
 - possibilidade de restringir detalhes de governanca conforme perfil
 - tentativa de estruturar o atendimento por base institucional, reduzindo necessidade de resposta puramente improvisada
 - recomendacao expressa no plano LGPD para mascarar nome, telefone, email e CPF quando nao essenciais
 
-### 7.3 Diretriz recomendada de anonimização
+### 7.3 Diretriz recomendada de anonimizaï¿½ï¿½o
 
 Para este projeto, recomenda-se adotar duas camadas distintas:
 
 1. **minimizacao em uso ativo**  
 Antes de enviar dados ao provedor de IA, remover ou mascarar identificadores que nao sejam indispensaveis para a resposta.
 
-2. **anonimização em ciclo de vida**  
+2. **anonimizaï¿½ï¿½o em ciclo de vida**  
 Apos determinado periodo, substituir identificadores diretos por referencias irreversiveis ou eliminar campos textuais livres que nao sejam mais necessarios ao atendimento e a governanca.
 
 ### 7.4 Regras recomendadas de minimizacao em prompts
@@ -342,7 +340,7 @@ Antes do envio a IA, recomenda-se:
 - excluir metadados irrelevantes para a resposta
 - evitar envio de descricoes longas com contexto pessoal excessivo
 
-### 7.5 Regras recomendadas de anonimização posterior
+### 7.5 Regras recomendadas de anonimizaï¿½ï¿½o posterior
 
 Para dados historicos, recomenda-se:
 
@@ -353,7 +351,7 @@ Para dados historicos, recomenda-se:
 
 ### 7.6 Avaliacao sintetica
 
-Do ponto de vista da DPIA, anonimização e minimizacao constituem uma das principais lacunas do projeto. A formalizacao dessas medidas deve ser tratada como requisito prioritario antes de expansao mais ampla.
+Do ponto de vista da DPIA, anonimizaï¿½ï¿½o e minimizacao constituem uma das principais lacunas do projeto. A formalizacao dessas medidas deve ser tratada como requisito prioritario antes de expansao mais ampla.
 
 ---
 
@@ -361,7 +359,7 @@ Do ponto de vista da DPIA, anonimização e minimizacao constituem uma das princip
 
 ### 8.1 Estado atual
 
-O plano tecnico de adequacao LGPD reconhece de forma expressa a ausencia de politica tecnica consolidada de retencao, descarte e anonimização. Portanto, a politica apresentada nesta secao deve ser lida como **proposta recomendada de formalizacao**, e nao como regime plenamente implementado no codigo atual.
+O plano tecnico de adequacao LGPD reconhece de forma expressa a ausencia de politica tecnica consolidada de retencao, descarte e anonimizaï¿½ï¿½o. Portanto, a politica apresentada nesta secao deve ser lida como **proposta recomendada de formalizacao**, e nao como regime plenamente implementado no codigo atual.
 
 ### 8.2 Principios da retencao recomendada
 
@@ -371,7 +369,7 @@ A politica de retencao deve observar:
 - prazo compativel com auditoria e melhoria continua
 - minimizacao temporal
 - segregacao entre dado identificavel e dado agregado
-- descarte seguro e anonimização quando cabivel
+- descarte seguro e anonimizaï¿½ï¿½o quando cabivel
 
 ### 8.3 Tabela proposta de retencao
 
@@ -379,17 +377,17 @@ A politica de retencao deve observar:
 |---|---|---|
 | Sessoes em RAM | ate 30 minutos de inatividade | descarte automatico |
 | `institutional_consultations` | 12 meses | pseudonimizacao ou arquivamento minimizado |
-| `consultation_messages` | 6 a 12 meses, conforme criticidade | anonimização textual ou exclusao controlada |
+| `consultation_messages` | 6 a 12 meses, conforme criticidade | anonimizaï¿½ï¿½o textual ou exclusao controlada |
 | `assistant_responses` | 12 meses | manutencao parcial para auditoria, com reducao de identificadores |
 | `formal_audit_events` | 24 meses | arquivamento restrito ou agregacao estatistica |
 | `interaction_source_evidence` | 12 a 24 meses | arquivamento restrito |
 | `interaction_feedback` | 12 meses | agregacao estatistica |
-| `incident_reports` | 24 meses ou enquanto houver tratamento pendente | arquivamento restrito e anonimização quando encerrado |
+| `incident_reports` | 24 meses ou enquanto houver tratamento pendente | arquivamento restrito e anonimizaï¿½ï¿½o quando encerrado |
 | `school_members` | enquanto durar vinculo e prazo administrativo minimo aplicavel | bloqueio e descarte apos encerramento do vinculo |
 | `official_content_records` | enquanto vigente e historico util | manutencao institucional sem dados pessoais desnecessarios |
 | `knowledge_source_versions` | conforme necessidade institucional e documental | revisao periodica e expurgo de material inadequado |
 
-### 8.4 Critérios de arquivamento
+### 8.4 Critï¿½rios de arquivamento
 
 Recomenda-se considerar para arquivamento:
 
@@ -398,12 +396,12 @@ Recomenda-se considerar para arquivamento:
 - expiracao do prazo operacional de revisao
 - inexistencia de necessidade de defesa institucional ou cumprimento legal
 
-### 8.5 Critérios de descarte
+### 8.5 Critï¿½rios de descarte
 
 Recomenda-se descarte quando:
 
 - o dado nao for mais necessario para a finalidade declarada
-- nao houver obrigação legal ou institucional de guarda
+- nao houver obrigaï¿½ï¿½o legal ou institucional de guarda
 - a informacao puder ser substituida por dado agregado ou anonimizado
 
 ### 8.6 Implementacao recomendada
@@ -423,7 +421,7 @@ Esses jobs devem ser formalizados como parte da governanca operacional do produt
 
 ### 9.1 Enquadramento
 
-A plataforma deve estar preparada para atender direitos do titular previstos na LGPD, no limite da base legal aplicavel e das obrigacoes institucionais do controlador. O proprio plano tecnico do projeto reconhece a ausencia atual de estrutura dedicada para esse atendimento e propõe a criacao de fluxo especifico.
+A plataforma deve estar preparada para atender direitos do titular previstos na LGPD, no limite da base legal aplicavel e das obrigacoes institucionais do controlador. O proprio plano tecnico do projeto reconhece a ausencia atual de estrutura dedicada para esse atendimento e propï¿½e a criacao de fluxo especifico.
 
 ### 9.2 Direitos que devem ser contemplados
 
@@ -432,7 +430,7 @@ Recomenda-se prever, no minimo, mecanismos para:
 - confirmacao da existencia de tratamento
 - acesso aos dados pessoais tratados
 - correcao de dados incompletos, inexatos ou desatualizados
-- anonimização, bloqueio ou eliminacao quando cabivel
+- anonimizaï¿½ï¿½o, bloqueio ou eliminacao quando cabivel
 - portabilidade, quando tecnicamente aplicavel e juridicamente pertinente
 - informacao sobre compartilhamentos e uso de IA
 - revisao de encaminhamentos ou respostas quando houver impacto relevante sobre o usuario
@@ -465,11 +463,11 @@ Para fins de governanca, recomenda-se o seguinte fluxo:
 
 ### 9.5 Limites ao atendimento
 
-Nem todo pedido implicara eliminacao integral imediata. Em ambientes escolares e administrativos, pode haver necessidade de retenção por:
+Nem todo pedido implicara eliminacao integral imediata. Em ambientes escolares e administrativos, pode haver necessidade de retenï¿½ï¿½o por:
 
 - seguranca da plataforma
 - auditoria e responsabilizacao
-- cumprimento de obrigações legais ou administrativas
+- cumprimento de obrigaï¿½ï¿½es legais ou administrativas
 - defesa em procedimento interno ou externo
 
 Por isso, a resposta ao titular deve sempre ser contextualizada e tecnicamente justificada.
@@ -496,7 +494,7 @@ Por isso, a resposta ao titular deve sempre ser contextualizada e tecnicamente j
 Os riscos mais criticos concentram-se em tres eixos:
 
 - envio de dados pessoais a provedores externos sem minimizacao suficiente
-- ausencia de politica formal de retencao e anonimização
+- ausencia de politica formal de retencao e anonimizaï¿½ï¿½o
 - necessidade de consolidar segregacao real entre escolas e perfis
 
 ### 10.3 Fatores de mitigacao ja existentes
@@ -531,7 +529,7 @@ Mesmo com esses riscos, o projeto ja possui fatores atenuantes importantes:
 |---|---|
 | Minimizacao antes do envio a IA | Prioridade alta |
 | Politica formal de retencao | Prioridade alta |
-| Rotinas de anonimização e expurgo | Prioridade alta |
+| Rotinas de anonimizaï¿½ï¿½o e expurgo | Prioridade alta |
 | Estrutura formal para direitos do titular | Prioridade alta |
 | RLS abrangente nas tabelas centrais | Prioridade alta |
 | Registro de transferencia e operador de IA | Prioridade media/alta |
@@ -550,7 +548,7 @@ Com base na analise do repositorio e do plano tecnico existente, a adequacao do 
 | Mapeamento basico de dados | Favoravel |
 | Clareza de finalidade | Favoravel |
 | Armazenamento identificado | Favoravel |
-| Anonimização implementada | Insuficiente |
+| Anonimizaï¿½ï¿½o implementada | Insuficiente |
 | Politica de retencao formal | Insuficiente |
 | Atendimento a direitos do titular | Insuficiente, mas enderecado no plano |
 | Estrutura geral de governanca | Favoravel com ressalvas |
@@ -566,7 +564,7 @@ O sistema e **apto para piloto controlado com supervisao reforcada**, mas nao de
 Recomenda-se, em ordem de prioridade:
 
 1. Implementar camada de minimizacao e mascaramento antes do envio aos provedores de IA.
-2. Formalizar politica tecnica de retencao, descarte e anonimização por tabela e por finalidade.
+2. Formalizar politica tecnica de retencao, descarte e anonimizaï¿½ï¿½o por tabela e por finalidade.
 3. Criar estrutura operacional de atendimento aos direitos do titular.
 4. Concluir endurecimento de segregacao por escola e RLS nas tabelas centrais.
 5. Revisar logs para impedir persistencia indevida de dados pessoais e segredos.
@@ -582,7 +580,7 @@ Recomenda-se, em ordem de prioridade:
 
 A Avaliacao de Impacto de Protecao de Dados do projeto **Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica** demonstra que a plataforma ja possui base importante para uma governanca de dados consistente, especialmente em razao da existencia de auditoria formal, segregacao por perfis, estrutura de conhecimento versionado e reconhecimento explicito dos principais gaps de compliance.
 
-Ao mesmo tempo, a analise tambem demonstra que o projeto ainda depende da formalizacao de elementos essenciais de protecao de dados, sobretudo anonimização, retencao, minimizacao em prompts e atendimento a direitos do titular. Esses temas nao devem ser tratados como ajustes marginais, mas como parte estruturante da maturidade do produto.
+Ao mesmo tempo, a analise tambem demonstra que o projeto ainda depende da formalizacao de elementos essenciais de protecao de dados, sobretudo anonimizaï¿½ï¿½o, retencao, minimizacao em prompts e atendimento a direitos do titular. Esses temas nao devem ser tratados como ajustes marginais, mas como parte estruturante da maturidade do produto.
 
 Por essa razao, conclui-se que o sistema pode sustentar um piloto institucional em ambiente controlado, desde que acompanhado de plano ativo de consolidacao LGPD e de governanca operacional clara. Para escala ampliada, a recomendacao e concluir previamente as medidas prioritarias listadas nesta DPIA.
 
@@ -595,7 +593,7 @@ Por essa razao, conclui-se que o sistema pode sustentar um piloto institucional 
 | Dados coletados | Identidade, acesso, atendimento, auditoria, evidencia, configuracao e conteudo institucional |
 | Finalidade | Atendimento institucional, governanca, seguranca e melhoria continua |
 | Armazenamento | Supabase persistente, sessao temporaria em RAM e processamento externo por provedores de IA |
-| Anonimização | Ainda insuficiente e dependente de implementacao adicional |
+| Anonimizaï¿½ï¿½o | Ainda insuficiente e dependente de implementacao adicional |
 | Retencao | Nao formalizada no estado atual; proposta incluida nesta DPIA |
 | Direitos do usuario | Devem ser operacionalizados por fluxo proprio e registro de solicitacoes |
 | Recomendacao geral | Apto para piloto controlado com consolidacao LGPD obrigatoria antes da escala |

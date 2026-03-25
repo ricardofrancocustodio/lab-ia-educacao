@@ -195,11 +195,9 @@ A IA nao aparece no projeto como um recurso ornamental. Ela e o motor de triagem
 
 ### 5.2 Provedores e Flexibilidade Tecnologica
 
-O codigo mostra suporte configuravel a pelo menos tres provedores:
+O codigo mostra suporte configuravel, mas está pré-definido e ativo apenas:
 
-- OpenAI
 - Groq
-- Gemini
 
 Essa opcao e relevante para o setor publico por tres motivos:
 

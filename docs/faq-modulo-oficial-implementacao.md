@@ -81,7 +81,7 @@ O módulo FAQ Oficial implementa um sistema completo de perguntas e respostas es
 - school_id (FK → schools)
 - test_query TEXT
 - ai_response TEXT
-- ai_provider TEXT (gemini | openai | etc)
+- ai_provider TEXT (groq | etc)
 - match_score DECIMAL(3,2) [0-1]
 - is_relevant BOOLEAN
 - feedback_type (correct | needs_refinement | incorrect | missing_context)
@@ -150,7 +150,7 @@ Testa FAQ com IA - valida se a resposta é relevante para perguntas relacionadas
 ```json
 {
   "test_query": "Como recuperar minha senha?",
-  "ai_provider": "gemini"
+  "ai_provider": "groq"
 }
 ```
 

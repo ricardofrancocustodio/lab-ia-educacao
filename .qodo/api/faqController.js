@@ -290,7 +290,7 @@ async function testFaqWithAi(req, accessContext, { schoolId, faqId } = {}) {
     );
   }
 
-  const { test_query, ai_provider = "gemini" } = req.body;
+  const { test_query, ai_provider = "groq" } = req.body;
 
   if (!test_query) {
     throw Object.assign(

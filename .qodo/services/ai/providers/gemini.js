@@ -10,7 +10,7 @@ class GeminiProvider {
 
   async generateResponse(systemPrompt, userText, history = []) {
     try {
-      // 1. Converter histórico do formato OpenAI para formato Gemini (Google)
+      // 1. Converter histórico do formato OpenAI (se for o caso) para formato Gemini (Google)
       // O Gemini usa "user" e "model" em vez de "user" e "assistant"
       
       // 2. Enviar prompt

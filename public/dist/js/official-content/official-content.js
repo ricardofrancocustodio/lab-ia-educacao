@@ -167,20 +167,51 @@ const OfficialContentPage = (() => {
     return getRecord('enrollment', scopeKey);
   }
 
+  function getEnrollmentScopeKey(scopeKey) {
+    return scopeKey === 'school' ? 'school' : 'network';
+  }
+
+  function getEnrollmentElement(baseId, scopeKey = 'network') {
+    const scopedId = `${baseId}-${getEnrollmentScopeKey(scopeKey)}`;
+    return document.getElementById(scopedId) || document.getElementById(baseId);
+  }
+
+  function getEnrollmentDom(scopeKey = 'network') {
+    const scope = getEnrollmentScopeKey(scopeKey);
+    return {
+      scope,
+      wrapper: getEnrollmentElement('enrollment-scope-wrapper', scope),
+      documentTitle: getEnrollmentElement('enrollment-document-title', scope),
+      statusCard: getEnrollmentElement('enrollment-status-card', scope),
+      statusLabel: getEnrollmentElement('enrollment-status-label', scope),
+      scopeLabel: getEnrollmentElement('enrollment-scope-label', scope),
+      validityLabel: getEnrollmentElement('enrollment-validity-label', scope),
+      publishedLabel: getEnrollmentElement('enrollment-published-label', scope),
+      fileInput: getEnrollmentElement('enrollment-file', scope),
+      period: getEnrollmentElement('enrollment-period', scope),
+      reenrollmentPeriod: getEnrollmentElement('reenrollment-period', scope),
+      target: getEnrollmentElement('enrollment-target', scope),
+      required: getEnrollmentElement('enrollment-required', scope),
+      optional: getEnrollmentElement('enrollment-optional', scope),
+      rules: getEnrollmentElement('enrollment-rules', scope),
+      link: getEnrollmentElement('enrollment-link', scope),
+      summary: getEnrollmentElement('enrollment-summary', scope),
+      faqFile: getEnrollmentElement('enrollment-faq-file', scope),
+      faqItems: getEnrollmentElement('enrollment-faq-items', scope),
+      faqEmpty: getEnrollmentElement('enrollment-faq-empty', scope)
+    };
+  }
+
+
   function setEnrollmentScope(scopeKey) {
     if (scopeKey !== 'network' && scopeKey !== 'school') return;
     state.enrollmentScope = scopeKey;
-    const btnNetwork = document.getElementById('enrollment-scope-network-btn');
-    const btnSchool = document.getElementById('enrollment-scope-school-btn');
-    if (btnNetwork && btnSchool) {
-      btnNetwork.classList.toggle('active', scopeKey === 'network');
-      btnSchool.classList.toggle('active', scopeKey === 'school');
-    }
-    const wrapper = document.getElementById('enrollment-scope-wrapper');
+    const wrapper = getEnrollmentDom(scopeKey).wrapper;
     if (wrapper) {
       wrapper.dataset.activeScope = scopeKey;
     }
     fillEnrollment(scopeKey);
+    fillEnrollmentFaq(scopeKey);
   }
 
   function getCurrentEnrollmentScope() {
@@ -544,14 +575,16 @@ const OfficialContentPage = (() => {
   }
 
   function renderEnrollmentVersion(scopeKey = 'network') {
+    const refs = getEnrollmentDom(scopeKey);
     const record = getEnrollmentRecord(scopeKey);
+    if (!refs.statusLabel || !refs.scopeLabel || !refs.validityLabel || !refs.publishedLabel) return;
     const statusLabel = record?.status ? String(record.status).toUpperCase() : 'DRAFT';
-    document.getElementById('enrollment-status-label').textContent = statusLabel;
-    document.getElementById('enrollment-scope-label').textContent = scopeKey === 'network' ? 'Rede / Secretaria' : 'Escola / Unidade';
+    refs.statusLabel.textContent = statusLabel;
+    refs.scopeLabel.textContent = scopeKey === 'network' ? 'Rede / Secretaria' : 'Escola / Unidade';
     const validFrom = formatDateTimeLabel(record?.content_payload?.validFrom || record?.validFrom);
     const validTo = formatDateTimeLabel(record?.content_payload?.validTo || record?.validTo);
-    document.getElementById('enrollment-validity-label').textContent = (validFrom || '-') + ' até ' + (validTo || '-');
-    document.getElementById('enrollment-published-label').textContent = formatDateTimeLabel(record?.published_at);
+    refs.validityLabel.textContent = (validFrom || '-') + ' até ' + (validTo || '-');
+    refs.publishedLabel.textContent = formatDateTimeLabel(record?.published_at);
   }
 
   function renderSupportModuleHistory(moduleKey) {
@@ -695,22 +728,22 @@ const OfficialContentPage = (() => {
     const canEditNetwork = canEditScope('network');
     const canEditSchool = canEditScope('school');
 
-    setReadOnlyState('#official-enrollment input, #official-enrollment textarea', !canEditSchool);
+    setReadOnlyState('#official-enrollment-network input, #official-enrollment-network textarea, #official-enrollment-school input, #official-enrollment-school textarea', !canEditSchool);
     setReadOnlyState('#official-notices input, #official-notices textarea', !canEditSchool);
     setReadOnlyState('#calendar-network-title, #calendar-network-summary, #calendar-network-lines', !canEditNetwork);
     setReadOnlyState('#calendar-school-title, #calendar-school-summary, #calendar-school-lines', !canEditSchool);
 
-    document.querySelectorAll('#official-calendar button, #official-calendar input[type="file"]').forEach((el) => {
+    document.querySelectorAll('#official-calendar-network button, #official-calendar-network input[type="file"], #official-calendar-school button, #official-calendar-school input[type="file"]').forEach((el) => {
       const isNetworkControl = ['calendar-network-file'].includes(el.id) || String(el.getAttribute('onclick') || '').includes("'network'");
       const canUse = isNetworkControl ? canEditNetwork : canEditSchool;
       el.disabled = !canUse;
     });
 
-    document.querySelectorAll('#official-enrollment button, #official-notices button').forEach((el) => {
+    document.querySelectorAll('#official-enrollment-network button, #official-enrollment-school button, #official-notices button').forEach((el) => {
       el.disabled = !canEditSchool;
     });
 
-    const networkCard = document.querySelector('#official-calendar .official-card');
+    const networkCard = document.querySelector('#official-calendar-network .official-card');
     if (networkCard && !canEditNetwork && !networkCard.querySelector('.official-readonly-note')) {
       const note = document.createElement('div');
       note.className = 'alert alert-light border official-readonly-note';
@@ -755,14 +788,16 @@ const OfficialContentPage = (() => {
     renderContextPicker();
   }
 
-  function toggleEmpty(kind) {
+  function toggleEmpty(kind, scopeKey = getCurrentEnrollmentScope()) {
     if (kind === 'notice') {
       const count = document.querySelectorAll('#notice-items .official-list-item').length;
-      document.getElementById('notice-empty').style.display = count ? 'none' : 'block';
+      const empty = document.getElementById('notice-empty');
+      if (empty) empty.style.display = count ? 'none' : 'block';
     }
     if (kind === 'enrollment-faq') {
-      const count = document.querySelectorAll('#enrollment-faq-items .official-list-item').length;
-      document.getElementById('enrollment-faq-empty').style.display = count ? 'none' : 'block';
+      const refs = getEnrollmentDom(scopeKey);
+      const count = refs.faqItems ? refs.faqItems.querySelectorAll('.official-list-item').length : 0;
+      if (refs.faqEmpty) refs.faqEmpty.style.display = count ? 'none' : 'block';
     }
   }
 
@@ -787,7 +822,15 @@ const OfficialContentPage = (() => {
     toggleEmpty('notice');
   }
 
-  function createEnrollmentFaqItem(item = {}) {
+  function createEnrollmentFaqItem(scopeOrItem = 'network', maybeItem = {}) {
+    const scopeKey = typeof scopeOrItem === 'string' ? getEnrollmentScopeKey(scopeOrItem) : getCurrentEnrollmentScope();
+    const item = typeof scopeOrItem === 'string' ? (maybeItem || {}) : (scopeOrItem || {});
+    const refs = getEnrollmentDom(scopeKey);
+    const itemsEl = refs.faqItems;
+    if (!itemsEl) {
+      console.warn('enrollment-faq-items element not found for scope', scopeKey);
+      return;
+    }
     const el = document.createElement('div');
     el.className = 'official-list-item';
     el.style.borderLeft = '4px solid #007bff';
@@ -815,14 +858,15 @@ const OfficialContentPage = (() => {
       <div class="text-right"><button type="button" class="btn btn-outline-danger btn-sm remove-item">Remover</button></div>`;
     el.querySelector('.remove-item').addEventListener('click', () => {
       el.remove();
-      toggleEmpty('enrollment-faq');
+      toggleEmpty('enrollment-faq', scopeKey);
     });
-    document.getElementById('enrollment-faq-items').appendChild(el);
-    toggleEmpty('enrollment-faq');
+    itemsEl.appendChild(el);
+    toggleEmpty('enrollment-faq', scopeKey);
   }
 
-  function collectEnrollmentFaqItems() {
-    return [...document.querySelectorAll('#enrollment-faq-items .official-list-item')].map((el) => ({
+  function collectEnrollmentFaqItems(scopeKey = getCurrentEnrollmentScope()) {
+    const refs = getEnrollmentDom(scopeKey);
+    return [...(refs.faqItems ? refs.faqItems.querySelectorAll('.official-list-item') : [])].map((el) => ({
       question: el.querySelector('.enroll-faq-question').value,
       answer: el.querySelector('.enroll-faq-answer').value,
       category: el.querySelector('.enroll-faq-category').value
@@ -870,39 +914,57 @@ const OfficialContentPage = (() => {
   }
 
   function fillEnrollment(scopeKey = 'network') {
+    const refs = getEnrollmentDom(scopeKey);
     const record = getEnrollmentRecord(scopeKey);
     renderEnrollmentVersion(scopeKey);
+    if (!refs.period || !refs.reenrollmentPeriod || !refs.target || !refs.required || !refs.optional || !refs.rules || !refs.link || !refs.summary || !refs.documentTitle) {
+      return;
+    }
     if (!record) {
-      document.getElementById('enrollment-period').value = '';
-      document.getElementById('reenrollment-period').value = '';
-      document.getElementById('enrollment-target').value = '';
-      document.getElementById('enrollment-required').value = '';
-      document.getElementById('enrollment-optional').value = '';
-      document.getElementById('enrollment-rules').value = '';
-      document.getElementById('enrollment-link').value = '';
-      document.getElementById('enrollment-summary').value = '';
-      document.getElementById('enrollment-document-title').textContent = 'Nenhum documento cadastrado';
+      refs.period.value = '';
+      refs.reenrollmentPeriod.value = '';
+      refs.target.value = '';
+      refs.required.value = '';
+      refs.optional.value = '';
+      refs.rules.value = '';
+      refs.link.value = '';
+      refs.summary.value = '';
+      refs.documentTitle.textContent = 'Nenhum documento cadastrado';
       return;
     }
     const payload = record.content_payload || {};
-    document.getElementById('enrollment-period').value = payload.enrollment_period || '';
-    document.getElementById('reenrollment-period').value = payload.reenrollment_period || '';
-    document.getElementById('enrollment-target').value = payload.target_audience || '';
-    document.getElementById('enrollment-required').value = (payload.required_documents || []).join('\n');
-    document.getElementById('enrollment-optional').value = (payload.optional_documents || []).join('\n');
-    document.getElementById('enrollment-rules').value = payload.special_rules || '';
-    document.getElementById('enrollment-link').value = payload.official_link || '';
-    document.getElementById('enrollment-summary').value = record.summary || '';
-    document.getElementById('enrollment-document-title').textContent = record.title || 'Documento carregado';
+    refs.period.value = payload.enrollment_period || '';
+    refs.reenrollmentPeriod.value = payload.reenrollment_period || '';
+    refs.target.value = payload.target_audience || '';
+    refs.required.value = (payload.required_documents || []).join('\n');
+    refs.optional.value = (payload.optional_documents || []).join('\n');
+    refs.rules.value = payload.special_rules || '';
+    refs.link.value = payload.official_link || '';
+    refs.summary.value = record.summary || '';
+    refs.documentTitle.textContent = record.title || 'Documento carregado';
   }
 
-  function fillEnrollmentFaq() {
-    const scope = getCurrentEnrollmentScope();
-    const record = getRecord('enrollment', scope);
-    const itemsEl = document.getElementById('enrollment-faq-items');
-    if (itemsEl) itemsEl.innerHTML = '';
-    (record?.faq_items || []).forEach(item => createEnrollmentFaqItem(item));
-    toggleEmpty('enrollment-faq');
+  function fillEnrollmentFaq(scopeKey = getCurrentEnrollmentScope()) {
+    try {
+      const refs = getEnrollmentDom(scopeKey);
+      const record = getRecord('enrollment', scopeKey);
+      const itemsEl = refs.faqItems;
+      if (!itemsEl) {
+        console.warn('enrollment-faq-items element not found for scope', scopeKey);
+        return;
+      }
+      itemsEl.innerHTML = '';
+      (record?.faq_items || []).forEach((item) => {
+        try {
+          createEnrollmentFaqItem(scopeKey, item);
+        } catch (e) {
+          console.error('Error creating enrollment FAQ item:', e);
+        }
+      });
+      toggleEmpty('enrollment-faq', scopeKey);
+    } catch (error) {
+      console.error('Error in fillEnrollmentFaq:', error);
+    }
   }
 
   function fillNotices() {
@@ -939,8 +1001,8 @@ const OfficialContentPage = (() => {
       await loadCalendarHistory('school');
       fillEnrollment('network');
       fillEnrollment('school');
-      setEnrollmentScope(state.enrollmentScope);
-      fillEnrollmentFaq();
+      fillEnrollmentFaq('network');
+      fillEnrollmentFaq('school');
       fillNotices();
       await loadSupportModuleHistory('enrollment', 'network');
       await loadSupportModuleHistory('enrollment', 'school');
@@ -982,6 +1044,11 @@ const OfficialContentPage = (() => {
       renderCalendarVersion(scopeKey);
       renderCalendarPreview(scopeKey, contentPayload.entries || []);
       await loadCalendarHistory(scopeKey);
+    } else if (moduleKey === 'enrollment') {
+      renderEnrollmentVersion(scopeKey);
+      fillEnrollment(scopeKey);
+      fillEnrollmentFaq(scopeKey);
+      await loadSupportModuleHistory(moduleKey, scopeKey);
     } else if (SUPPORT_MODULE_CONFIG[moduleKey]) {
       renderSupportModuleVersion(moduleKey);
       await loadSupportModuleHistory(moduleKey);
@@ -1076,6 +1143,8 @@ const OfficialContentPage = (() => {
       setHistory(moduleKey, actualScope, data.history || []);
       if (moduleKey === 'enrollment') {
         renderEnrollmentVersion(actualScope);
+        fillEnrollment(actualScope);
+        fillEnrollmentFaq(actualScope);
       } else {
         renderSupportModuleHistory(moduleKey);
         if (data.current) {
@@ -1108,43 +1177,31 @@ const OfficialContentPage = (() => {
   }
 
   function initializeOfficialContentTabs() {
-    const tabLinks = document.querySelectorAll('#official-content-root .nav-tabs .nav-link');
-    if (!tabLinks || !tabLinks.length) return;
-
-    tabLinks.forEach((link) => {
-      link.addEventListener('click', (event) => {
-        const targetId = String(link.getAttribute('href') || '').trim();
-        if (!targetId || !targetId.startsWith('#')) return;
-        const targetPanel = document.querySelector(targetId);
-        if (!targetPanel) return;
-
-        event.preventDefault();
-        setActiveContentTab(targetId);
-      });
-    });
+    return;
   }
 
   function setActiveContentTab(rawTabId) {
     const targetId = String(rawTabId || '').trim();
     if (!targetId) return;
     const normalizedId = targetId.startsWith('#') ? targetId : `#${targetId}`;
+    if (window.jQuery && typeof window.jQuery.fn.tab === 'function') {
+      const link = document.querySelector(`.nav-tabs .nav-link[href="${normalizedId}"]`);
+      if (link) {
+        window.jQuery(link).tab('show');
+        return;
+      }
+    }
     const tabLinks = document.querySelectorAll('.nav-tabs .nav-link');
     const panes = document.querySelectorAll('.tab-content .tab-pane');
-
     tabLinks.forEach((link) => {
-      if (String(link.getAttribute('href') || '').trim() === normalizedId) {
-        link.classList.add('active');
-      } else {
-        link.classList.remove('active');
-      }
+      const isActive = String(link.getAttribute('href') || '').trim() === normalizedId;
+      link.classList.toggle('active', isActive);
+      link.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
-
     panes.forEach((pane) => {
-      if (pane.id === normalizedId.replace('#', '')) {
-        pane.classList.add('active', 'show');
-      } else {
-        pane.classList.remove('active', 'show');
-      }
+      const isActive = pane.id === normalizedId.replace('#', '');
+      pane.classList.toggle('active', isActive);
+      pane.classList.toggle('show', isActive);
     });
   }
 
@@ -1158,7 +1215,7 @@ const OfficialContentPage = (() => {
 
   ready(() => {
     initializeOfficialContentTabs();
-    setActiveContentTab('#official-calendar');
+    setActiveContentTab('#official-calendar-network');
     ensureSupportModuleShells();
     ['network', 'school'].forEach((scopeKey) => {
       const textarea = document.getElementById(`calendar-${scopeKey}-lines`);
@@ -1178,19 +1235,20 @@ const OfficialContentPage = (() => {
   return {
     setActiveContentTab: (tabId) => setActiveContentTab(tabId),
     setEnrollmentScope: (scopeKey) => setEnrollmentScope(scopeKey),
-    createNewEnrollmentDocument: () => {
-      const scope = getCurrentEnrollmentScope();
-      document.getElementById('enrollment-period').value = '';
-      document.getElementById('reenrollment-period').value = '';
-      document.getElementById('enrollment-target').value = '';
-      document.getElementById('enrollment-required').value = '';
-      document.getElementById('enrollment-optional').value = '';
-      document.getElementById('enrollment-rules').value = '';
-      document.getElementById('enrollment-link').value = '';
-      document.getElementById('enrollment-summary').value = '';
-      document.getElementById('enrollment-document-title').textContent = `Novo documento (${scope})`;
+    createNewEnrollmentDocument: (scopeKey = getCurrentEnrollmentScope()) => {
+      const refs = getEnrollmentDom(scopeKey);
+      if (!refs.period || !refs.reenrollmentPeriod || !refs.target || !refs.required || !refs.optional || !refs.rules || !refs.link || !refs.summary || !refs.documentTitle) return;
+      refs.period.value = '';
+      refs.reenrollmentPeriod.value = '';
+      refs.target.value = '';
+      refs.required.value = '';
+      refs.optional.value = '';
+      refs.rules.value = '';
+      refs.link.value = '';
+      refs.summary.value = '';
+      refs.documentTitle.textContent = `Novo documento (${scopeKey})`;
     },
-    addEnrollmentFaqItem: () => createEnrollmentFaqItem(),
+    addEnrollmentFaqItem: (scopeKey = getCurrentEnrollmentScope()) => createEnrollmentFaqItem(scopeKey),
     updateCalendarStatus: async (scopeKey) => {
       try {
         const record = getRecord('calendar', scopeKey);
@@ -1290,17 +1348,19 @@ const OfficialContentPage = (() => {
     saveEnrollment: async (scopeKey) => {
       try {
         const scope = scopeKey || getCurrentEnrollmentScope();
-        const title = scope === 'network' ? 'Matricula e Documentos da Rede' : 'Matricula e Documentos Exigidos';
-        await save('enrollment', scope, title, document.getElementById('enrollment-summary').value, {
-          enrollment_period: document.getElementById('enrollment-period').value,
-          reenrollment_period: document.getElementById('reenrollment-period').value,
-          target_audience: document.getElementById('enrollment-target').value,
-          required_documents: splitLines(document.getElementById('enrollment-required').value),
-          optional_documents: splitLines(document.getElementById('enrollment-optional').value),
-          special_rules: document.getElementById('enrollment-rules').value,
-          official_link: document.getElementById('enrollment-link').value
+        const refs = getEnrollmentDom(scope);
+        const title = scope === 'network' ? 'Matrícula e Documentos da Rede' : 'Matrícula e Documentos da Escola';
+        await save('enrollment', scope, title, refs.summary?.value || '', {
+          enrollment_period: refs.period?.value || '',
+          reenrollment_period: refs.reenrollmentPeriod?.value || '',
+          target_audience: refs.target?.value || '',
+          required_documents: splitLines(refs.required?.value || ''),
+          optional_documents: splitLines(refs.optional?.value || ''),
+          special_rules: refs.rules?.value || '',
+          official_link: refs.link?.value || ''
         }, { file_name: `enrollment-${scope}.csv` });
-        setEnrollmentScope(scope);
+        fillEnrollment(scope);
+        fillEnrollmentFaq(scope);
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
@@ -1317,9 +1377,12 @@ const OfficialContentPage = (() => {
       const csv = 'enrollment_period,reenrollment_period,target_audience,required_documents,optional_documents,special_rules,official_link,summary\n';
       downloadCsv('template-matricula.csv', csv);
     },
-    importEnrollmentCsv: async (file) => {
+    importEnrollmentCsv: async (scopeOrFile, maybeFile) => {
+      const scope = typeof scopeOrFile === 'string' ? scopeOrFile : getCurrentEnrollmentScope();
+      const file = typeof scopeOrFile === 'string' ? maybeFile : scopeOrFile;
       if (!file) return;
       try {
+        const refs = getEnrollmentDom(scope);
         const text = await file.text();
         const lines = text.split('\n').filter(line => line.trim());
         if (lines.length < 2) throw new Error('CSV deve ter pelo menos uma linha de dados.');
@@ -1329,15 +1392,15 @@ const OfficialContentPage = (() => {
         if (headers.length !== expectedHeaders.length || !headers.every((h, i) => h === expectedHeaders[i])) {
           throw new Error('Cabeçalhos do CSV não correspondem ao template esperado.');
         }
-        document.getElementById('enrollment-period').value = data[0] || '';
-        document.getElementById('reenrollment-period').value = data[1] || '';
-        document.getElementById('enrollment-target').value = data[2] || '';
-        document.getElementById('enrollment-required').value = (data[3] || '').split(';').join('\n');
-        document.getElementById('enrollment-optional').value = (data[4] || '').split(';').join('\n');
-        document.getElementById('enrollment-rules').value = data[5] || '';
-        document.getElementById('enrollment-link').value = data[6] || '';
-        document.getElementById('enrollment-summary').value = data[7] || '';
-        document.getElementById('enrollment-file').value = '';
+        if (refs.period) refs.period.value = data[0] || '';
+        if (refs.reenrollmentPeriod) refs.reenrollmentPeriod.value = data[1] || '';
+        if (refs.target) refs.target.value = data[2] || '';
+        if (refs.required) refs.required.value = (data[3] || '').split(';').join('\n');
+        if (refs.optional) refs.optional.value = (data[4] || '').split(';').join('\n');
+        if (refs.rules) refs.rules.value = data[5] || '';
+        if (refs.link) refs.link.value = data[6] || '';
+        if (refs.summary) refs.summary.value = data[7] || '';
+        if (refs.fileInput) refs.fileInput.value = '';
         Swal.fire('CSV importado', 'Dados de matrícula carregados com sucesso.', 'success');
       } catch (error) {
         Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
@@ -1376,49 +1439,52 @@ const OfficialContentPage = (() => {
         Swal.fire('Erro', error.message || 'Não foi possível ler o CSV informado.', 'error');
       }
     },
-    addEnrollmentFaqItem: () => createEnrollmentFaqItem(),
     downloadEnrollmentFaqTemplate: () => {
       const csv = 'pergunta,resposta,categoria\n"Qual é o período de matrícula?","Fevereiro a março","Administrativo"\n';
       downloadCsv('template-faq-matricula.csv', csv);
     },
-    importEnrollmentFaqCsv: async (file) => {
+    importEnrollmentFaqCsv: async (scopeOrFile, maybeFile) => {
+      const scope = typeof scopeOrFile === 'string' ? scopeOrFile : getCurrentEnrollmentScope();
+      const file = typeof scopeOrFile === 'string' ? maybeFile : scopeOrFile;
       if (!file) return;
       try {
+        const refs = getEnrollmentDom(scope);
         const text = await file.text();
         const lines = text.split('\n').filter(line => line.trim());
         if (lines.length < 2) throw new Error('CSV deve ter pergunta e resposta.');
-        document.getElementById('enrollment-faq-items').innerHTML = '';
+        if (refs.faqItems) refs.faqItems.innerHTML = '';
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
           const cells = parseCSVLineEnrollment(line);
           if (cells.length >= 2) {
-            createEnrollmentFaqItem({
+            createEnrollmentFaqItem(scope, {
               question: cells[0] || '',
               answer: cells[1] || '',
               category: cells[2] || 'Geral'
             });
           }
         }
-        document.getElementById('enrollment-faq-file').value = '';
+        if (refs.faqFile) refs.faqFile.value = '';
         Swal.fire('CSV importado', `${lines.length - 1} pergunta(s) carregada(s).`, 'success');
-        fillEnrollmentFaq();
+        fillEnrollmentFaq(scope);
       } catch (error) {
         Swal.fire('Erro', error.message || 'Não foi possível ler o CSV.', 'error');
       }
     },
-    saveEnrollmentFaq: async () => {
+    saveEnrollmentFaq: async (scopeKey = getCurrentEnrollmentScope()) => {
       try {
-        const scope = getCurrentEnrollmentScope();
-        const record = getRecord('enrollment', scope);
-        const items = collectEnrollmentFaqItems();
+        const record = getRecord('enrollment', scopeKey);
+        const items = collectEnrollmentFaqItems(scopeKey);
         const updatedRecord = { ...record, faq_items: items };
         setRecord(updatedRecord);
+        fillEnrollmentFaq(scopeKey);
         Swal.fire('Sucesso', 'Perguntas frequentes salvas.', 'success');
       } catch (error) {
         Swal.fire('Erro', error.message, 'error');
       }
     },
+    getRecord,
     getRecord,
     setRecord
   };
