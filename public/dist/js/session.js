@@ -1,5 +1,19 @@
 ﻿// session.js
+let _initSessionPromise = null;
+
 async function initSession() {
+  // Prevent concurrent/duplicate calls from racing each other
+  if (_initSessionPromise) return _initSessionPromise;
+  _initSessionPromise = _doInitSession();
+  try {
+    return await _initSessionPromise;
+  } catch (e) {
+    _initSessionPromise = null;
+    throw e;
+  }
+}
+
+async function _doInitSession() {
   const client = window.supabaseClient || window._supabase || null;
   if (!client) {
     throw new Error('supabase_client_unavailable');

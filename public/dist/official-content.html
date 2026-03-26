@@ -79,7 +79,13 @@
 <div class="container-fluid">
 <div class="card card-outline card-primary">
 <div class="card-header">
-<ul class="nav nav-tabs official-tabs" role="tablist"><li class="nav-item"><a aria-controls="official-calendar-network" aria-selected="true" class="nav-link active" data-toggle="tab" href="#official-calendar-network" role="tab"><i class="fas fa-calendar-alt mr-1"></i> Calendário da Rede</a></li><li class="nav-item"><a aria-controls="official-calendar-school" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-calendar-school" role="tab"><i class="fas fa-school mr-1"></i> Calendário da Escola</a></li><li class="nav-item"><a aria-controls="official-enrollment-network" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-enrollment-network" role="tab"><i class="fas fa-file-signature mr-1"></i> Matrícula da Rede</a></li><li class="nav-item"><a aria-controls="official-enrollment-school" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-enrollment-school" role="tab"><i class="fas fa-folder-open mr-1"></i> Matrícula da Escola</a></li><li class="nav-item"><a aria-controls="official-notices" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-notices" role="tab"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li></ul>
+<ul class="nav nav-tabs official-tabs" role="tablist">
+  <li class="nav-item" id="tab-calendar-network"><a aria-controls="official-calendar-network" aria-selected="true" class="nav-link active" data-toggle="tab" href="#official-calendar-network" role="tab"><i class="fas fa-calendar-alt mr-1"></i> Calendário da Secretaria</a></li>
+  <li class="nav-item" id="tab-calendar-school"><a aria-controls="official-calendar-school" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-calendar-school" role="tab"><i class="fas fa-school mr-1"></i> Calendário da Escola</a></li>
+  <li class="nav-item" id="tab-enrollment-network"><a aria-controls="official-enrollment-network" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-enrollment-network" role="tab"><i class="fas fa-file-signature mr-1"></i> Matrícula da Secretaria</a></li>
+  <li class="nav-item" id="tab-enrollment-school"><a aria-controls="official-enrollment-school" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-enrollment-school" role="tab"><i class="fas fa-folder-open mr-1"></i> Matrícula da Escola</a></li>
+  <li class="nav-item"><a aria-controls="official-notices" aria-selected="false" class="nav-link" data-toggle="tab" href="#official-notices" role="tab"><i class="fas fa-bullhorn mr-1"></i> Comunicados Oficiais</a></li>
+</ul>
 </div>
 <div class="card-body">
 <div class="text-center py-4" id="official-loading">
@@ -88,9 +94,9 @@
 </div>
 <div id="official-content-root" style="display:none;">
 <div class="tab-content"><div class="tab-pane fade show active official-tab-pane" id="official-calendar-network" role="tabpanel"><div class="official-card card">
-<div class="card-header"><h3 class="card-title">Calendario da Rede / Secretaria</h3></div>
+<div class="card-header"><h3 class="card-title">Calendário da Secretaria</h3></div>
 <div class="card-body">
-<p class="official-help">Calendario-base oficial da rede, com eventos que se aplicam de forma ampla.</p>
+<p class="official-help">Calendário-base oficial da secretaria, com eventos que se aplicam de forma ampla.</p>
 <div class="official-flow">
 <div class="official-flow-step"><strong>1. Importe ou preencha</strong><span class="official-help">Use o CSV para estruturar os eventos e evitar ambiguidade para a IA.</span></div>
 <div class="official-flow-step"><strong>2. Revise a apresentacao</strong><span class="official-help">Confira abaixo como o calendario ficara organizado antes de publicar.</span></div>
@@ -139,7 +145,7 @@
 <div class="official-calendar-months" id="calendar-network-preview"></div>
 <div class="official-calendar-preview-note" id="calendar-network-preview-note"></div>
 </div>
-<div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('network')">Salvar calendario da rede</button></div>
+<div class="official-actions"><button class="btn btn-primary" onclick="OfficialContentPage.saveCalendar('network')">Salvar calendário da secretaria</button></div>
 </div>
 </div></div><div class="tab-pane fade official-tab-pane" id="official-calendar-school" role="tabpanel"><div class="official-card card">
 <div class="card-header"><h3 class="card-title">Complementos da Escola</h3></div>

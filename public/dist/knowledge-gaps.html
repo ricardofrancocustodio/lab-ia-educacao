@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head id="component-head">
+  <title>Assistente Publico | Lacunas de Conhecimento</title>
+  <style>
+    body { opacity: 0; transition: opacity .3s ease; }
+    .gaps-hero { background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%); border: 1px solid #f0dcc0; border-radius: 16px; padding: 20px; margin-bottom: 1rem; }
+    .stat-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; text-align: center; }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .stat-card .stat-label { font-size: .82rem; color: #6c757d; margin-top: 4px; }
+    .gap-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; margin-bottom: 12px; transition: box-shadow .2s; cursor: pointer; }
+    .gap-card:hover { box-shadow: 0 4px 14px rgba(20,43,73,.08); }
+    .gap-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .gap-badge-abstained { background: #6f42c1; color: #fff; }
+    .gap-badge-no-source { background: #fd7e14; color: #fff; }
+    .gap-badge-high-risk { background: #dc3545; color: #fff; }
+    .gap-badge-fallback { background: #0dcaf0; color: #212529; }
+    .gap-badge-low-conf { background: #ffc107; color: #212529; }
+    .gap-meta { color: #6c757d; font-size: .84rem; }
+    .gap-bar { height: 6px; border-radius: 3px; background: #e9ecef; overflow: hidden; margin-top: 6px; }
+    .gap-bar-fill { height: 100%; border-radius: 3px; }
+    .gaps-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    .gaps-empty { border: 1px dashed #c7d2e2; border-radius: 12px; padding: 32px; color: #6c757d; background: #f8fbff; text-align: center; }
+    .gap-detail-table td { padding: 6px 10px; vertical-align: top; }
+    .gap-detail-table td:first-child { font-weight: 600; white-space: nowrap; color: #495057; }
+    .assistant-gap-card { background: #f8f9fa; border: 1px solid #e6edf5; border-radius: 10px; padding: 14px; }
+    .text-purple { color: #6f42c1 !important; }
+  </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed" data-page="knowledge-gaps">
+  <div class="wrapper">
+    <div id="component-header"></div>
+    <div id="component-sidebar"></div>
+    <div class="content-wrapper">
+      <section class="content-header pb-0">
+        <div class="container-fluid">
+          <div class="gaps-hero">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center">
+              <div>
+                <h1 class="m-0"><i class="fas fa-puzzle-piece mr-2 text-warning"></i>Lacunas de Conhecimento</h1>
+                <p class="text-muted mb-0 mt-2">Topicos em que a IA nao soube responder, nao encontrou fonte confiavel ou apresentou alto risco — identifique oportunidades de melhoria na base de conhecimento.</p>
+              </div>
+              <div class="mt-2 mt-lg-0">
+                <select class="form-control form-control-sm" id="filter-period" style="width:200px;">
+                  <option value="today">Hoje</option>
+                  <option value="7d" selected>Ultimos 7 dias</option>
+                  <option value="30d">Ultimos 30 dias</option>
+                  <option value="all">Todo o periodo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="container-fluid">
+          <!-- Loading -->
+          <div class="text-center py-4" id="gaps-loading">
+            <div class="spinner-border text-warning"></div>
+            <p class="mt-2 mb-0">Carregando lacunas...</p>
+          </div>
+
+          <!-- Main content -->
+          <div id="gaps-root" style="display:none;">
+            <!-- Stats row -->
+            <div class="row mb-3" id="gaps-stats-row">
+              <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-danger" id="stat-total-gaps">-</div><div class="stat-label">Total de Lacunas</div></div></div>
+              <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-purple" id="stat-abstained">-</div><div class="stat-label">Abstencoes</div></div></div>
+              <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-warning" id="stat-no-source">-</div><div class="stat-label">Sem Fonte</div></div></div>
+              <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-info" id="stat-fallback">-</div><div class="stat-label">Fallback Humano</div></div></div>
+              <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-secondary" id="stat-topics">-</div><div class="stat-label">Topicos Afetados</div></div></div>
+            </div>
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" id="gaps-tabs">
+              <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-by-topic">Por Topico</a></li>
+              <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-by-assistant">Por Assistente</a></li>
+              <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-detail">Detalhes</a></li>
+            </ul>
+
+            <div class="tab-content">
+              <!-- By Topic -->
+              <div class="tab-pane fade show active" id="tab-by-topic">
+                <div class="gaps-toolbar">
+                  <input type="text" class="form-control form-control-sm" id="filter-topic-search" placeholder="Buscar topico..." style="width:240px;">
+                  <span class="ml-auto gap-meta" id="topic-count-label"></span>
+                </div>
+                <div id="topic-list"></div>
+              </div>
+
+              <!-- By Assistant -->
+              <div class="tab-pane fade" id="tab-by-assistant">
+                <div id="assistant-list"></div>
+              </div>
+
+              <!-- Detail rows -->
+              <div class="tab-pane fade" id="tab-detail">
+                <div class="gaps-toolbar">
+                  <select class="form-control form-control-sm" id="filter-gap-type" style="width:200px;">
+                    <option value="">Todos os tipos</option>
+                    <option value="abstained">Abstencao</option>
+                    <option value="no_source">Sem fonte</option>
+                    <option value="high_risk">Alto risco</option>
+                    <option value="fallback">Fallback humano</option>
+                    <option value="low_confidence">Baixa confianca</option>
+                  </select>
+                  <input type="text" class="form-control form-control-sm" id="filter-detail-search" placeholder="Buscar..." style="width:200px;">
+                  <span class="ml-auto gap-meta" id="detail-count-label"></span>
+                </div>
+                <div id="detail-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="component-footer"></div>
+  </div>
+
+  <!-- Modal: Gap Detail -->
+  <div class="modal fade" id="gapDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="gapDetailTitle">Detalhes da Lacuna</h5>
+          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body" id="gapDetailBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabaseConfig.js"></script>
+  <script src="./js/session.js"></script>
+  <script src="./js/coordinator/carregar-componentes.js"></script>
+  <script src="./js/permissions.js"></script>
+  <script src="./js/knowledge-gaps/knowledge-gaps-panel.js"></script>
+</body>
+</html>

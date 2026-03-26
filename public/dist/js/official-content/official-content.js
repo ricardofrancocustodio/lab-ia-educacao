@@ -284,6 +284,29 @@ const OfficialContentPage = (() => {
         <span><strong>Escopo local:</strong> ${schoolName}</span>
       </div>
       ${legacyNote}`;
+    renderInstitutionInfoBar();
+  }
+
+  function renderInstitutionInfoBar() {
+    const bar = document.getElementById('institution-info-bar');
+    if (!bar) return;
+    const context = state.context || {};
+    const role = state.effectiveRole;
+    const networkScope = context.network_scope || {};
+    const schoolScope = context.school_scope || {};
+    let html = '';
+    if (["direction", "coordination", "secretariat"].includes(role)) {
+      html = `<div style="background:#f8fbff;border-bottom:1px solid #dbe7f5;padding:8px 18px;font-size:.97rem;color:#17324d;">
+        <strong>Escola:</strong> ${schoolScope.name || '-'} &nbsp; | &nbsp; <strong>Secretaria:</strong> ${networkScope.name || '-'}
+      </div>`;
+    } else if (role === "network_manager") {
+      html = `<div style="background:#f8fbff;border-bottom:1px solid #dbe7f5;padding:8px 18px;font-size:.97rem;color:#17324d;">
+        <strong>Secretaria:</strong> ${networkScope.name || '-'}
+      </div>`;
+    } else {
+      html = '';
+    }
+    bar.innerHTML = html;
   }
 
   function renderContextPicker() {
@@ -762,6 +785,25 @@ const OfficialContentPage = (() => {
       </div>`;
   }
 
+
+  function hideTabsByRole() {
+    // Calendário da Secretaria e Matrícula da Secretaria: apenas para network_manager e superadmin
+    const allowedNetworkTabs = new Set(['superadmin', 'network_manager']);
+    const role = getEffectiveRole();
+    const tabCalendarNetwork = document.getElementById('tab-calendar-network');
+    const tabEnrollmentNetwork = document.getElementById('tab-enrollment-network');
+    if (!allowedNetworkTabs.has(role)) {
+      if (tabCalendarNetwork) tabCalendarNetwork.style.display = 'none';
+      if (tabEnrollmentNetwork) tabEnrollmentNetwork.style.display = 'none';
+    }
+    // Calendário da Escola e Matrícula da Escola: apenas para superadmin e direction
+    const allowedSchoolTabs = new Set(['superadmin', 'direction']);
+    const tabCalendarSchool = document.getElementById('tab-calendar-school');
+    if (tabCalendarSchool && !allowedSchoolTabs.has(role)) tabCalendarSchool.style.display = 'none';
+    const tabEnrollmentSchool = document.getElementById('tab-enrollment-school');
+    if (tabEnrollmentSchool && !allowedSchoolTabs.has(role)) tabEnrollmentSchool.style.display = 'none';
+  }
+
   async function ensureSessionReady() {
     if (typeof window.initSession === 'function') {
       await window.initSession();
@@ -769,6 +811,7 @@ const OfficialContentPage = (() => {
     state.schoolId = getSchoolId();
     state.contextSchoolId = state.contextSchoolId || state.schoolId;
     state.effectiveRole = getEffectiveRole();
+    hideTabsByRole();
   }
 
   async function loadInstitutionOptionsIfNeeded() {
@@ -1008,6 +1051,10 @@ const OfficialContentPage = (() => {
       await loadSupportModuleHistory('enrollment', 'school');
       await Promise.all(Object.keys(SUPPORT_MODULE_CONFIG).filter((m) => m !== 'enrollment').map(loadSupportModuleHistory));
       applyAccessRules();
+      // Forçar atualização da barra de informações institucionais
+      renderInstitutionInfoBar();
+      // Log para depuração do papel
+      console.log('[OfficialContent] Papel efetivo detectado:', state.effectiveRole);
       document.getElementById('official-loading').style.display = 'none';
       document.getElementById('official-content-root').style.display = '';
     } catch (error) {

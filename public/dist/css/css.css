@@ -1,5 +1,31 @@
 /* css.css */
 
+/* Contexto institucional na sidebar */
+.sidebar-institution-context {
+    padding: 12px 14px;
+    margin-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: .82rem;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.45;
+}
+.sidebar-ctx-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+}
+.sidebar-ctx-item i {
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    opacity: 0.6;
+}
+.sidebar-ctx-item span {
+    word-break: break-word;
+}
+
 /* Animação leve quando segmentos aparecem */
 .segmento-visivel {
     animation: fadeIn 0.3s ease-in;

@@ -406,6 +406,55 @@ async function initHeaderProfile(sessionContext = null) {
     }
 }
 
+const SIDEBAR_CONTEXT_ROLES = new Set(['direction', 'coordination', 'secretariat', 'network_manager']);
+
+async function renderSidebarInstitutionContext() {
+    const role = String(
+        sessionStorage.getItem('EFFECTIVE_ROLE') ||
+        sessionStorage.getItem('PLATFORM_ROLE') ||
+        sessionStorage.getItem('USER_ROLE') || ''
+    ).trim().toLowerCase().replace(/[\s-]+/g, '_');
+
+    if (!SIDEBAR_CONTEXT_ROLES.has(role)) return;
+
+    try {
+        const token = typeof getAccessToken === 'function' ? await getAccessToken() : null;
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const schoolId = sessionStorage.getItem('SCHOOL_ID') || '';
+        const url = '/api/institution-context' + (schoolId ? '?school_id=' + encodeURIComponent(schoolId) : '');
+        const res = await fetch(url, { headers });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.ok) return;
+
+        const sidebar = document.querySelector('.main-sidebar .sidebar');
+        if (!sidebar) return;
+
+        let html = '';
+        if (['direction', 'coordination', 'secretariat'].includes(role)) {
+            const schoolName = data.school?.name || '-';
+            const networkName = data.network?.name || '-';
+            html = '<div class="sidebar-institution-context">'
+                + '<div class="sidebar-ctx-item"><i class="fas fa-school"></i> <span>' + schoolName + '</span></div>'
+                + '<div class="sidebar-ctx-item"><i class="fas fa-landmark"></i> <span>' + networkName + '</span></div>'
+                + '</div>';
+        } else if (role === 'network_manager') {
+            const networkName = data.network?.name || '-';
+            html = '<div class="sidebar-institution-context">'
+                + '<div class="sidebar-ctx-item"><i class="fas fa-landmark"></i> <span>' + networkName + '</span></div>'
+                + '</div>';
+        }
+
+        if (html) {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = html;
+            sidebar.appendChild(wrapper.firstElementChild);
+        }
+    } catch (e) {
+        console.warn('Falha ao carregar contexto institucional na sidebar:', e?.message || e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     let sessionContext = null;
     await Promise.all([
@@ -430,6 +479,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof window.applyPermissions === 'function') {
         window.applyPermissions();
     }
+
+    await renderSidebarInstitutionContext();
 
     document.body.style.opacity = '1';
 });

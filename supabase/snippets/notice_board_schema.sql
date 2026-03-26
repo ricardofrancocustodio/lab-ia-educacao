@@ -19,9 +19,9 @@ create table if not exists public.notices (
   constraint notices_pkey primary key (id),
   constraint notices_school_id_id_key unique (school_id, id),
   constraint notices_school_id_fkey foreign key (school_id) references public.schools (id) on delete cascade,
-  constraint notices_author_id_fkey foreign key (author_id) references auth.users (id) on delete set null,
-  constraint notices_target_segment_fkey foreign key (school_id, target_segment_id)
-    references public.segments (school_id, id) on delete set null
+  constraint notices_author_id_fkey foreign key (author_id) references auth.users (id) on delete set null
+  -- constraint notices_target_segment_fkey: desabilitado ate tabela segments existir
+  -- foreign key (school_id, target_segment_id) references public.segments (school_id, id) on delete set null
 );
 
 create table if not exists public.notice_attachments (

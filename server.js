@@ -30,6 +30,16 @@ const supabase =
 const PRIVILEGED_ROLES = new Set(["superadmin", "network_manager"]);
 const CHAT_MANAGER_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "public_operator", "secretariat", "coordination", "treasury", "direction"]);
 const OFFICIAL_CONTENT_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat", "direction", "coordination"]);
+const NOTICES_READ_ROLES = new Set(["superadmin", "network_manager", "content_curator", "public_operator", "secretariat", "coordination", "treasury", "direction", "observer"]);
+const NOTICES_WRITE_ROLES = new Set(["superadmin", "network_manager", "secretariat", "coordination", "direction"]);
+const NOTICES_REVIEW_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
+const INCIDENTS_READ_ROLES = new Set(["superadmin", "network_manager", "auditor", "direction", "content_curator", "coordination", "public_operator"]);
+const INCIDENTS_MANAGE_ROLES = new Set(["superadmin", "network_manager", "auditor"]);
+const FEEDBACK_READ_ROLES = new Set(["superadmin", "network_manager", "content_curator", "auditor", "direction", "public_operator"]);
+const FEEDBACK_ACT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
+const NOTIFICATIONS_ADMIN_ROLES = new Set(["superadmin", "network_manager", "direction", "secretariat", "coordination"]);
+const NOTIFICATIONS_SEND_ROLES = new Set(["superadmin", "network_manager", "direction", "secretariat"]);
+const KNOWLEDGE_GAPS_ROLES = new Set(["superadmin", "network_manager", "content_curator", "direction", "secretariat"]);
 const OFFICIAL_CONTENT_NETWORK_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
 const OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat", "direction", "coordination"]);
 const AUDIT_TREATMENT_DESTINATIONS = {
@@ -117,7 +127,12 @@ const distPages = new Set([
   "accept-invite",
   "verify-session",
   "dashboard-preferencias",
-  "official-content"
+  "official-content",
+  "notice-board",
+  "incidents",
+  "feedback",
+  "notifications",
+  "knowledge-gaps"
 ]);
 
 app.get("/", (_req, res) => serveDistPage(res, "index.html"));
@@ -139,6 +154,11 @@ app.get("/relatorios", (_req, res) => serveDistPage(res, "reports.html"));
 app.get("/usuarios", (_req, res) => serveDistPage(res, "users.html"));
 app.get("/preferencias", (_req, res) => serveDistPage(res, "dashboard-preferencias.html"));
 app.get("/conteudo-oficial", (_req, res) => serveDistPage(res, "official-content.html"));
+app.get("/comunicados", (_req, res) => serveDistPage(res, "notice-board.html"));
+app.get("/incidentes", (_req, res) => serveDistPage(res, "incidents.html"));
+app.get("/feedback", (_req, res) => serveDistPage(res, "feedback.html"));
+app.get("/notificacoes", (_req, res) => serveDistPage(res, "notifications.html"));
+app.get("/lacunas", (_req, res) => serveDistPage(res, "knowledge-gaps.html"));
 app.get("/calendario-escolar", (_req, res) => serveDistPage(res, "calendario-escolar.html"));
 app.get("/esqueci-senha", (_req, res) => serveDistPage(res, "forgot-password.html"));
 app.get("/redefinir-senha", (_req, res) => serveDistPage(res, "reset-password.html"));
@@ -1651,6 +1671,31 @@ function buildOfficialContentDefaults(schoolId) {
     { school_id: schoolId, module_key: "notices", scope_key: "school", title: "Comunicados Oficiais", summary: "Avisos de vigencia temporaria ou comunicados administrativos.", content_payload: { items: [] }, status: "draft" }
   ];
 }
+
+app.get("/api/institution-context", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado." });
+    const access = await requireRequestContext(req, res, {});
+    if (!access.ok) return access.response;
+    const school = await fetchSchoolContextById(access.context.schoolId);
+    if (!school?.id) return res.json({ ok: true, school: null, network: null });
+    let network = null;
+    if (school.parent_school_id) {
+      network = await fetchSchoolContextById(school.parent_school_id);
+    }
+    const isSchoolUnit = normalizeInstitutionType(school.institution_type) === "school_unit";
+    return res.json({
+      ok: true,
+      school: { id: school.id, name: school.name || "" },
+      network: isSchoolUnit && network?.id
+        ? { id: network.id, name: network.name || "" }
+        : !isSchoolUnit ? { id: school.id, name: school.name || "" } : null
+    });
+  } catch (error) {
+    console.error("Erro /api/institution-context:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar contexto institucional." });
+  }
+});
 
 app.get("/api/official-content", async (req, res) => {
   try {
@@ -3685,6 +3730,902 @@ app.get("/api/faq/conflicts", async (req, res) => {
   } catch (error) {
     console.error("Erro GET /api/faq/conflicts:", error);
     return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao listar conflitos." });
+  }
+});
+
+// ─── NOTICES / COMUNICADOS ────────────────────────────────────────────────────
+
+app.get("/api/notices", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...NOTICES_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds;
+
+    let query = supabase
+      .from("notices")
+      .select("*, notice_attachments(id, file_name, file_url, file_type, file_size)")
+      .in("school_id", schoolIds)
+      .order("published_at", { ascending: false });
+
+    const filterType = String(req.query.type || "").trim().toLowerCase();
+    if (filterType && ["internal", "external"].includes(filterType)) {
+      query = query.eq("type", filterType);
+    }
+    const filterPriority = String(req.query.priority || "").trim().toLowerCase();
+    if (filterPriority && ["normal", "high", "urgent"].includes(filterPriority)) {
+      query = query.eq("priority", filterPriority);
+    }
+    const activeOnly = req.query.active !== "false";
+    if (activeOnly) {
+      query = query.or("expiry_date.is.null,expiry_date.gte." + new Date().toISOString());
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const schoolMap = {};
+    for (const s of scope.managedSchools) { schoolMap[s.id] = s.name; }
+    const notices = (data || []).map(n => ({ ...n, school_name: schoolMap[n.school_id] || "" }));
+
+    return res.json({ ok: true, notices, scope_mode: scope.scopeMode });
+  } catch (error) {
+    console.error("Erro GET /api/notices:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar comunicados." });
+  }
+});
+
+app.get("/api/notices/:id", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...NOTICES_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("notices")
+      .select("*, notice_attachments(id, file_name, file_url, file_type, file_size)")
+      .eq("id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ ok: false, error: "Comunicado nao encontrado." });
+
+    return res.json({ ok: true, notice: data });
+  } catch (error) {
+    console.error("Erro GET /api/notices/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar comunicado." });
+  }
+});
+
+app.post("/api/notices", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...NOTICES_WRITE_ROLES] });
+    if (!access.ok) return access.response;
+
+    const { title, content, type, priority, expiry_date, target_segment_id } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ ok: false, error: "Titulo e conteudo sao obrigatorios." });
+    }
+    const validTypes = ["internal", "external"];
+    const noticeType = validTypes.includes(String(type || "").trim().toLowerCase()) ? String(type).trim().toLowerCase() : "internal";
+    const validPriorities = ["normal", "high", "urgent"];
+    const noticePriority = validPriorities.includes(String(priority || "").trim().toLowerCase()) ? String(priority).trim().toLowerCase() : "normal";
+
+    const insertData = {
+      school_id: access.context.schoolId,
+      title: String(title).trim(),
+      content: String(content).trim(),
+      type: noticeType,
+      priority: noticePriority,
+      author_id: access.context.user.id,
+      published_at: new Date().toISOString()
+    };
+    if (expiry_date) {
+      const parsed = new Date(expiry_date);
+      if (!isNaN(parsed.getTime())) insertData.expiry_date = parsed.toISOString();
+    }
+    if (target_segment_id) {
+      insertData.target_segment_id = String(target_segment_id).trim();
+    }
+
+    const { data, error } = await supabase.from("notices").insert(insertData).select().single();
+    if (error) throw error;
+
+    return res.status(201).json({ ok: true, notice: data });
+  } catch (error) {
+    console.error("Erro POST /api/notices:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao criar comunicado." });
+  }
+});
+
+app.put("/api/notices/:id", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...NOTICES_WRITE_ROLES] });
+    if (!access.ok) return access.response;
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("notices")
+      .select("id, school_id")
+      .eq("id", req.params.id)
+      .eq("school_id", access.context.schoolId)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!existing) return res.status(404).json({ ok: false, error: "Comunicado nao encontrado na sua instituicao." });
+
+    const updates = {};
+    if (req.body.title !== undefined) updates.title = String(req.body.title).trim();
+    if (req.body.content !== undefined) updates.content = String(req.body.content).trim();
+    if (req.body.type !== undefined) {
+      const validTypes = ["internal", "external"];
+      const t = String(req.body.type).trim().toLowerCase();
+      if (validTypes.includes(t)) updates.type = t;
+    }
+    if (req.body.priority !== undefined) {
+      const validPriorities = ["normal", "high", "urgent"];
+      const p = String(req.body.priority).trim().toLowerCase();
+      if (validPriorities.includes(p)) updates.priority = p;
+    }
+    if (req.body.expiry_date !== undefined) {
+      if (req.body.expiry_date === null) {
+        updates.expiry_date = null;
+      } else {
+        const parsed = new Date(req.body.expiry_date);
+        if (!isNaN(parsed.getTime())) updates.expiry_date = parsed.toISOString();
+      }
+    }
+    if (req.body.target_segment_id !== undefined) {
+      updates.target_segment_id = req.body.target_segment_id || null;
+    }
+
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ ok: false, error: "Nenhum campo para atualizar." });
+    }
+
+    const { data, error } = await supabase
+      .from("notices")
+      .update(updates)
+      .eq("id", req.params.id)
+      .eq("school_id", access.context.schoolId)
+      .select()
+      .single();
+    if (error) throw error;
+
+    return res.json({ ok: true, notice: data });
+  } catch (error) {
+    console.error("Erro PUT /api/notices/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao atualizar comunicado." });
+  }
+});
+
+app.delete("/api/notices/:id", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...NOTICES_WRITE_ROLES] });
+    if (!access.ok) return access.response;
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("notices")
+      .select("id")
+      .eq("id", req.params.id)
+      .eq("school_id", access.context.schoolId)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!existing) return res.status(404).json({ ok: false, error: "Comunicado nao encontrado na sua instituicao." });
+
+    const { error } = await supabase
+      .from("notices")
+      .delete()
+      .eq("id", req.params.id)
+      .eq("school_id", access.context.schoolId);
+    if (error) throw error;
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erro DELETE /api/notices/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao excluir comunicado." });
+  }
+});
+
+// ─── INCIDENTS / PAINEL DE INCIDENTES ─────────────────────────────────────────
+
+app.get("/api/incidents", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...INCIDENTS_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds;
+
+    let query = supabase
+      .from("incident_reports")
+      .select("*")
+      .in("school_id", schoolIds)
+      .order("opened_at", { ascending: false });
+
+    const filterStatus = String(req.query.status || "").trim().toUpperCase();
+    if (filterStatus && ["OPEN", "IN_REVIEW", "RESOLVED", "DISMISSED"].includes(filterStatus)) {
+      query = query.eq("status", filterStatus);
+    }
+    const filterSeverity = String(req.query.severity || "").trim().toUpperCase();
+    if (filterSeverity && ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(filterSeverity)) {
+      query = query.eq("severity", filterSeverity);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const schoolMap = {};
+    for (const s of scope.managedSchools) { schoolMap[s.id] = s.name; }
+    const incidents = (data || []).map(i => ({ ...i, school_name: schoolMap[i.school_id] || "" }));
+
+    return res.json({ ok: true, incidents, scope_mode: scope.scopeMode });
+  } catch (error) {
+    console.error("Erro GET /api/incidents:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar incidentes." });
+  }
+});
+
+app.get("/api/incidents/:id", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...INCIDENTS_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("incident_reports")
+      .select("*")
+      .eq("id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ ok: false, error: "Incidente nao encontrado." });
+
+    return res.json({ ok: true, incident: { ...data, school_name: (scope.managedSchools.find(s => s.id === data.school_id) || {}).name || "" } });
+  } catch (error) {
+    console.error("Erro GET /api/incidents/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar incidente." });
+  }
+});
+
+app.put("/api/incidents/:id/status", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...INCIDENTS_MANAGE_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const incidentId = String(req.params.id || "").trim();
+    const nextStatus = String(req.body.status || "").trim().toUpperCase();
+    const nextSeverity = String(req.body.severity || "").trim().toUpperCase();
+    const resolutionNotes = String(req.body.resolution_notes || "").trim();
+    const actorName = String(access.context.memberName || access.context.memberEmail || "Operador").trim();
+
+    if (!incidentId) {
+      return res.status(400).json({ ok: false, error: "ID do incidente invalido." });
+    }
+
+    const validStatuses = ["OPEN", "IN_REVIEW", "RESOLVED", "DISMISSED"];
+    if (nextStatus && !validStatuses.includes(nextStatus)) {
+      return res.status(400).json({ ok: false, error: "Status invalido. Valores aceitos: " + validStatuses.join(", ") });
+    }
+
+    const validSeverities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+    if (nextSeverity && !validSeverities.includes(nextSeverity)) {
+      return res.status(400).json({ ok: false, error: "Severidade invalida. Valores aceitos: " + validSeverities.join(", ") });
+    }
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("incident_reports")
+      .select("id, school_id, status, severity")
+      .eq("id", incidentId)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!existing) return res.status(404).json({ ok: false, error: "Incidente nao encontrado na sua instituicao." });
+
+    const updateData = {};
+    if (nextStatus) updateData.status = nextStatus;
+    if (nextSeverity) updateData.severity = nextSeverity;
+    if (resolutionNotes) updateData.resolution_notes = resolutionNotes;
+    if (nextStatus === "RESOLVED" || nextStatus === "DISMISSED") {
+      updateData.resolved_by = actorName;
+      updateData.resolved_at = new Date().toISOString();
+    }
+
+    if (!Object.keys(updateData).length) {
+      return res.status(400).json({ ok: false, error: "Nenhuma alteracao informada." });
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from("incident_reports")
+      .update(updateData)
+      .eq("id", incidentId)
+      .select()
+      .single();
+    if (updateErr) throw updateErr;
+
+    return res.json({ ok: true, incident: updated });
+  } catch (error) {
+    console.error("Erro PUT /api/incidents/:id/status:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao atualizar incidente." });
+  }
+});
+
+app.get("/api/incidents/stats/summary", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...INCIDENTS_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("incident_reports")
+      .select("status, severity, opened_at, resolved_at")
+      .in("school_id", scope.managedSchoolIds);
+    if (error) throw error;
+
+    const rows = data || [];
+    const total = rows.length;
+    const open = rows.filter(r => r.status === "OPEN").length;
+    const inReview = rows.filter(r => r.status === "IN_REVIEW").length;
+    const resolved = rows.filter(r => r.status === "RESOLVED").length;
+    const dismissed = rows.filter(r => r.status === "DISMISSED").length;
+    const critical = rows.filter(r => r.severity === "CRITICAL" && (r.status === "OPEN" || r.status === "IN_REVIEW")).length;
+    const high = rows.filter(r => r.severity === "HIGH" && (r.status === "OPEN" || r.status === "IN_REVIEW")).length;
+
+    const resolvedRows = rows.filter(r => r.resolved_at);
+    let avgResolutionHours = 0;
+    if (resolvedRows.length) {
+      const totalHours = resolvedRows.reduce((sum, r) => {
+        const diff = new Date(r.resolved_at) - new Date(r.opened_at);
+        return sum + diff / 3600000;
+      }, 0);
+      avgResolutionHours = Number((totalHours / resolvedRows.length).toFixed(1));
+    }
+
+    return res.json({
+      ok: true,
+      stats: { total, open, in_review: inReview, resolved, dismissed, critical_open: critical, high_open: high, avg_resolution_hours: avgResolutionHours }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/incidents/stats/summary:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar estatisticas." });
+  }
+});
+
+// ─── FEEDBACK DA IA ───────────────────────────────────────────────────────────
+
+app.get("/api/feedback", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const schoolIds = scope.managedSchoolIds;
+
+    let query = supabase
+      .from("interaction_feedback")
+      .select("id, school_id, consultation_id, response_id, feedback_type, comment, created_by, created_at")
+      .in("school_id", schoolIds)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    const filterType = String(req.query.type || "").trim().toLowerCase();
+    if (filterType && ["helpful", "not_helpful", "incorrect"].includes(filterType)) {
+      query = query.eq("feedback_type", filterType);
+    }
+
+    const { data: feedbackRows, error: fbErr } = await query;
+    if (fbErr) throw fbErr;
+
+    const responseIds = [...new Set((feedbackRows || []).map(r => r.response_id).filter(Boolean))];
+
+    let responsesMap = {};
+    let evidenceMap = {};
+    if (responseIds.length) {
+      const [respResult, evResult] = await Promise.all([
+        supabase
+          .from("assistant_responses")
+          .select("id, consultation_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, corrected_from_response_id, corrected_at, corrected_by, delivered_at")
+          .in("id", responseIds),
+        supabase
+          .from("interaction_source_evidence")
+          .select("response_id, source_title, source_excerpt, relevance_score, used_as_primary")
+          .in("response_id", responseIds)
+      ]);
+      if (respResult.error) throw respResult.error;
+      for (const r of (respResult.data || [])) { responsesMap[r.id] = r; }
+      if (!evResult.error) {
+        for (const e of (evResult.data || [])) {
+          if (!evidenceMap[e.response_id]) evidenceMap[e.response_id] = [];
+          evidenceMap[e.response_id].push(e);
+        }
+      }
+    }
+
+    const schoolMap = {};
+    for (const s of scope.managedSchools) { schoolMap[s.id] = s.name; }
+
+    const feedbacks = (feedbackRows || []).map(fb => {
+      const resp = responsesMap[fb.response_id] || {};
+      return {
+        ...fb,
+        school_name: schoolMap[fb.school_id] || "",
+        response_text: resp.response_text ? (resp.response_text.length > 400 ? resp.response_text.substring(0, 400) + "..." : resp.response_text) : null,
+        confidence_score: resp.confidence_score ?? null,
+        assistant_key: resp.assistant_key || null,
+        response_mode: resp.response_mode || null,
+        fallback_to_human: resp.fallback_to_human || false,
+        supporting_source_title: resp.supporting_source_title || null,
+        corrected_at: resp.corrected_at || null,
+        corrected_by: resp.corrected_by || null,
+        has_correction: !!resp.corrected_at,
+        evidence: (evidenceMap[fb.response_id] || []).slice(0, 3)
+      };
+    });
+
+    return res.json({ ok: true, feedbacks, scope_mode: scope.scopeMode });
+  } catch (error) {
+    console.error("Erro GET /api/feedback:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar feedbacks." });
+  }
+});
+
+app.get("/api/feedback/:id", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data: fb, error: fbErr } = await supabase
+      .from("interaction_feedback")
+      .select("*")
+      .eq("id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (fbErr) throw fbErr;
+    if (!fb) return res.status(404).json({ ok: false, error: "Feedback nao encontrado." });
+
+    const { data: resp } = await supabase
+      .from("assistant_responses")
+      .select("id, consultation_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, corrected_from_response_id, corrected_at, corrected_by, delivered_at")
+      .eq("id", fb.response_id)
+      .maybeSingle();
+
+    const { data: evidence } = await supabase
+      .from("interaction_source_evidence")
+      .select("source_title, source_excerpt, relevance_score, used_as_primary, evidence_type")
+      .eq("response_id", fb.response_id);
+
+    return res.json({
+      ok: true,
+      feedback: {
+        ...fb,
+        school_name: (scope.managedSchools.find(s => s.id === fb.school_id) || {}).name || "",
+        response: resp || null,
+        evidence: evidence || []
+      }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/feedback/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar feedback." });
+  }
+});
+
+app.get("/api/feedback/stats/summary", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("interaction_feedback")
+      .select("feedback_type, response_id, created_at")
+      .in("school_id", scope.managedSchoolIds);
+    if (error) throw error;
+
+    const rows = data || [];
+    const total = rows.length;
+    const helpful = rows.filter(r => r.feedback_type === "helpful").length;
+    const notHelpful = rows.filter(r => r.feedback_type === "not_helpful").length;
+    const incorrect = rows.filter(r => r.feedback_type === "incorrect").length;
+    const positiveRate = total ? Math.round((helpful / total) * 100) : 0;
+
+    const incorrectResponseIds = [...new Set(rows.filter(r => r.feedback_type === "incorrect").map(r => r.response_id).filter(Boolean))];
+    let pendingCorrection = incorrectResponseIds.length;
+    if (incorrectResponseIds.length) {
+      const { data: corrected } = await supabase
+        .from("assistant_responses")
+        .select("id")
+        .in("id", incorrectResponseIds)
+        .not("corrected_at", "is", null);
+      pendingCorrection = incorrectResponseIds.length - (corrected || []).length;
+    }
+
+    return res.json({
+      ok: true,
+      stats: { total, helpful, not_helpful: notHelpful, incorrect, positive_rate: positiveRate, pending_correction: pendingCorrection }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/feedback/stats/summary:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar estatisticas de feedback." });
+  }
+});
+
+// ── Notifications endpoints ──────────────────────────────────────────
+app.get("/api/notifications/queue", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: NOTIFICATIONS_ADMIN_ROLES });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+
+    let query = supabase
+      .from("notification_queue")
+      .select("id, school_id, user_id, topic, message, details, sent, created_at, dispatch_date")
+      .in("school_id", managedSchoolIds)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const sent = req.query.sent;
+    if (sent === "true") query = query.eq("sent", true);
+    else if (sent === "false") query = query.eq("sent", false);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const schoolIds = [...new Set((data || []).map(n => n.school_id))];
+    let schoolMap = {};
+    if (schoolIds.length) {
+      const { data: schools } = await supabase.from("schools").select("id, name").in("id", schoolIds);
+      (schools || []).forEach(s => { schoolMap[s.id] = s.name; });
+    }
+
+    const notifications = (data || []).map(n => ({ ...n, school_name: schoolMap[n.school_id] || null }));
+    return res.json({ ok: true, notifications });
+  } catch (error) {
+    console.error("Erro GET /api/notifications/queue:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar fila de notificacoes." });
+  }
+});
+
+app.get("/api/notifications/queue/:id", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: NOTIFICATIONS_ADMIN_ROLES });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("notification_queue")
+      .select("*")
+      .eq("id", req.params.id)
+      .in("school_id", managedSchoolIds)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ ok: false, error: "Notificacao nao encontrada." });
+
+    let deliveries = [];
+    const { data: delRows } = await supabase
+      .from("notification_queue_deliveries")
+      .select("user_id, queue_ref, sent_at")
+      .eq("queue_ref", String(data.id))
+      .eq("school_id", data.school_id);
+    deliveries = delRows || [];
+
+    let schoolName = null;
+    const { data: schoolRow } = await supabase.from("schools").select("name").eq("id", data.school_id).maybeSingle();
+    schoolName = schoolRow?.name || null;
+
+    return res.json({ ok: true, notification: { ...data, school_name: schoolName }, deliveries });
+  } catch (error) {
+    console.error("Erro GET /api/notifications/queue/:id:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar detalhe da notificacao." });
+  }
+});
+
+app.post("/api/notifications/send", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: NOTIFICATIONS_SEND_ROLES });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+
+    const { topic, message, school_id } = req.body || {};
+    if (!topic || !message) return res.status(400).json({ ok: false, error: "topic e message sao obrigatorios." });
+
+    const targetSchool = school_id || access.context.schoolId;
+    if (!managedSchoolIds.includes(targetSchool)) {
+      return res.status(403).json({ ok: false, error: "Sem permissao para esta escola." });
+    }
+
+    const payload = {
+      school_id: targetSchool,
+      user_id: access.context.user?.id,
+      topic: String(topic).trim(),
+      message: String(message).trim(),
+      details: { sent_by: access.context.memberEmail, sent_by_role: access.context.effectiveRole, manual: true },
+      sent: false,
+      dispatch_date: new Date().toISOString().slice(0, 10)
+    };
+
+    const { data, error } = await supabase.from("notification_queue").insert(payload).select("id").single();
+    if (error) throw error;
+
+    return res.status(201).json({ ok: true, id: data.id });
+  } catch (error) {
+    console.error("Erro POST /api/notifications/send:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao enfileirar notificacao." });
+  }
+});
+
+app.get("/api/notifications/settings", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: NOTIFICATIONS_ADMIN_ROLES });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("notification_system_settings")
+      .select("school_id, key, value")
+      .in("school_id", managedSchoolIds);
+    if (error) throw error;
+
+    let schoolMap = {};
+    const schoolIds = [...new Set((data || []).map(s => s.school_id))];
+    if (schoolIds.length) {
+      const { data: schools } = await supabase.from("schools").select("id, name").in("id", schoolIds);
+      (schools || []).forEach(s => { schoolMap[s.id] = s.name; });
+    }
+
+    const settings = (data || []).map(s => ({ ...s, school_name: schoolMap[s.school_id] || null }));
+    return res.json({ ok: true, settings });
+  } catch (error) {
+    console.error("Erro GET /api/notifications/settings:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar configuracoes de notificacao." });
+  }
+});
+
+app.get("/api/notifications/stats/summary", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: NOTIFICATIONS_ADMIN_ROLES });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+
+    const { data: allRows, error } = await supabase
+      .from("notification_queue")
+      .select("id, sent, created_at")
+      .in("school_id", managedSchoolIds);
+    if (error) throw error;
+
+    const rows = allRows || [];
+    const total = rows.length;
+    const sent = rows.filter(r => r.sent).length;
+    const pending = total - sent;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = rows.filter(r => r.created_at && r.created_at.startsWith(today)).length;
+
+    return res.json({ ok: true, stats: { total, sent, pending, today: todayCount } });
+  } catch (error) {
+    console.error("Erro GET /api/notifications/stats/summary:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar estatisticas de notificacoes." });
+  }
+});
+
+/* ───────── KNOWLEDGE GAPS (Lacunas de Conhecimento) ───────── */
+
+async function loadKnowledgeGapRows(supabase, schoolIds, periodConfig) {
+  const fetchOptionalRows = async (queryPromise) => {
+    const result = await queryPromise;
+    if (result.error) {
+      if (isMissingRelationError(result.error)) return [];
+      throw result.error;
+    }
+    return result.data || [];
+  };
+
+  const [consultations, responses, audits, messages] = await Promise.all([
+    applyRange(
+      supabase.from("institutional_consultations").select("id, school_id, status, primary_topic, requester_id, channel, opened_at").in("school_id", schoolIds).order("opened_at", { ascending: false }).limit(2000),
+      "opened_at", periodConfig
+    ),
+    applyRange(
+      supabase.from("assistant_responses").select("id, school_id, consultation_id, assistant_key, confidence_score, source_version_id, response_mode, fallback_to_human, supporting_source_title, delivered_at, created_at").in("school_id", schoolIds).order("created_at", { ascending: false }).limit(2000),
+      "created_at", periodConfig
+    ),
+    applyRange(
+      supabase.from("formal_audit_events").select("school_id, consultation_id, event_type, details, created_at").in("school_id", schoolIds).order("created_at", { ascending: false }).limit(2000),
+      "created_at", periodConfig
+    ),
+    applyRange(
+      supabase.from("consultation_messages").select("school_id, consultation_id, actor_type, created_at").in("school_id", schoolIds).order("created_at", { ascending: true }).limit(4000),
+      "created_at", periodConfig
+    )
+  ]);
+
+  if (consultations.error) throw consultations.error;
+  if (responses.error) throw responses.error;
+  if (audits.error) throw audits.error;
+  if (messages.error) throw messages.error;
+
+  const consultationsRows = consultations.data || [];
+  const responsesRows = responses.data || [];
+  const auditRows = audits.data || [];
+  const messageRows = (messages.data || []).filter((r) => r.actor_type === "CITIZEN");
+  const responseIds = [...new Set(responsesRows.map((r) => r.id).filter(Boolean))];
+
+  const [feedbackRows, evidenceRows] = await Promise.all([
+    responseIds.length ? fetchOptionalRows(applyRange(supabase.from("interaction_feedback").select("response_id, feedback_type, created_at"), "created_at", periodConfig)) : [],
+    responseIds.length ? fetchOptionalRows(applyRange(supabase.from("interaction_source_evidence").select("response_id, source_title, source_version_id, used_as_primary, relevance_score, created_at"), "created_at", periodConfig)) : []
+  ]);
+
+  const messagesByConsultation = messageRows.reduce((acc, r) => { acc[r.consultation_id] = acc[r.consultation_id] || []; acc[r.consultation_id].push(r); return acc; }, {});
+  const responsesByConsultation = responsesRows.reduce((acc, r) => { acc[r.consultation_id] = acc[r.consultation_id] || []; acc[r.consultation_id].push(r); return acc; }, {});
+  const auditsByConsultation = auditRows.reduce((acc, r) => { if (!r.consultation_id) return acc; acc[r.consultation_id] = acc[r.consultation_id] || []; acc[r.consultation_id].push(r); return acc; }, {});
+  const feedbackByResponseId = feedbackRows.reduce((acc, r) => { acc[r.response_id] = acc[r.response_id] || []; acc[r.response_id].push(r); return acc; }, {});
+  const evidenceByResponseId = evidenceRows.reduce((acc, r) => { acc[r.response_id] = acc[r.response_id] || []; acc[r.response_id].push(r); return acc; }, {});
+
+  const allRows = consultationsRows.map((c) => {
+    const cMsgs = (messagesByConsultation[c.id] || []).slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const cResps = (responsesByConsultation[c.id] || []).slice().sort((a, b) => new Date(a.delivered_at || a.created_at) - new Date(b.delivered_at || b.created_at));
+    const cAudits = (auditsByConsultation[c.id] || []).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const firstQ = cMsgs[0] || null;
+    const firstR = cResps[0] || null;
+    const latestAudit = cAudits[0] || null;
+    const details = latestAudit?.details || {};
+    const riskLevel = String(details.hallucination_risk_level || "LOW").toUpperCase();
+    const reviewStatus = String(details.review_status || (details.review_required ? "PENDING_REVIEW" : "NOT_REQUIRED")).toUpperCase();
+    const assistantKey = firstR?.assistant_key || "unassigned";
+    const feedbackEntries = firstR?.id ? (feedbackByResponseId[firstR.id] || []) : [];
+    const evidenceEntries = firstR?.id ? (evidenceByResponseId[firstR.id] || []) : [];
+    const primaryEvidence = evidenceEntries.find((e) => e.used_as_primary) || evidenceEntries[0] || null;
+
+    return {
+      consultation_id: c.id,
+      asked_at: firstQ?.created_at || c.opened_at || null,
+      answered_at: firstR?.delivered_at || firstR?.created_at || null,
+      status: c.status || "OPEN",
+      topic: c.primary_topic || "Sem classificacao",
+      channel: c.channel || "webchat",
+      requester_id: c.requester_id || null,
+      question_count: cMsgs.length,
+      assistant_key: assistantKey,
+      assistant_name: getAssistantLabel(assistantKey),
+      response_mode: firstR?.response_mode || "NO_RESPONSE",
+      confidence_score: firstR?.confidence_score ?? null,
+      has_valid_source: Boolean(firstR?.source_version_id),
+      fallback_to_human: Boolean(firstR?.fallback_to_human),
+      risk_level: riskLevel,
+      review_status: reviewStatus,
+      abstained: Boolean(details.abstained),
+      feedback_incorrect: feedbackEntries.filter((e) => e.feedback_type === "incorrect").length,
+      primary_source_title: primaryEvidence?.source_title || firstR?.supporting_source_title || null
+    };
+  });
+
+  // Filter only rows that represent knowledge gaps
+  const gapRows = allRows.filter((r) =>
+    r.abstained ||
+    !r.has_valid_source ||
+    r.risk_level === "HIGH" ||
+    r.fallback_to_human ||
+    (r.confidence_score !== null && r.confidence_score < 0.5)
+  );
+
+  return gapRows.sort((a, b) => new Date(b.asked_at || 0) - new Date(a.asked_at || 0));
+}
+
+app.get("/api/knowledge-gaps", async (req, res) => {
+  if (!supabase) return res.status(200).json({ ok: true, gaps: [], summary: {} });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...KNOWLEDGE_GAPS_ROLES] });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+    if (!managedSchoolIds.length) return res.json({ ok: true, gaps: [], summary: {} });
+
+    const periodConfig = getPeriodConfig(req);
+    const gapRows = await loadKnowledgeGapRows(supabase, managedSchoolIds, periodConfig);
+
+    // Build per-topic aggregation
+    const topicMap = {};
+    for (const row of gapRows) {
+      const key = row.topic;
+      const cur = topicMap[key] || { topic: key, total: 0, abstained: 0, no_source: 0, high_risk: 0, fallback: 0, low_confidence: 0, contested: 0, sample_questions: [] };
+      cur.total += 1;
+      if (row.abstained) cur.abstained += 1;
+      if (!row.has_valid_source) cur.no_source += 1;
+      if (row.risk_level === "HIGH") cur.high_risk += 1;
+      if (row.fallback_to_human) cur.fallback += 1;
+      if (row.confidence_score !== null && row.confidence_score < 0.5) cur.low_confidence += 1;
+      if (row.feedback_incorrect > 0) cur.contested += 1;
+      if (cur.sample_questions.length < 3) cur.sample_questions.push({ consultation_id: row.consultation_id, asked_at: row.asked_at, assistant_name: row.assistant_name });
+      topicMap[key] = cur;
+    }
+    const byTopic = Object.values(topicMap).sort((a, b) => b.total - a.total);
+
+    const totalGaps = gapRows.length;
+    const summary = {
+      total_gaps: totalGaps,
+      total_abstained: gapRows.filter((r) => r.abstained).length,
+      total_no_source: gapRows.filter((r) => !r.has_valid_source).length,
+      total_high_risk: gapRows.filter((r) => r.risk_level === "HIGH").length,
+      total_fallback: gapRows.filter((r) => r.fallback_to_human).length,
+      total_low_confidence: gapRows.filter((r) => r.confidence_score !== null && r.confidence_score < 0.5).length,
+      unique_topics: byTopic.length,
+      top_gap_topic: byTopic[0]?.topic || "Nenhum"
+    };
+
+    return res.json({ ok: true, period: periodConfig.period, period_label: periodConfig.label, gaps: byTopic, detail_rows: gapRows, summary });
+  } catch (error) {
+    console.error("Erro GET /api/knowledge-gaps:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar lacunas de conhecimento." });
+  }
+});
+
+app.get("/api/knowledge-gaps/by-assistant", async (req, res) => {
+  if (!supabase) return res.status(200).json({ ok: true, assistants: [] });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...KNOWLEDGE_GAPS_ROLES] });
+    if (!access.ok) return access.response;
+    const { managedSchoolIds } = await resolveManagedSchoolScope(access.context);
+    if (!managedSchoolIds.length) return res.json({ ok: true, assistants: [] });
+
+    const periodConfig = getPeriodConfig(req);
+    const gapRows = await loadKnowledgeGapRows(supabase, managedSchoolIds, periodConfig);
+
+    const assistantMap = {};
+    for (const row of gapRows) {
+      const key = row.assistant_key;
+      const cur = assistantMap[key] || { assistant_key: key, assistant_name: row.assistant_name, total: 0, abstained: 0, no_source: 0, high_risk: 0, fallback: 0, top_topics: {} };
+      cur.total += 1;
+      if (row.abstained) cur.abstained += 1;
+      if (!row.has_valid_source) cur.no_source += 1;
+      if (row.risk_level === "HIGH") cur.high_risk += 1;
+      if (row.fallback_to_human) cur.fallback += 1;
+      cur.top_topics[row.topic] = (cur.top_topics[row.topic] || 0) + 1;
+      assistantMap[key] = cur;
+    }
+
+    const assistants = Object.values(assistantMap).map((a) => {
+      const topTopics = Object.entries(a.top_topics).sort(([, x], [, y]) => y - x).slice(0, 3).map(([topic, total]) => ({ topic, total }));
+      return { assistant_key: a.assistant_key, assistant_name: a.assistant_name, total_gaps: a.total, abstained: a.abstained, no_source: a.no_source, high_risk: a.high_risk, fallback: a.fallback, top_gap_topics: topTopics };
+    }).sort((a, b) => b.total_gaps - a.total_gaps);
+
+    return res.json({ ok: true, assistants });
+  } catch (error) {
+    console.error("Erro GET /api/knowledge-gaps/by-assistant:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar lacunas por assistente." });
   }
 });
 

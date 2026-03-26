@@ -1,14 +1,14 @@
 const DEFAULT_ROLE_PAGES = {
-  superadmin: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'official-content', 'preferences', 'users'],
-  network_manager: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'official-content', 'preferences', 'users'],
-  content_curator: ['dashboard', 'reports', 'audit', 'knowledge', 'official-content'],
-  public_operator: ['dashboard', 'chat-manager', 'reports', 'knowledge'],
-  secretariat: ['dashboard', 'chat-manager', 'knowledge', 'official-content'],
-  coordination: ['dashboard', 'chat-manager', 'reports', 'knowledge', 'official-content'],
-  treasury: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge'],
-  direction: ['dashboard', 'chat-manager', 'reports', 'audit', 'knowledge', 'official-content'],
-  auditor: ['dashboard', 'reports', 'audit'],
-  observer: ['dashboard', 'reports', 'knowledge']
+  superadmin: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content', 'preferences', 'users'],
+  network_manager: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content', 'preferences', 'users'],
+  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'knowledge-gaps', 'knowledge', 'official-content'],
+  public_operator: ['dashboard', 'chat-manager', 'notices', 'reports', 'incidents', 'feedback', 'knowledge'],
+  secretariat: ['dashboard', 'chat-manager', 'notices', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
+  coordination: ['dashboard', 'chat-manager', 'notices', 'notifications', 'reports', 'incidents', 'knowledge'],
+  treasury: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'knowledge'],
+  direction: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
+  auditor: ['dashboard', 'reports', 'audit', 'incidents', 'feedback'],
+  observer: ['dashboard', 'notices', 'reports', 'knowledge']
 };
 
 window.DEFAULT_ROLE_PAGES = DEFAULT_ROLE_PAGES;
