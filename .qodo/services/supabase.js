@@ -1436,6 +1436,7 @@ async function closeConsultationEvent(payload = {}) {
 module.exports = { 
   supabase, 
   loadSchoolConfig,
+  loadSchoolContext,
   findMatchingAnswers,
   findMatchingEntries,
   findPublishedCalendarContext,

@@ -1,7 +1,7 @@
 const path = require("path");
 
 const { askAI } = require(path.resolve("./.qodo/services/ai/index.js"));
-const { findMatchingEntries, findPublishedCalendarContext } = require(path.resolve("./.qodo/services/supabase.js"));
+const { findMatchingEntries, findPublishedCalendarContext, loadSchoolContext } = require(path.resolve("./.qodo/services/supabase.js"));
 const { getSession, setSession } = require(path.resolve("./.qodo/store/sessions.js"));
 const agents = require(path.resolve("./.qodo/agents/index.js"));
 
@@ -81,6 +81,89 @@ function normalizeConversationText(value) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const REDIRECT_MARKERS = [
+  'falar com', 'falar na', 'falar no',
+  'conversar com', 'conversar na',
+  'gostaria de falar', 'quero falar',
+  'preciso falar', 'me redirecione',
+  'me transfere', 'me transfira',
+  'transferir para', 'redirecionar para',
+  'como faco para falar', 'como falar'
+];
+
+const AGENT_LABELS = {
+  'administration.secretariat': { name: 'Assistente da Secretaria', area: 'Secretaria' },
+  'administration.treasury': { name: 'Assistente da Tesouraria', area: 'Tesouraria' },
+  'administration.direction': { name: 'Assistente da Direcao', area: 'Direcao' }
+};
+
+const RETURN_MARKERS = [
+  'voltar', 'voltar ao inicio', 'menu principal',
+  'outro assunto', 'trocar de area', 'sair da',
+  'atendimento geral', 'voltar para o inicio'
+];
+
+function isRedirectionIntent(text) {
+  const value = normalize(text);
+  return REDIRECT_MARKERS.some(marker => value.includes(normalize(marker)));
+}
+
+function isReturnIntent(text) {
+  const value = normalizeConversationText(text);
+  return RETURN_MARKERS.some(marker => value.includes(normalizeConversationText(marker)));
+}
+
+function isRoutingMetaQuestion(text) {
+  const value = normalizeConversationText(text);
+  if (['sim', 'ok', 'certo', 'beleza', 'blz', 'entendi', 'ta bom', 'pode ser', 'claro'].some(m => value === normalizeConversationText(m))) return true;
+  if (/^(falo|eu falo|estou falando|to falando|ja estou|ja to)\s+(com|na|no)\s/.test(value)) return true;
+  if (/^(e aqui|aqui mesmo|e essa area|essa area|essa e a)\b/.test(value)) return true;
+  return false;
+}
+
+async function resolveSchoolIdentity(schoolId, metadata) {
+  const fallbackName = (metadata && metadata.school_name) ? String(metadata.school_name).trim() : null;
+  if (!schoolId) return { schoolName: fallbackName, networkName: null };
+  try {
+    const school = await loadSchoolContext(schoolId);
+    if (!school) return { schoolName: fallbackName, networkName: null };
+    let networkName = null;
+    if (school.institution_type === 'school_unit' && school.parent_school_id) {
+      const parent = await loadSchoolContext(school.parent_school_id);
+      networkName = parent ? parent.name : null;
+    }
+    return {
+      schoolName: school.name || fallbackName,
+      networkName
+    };
+  } catch (_err) {
+    return { schoolName: fallbackName, networkName: null };
+  }
+}
+
+function buildRedirectionReply(area, identity) {
+  const agent = AGENT_LABELS[area];
+  if (!agent) return null;
+  let msg = 'Sem problemas! A partir de agora voce esta falando com a ' + agent.name;
+  if (identity && identity.schoolName) {
+    msg += ' da ' + identity.schoolName;
+  }
+  msg += '. Pode fazer sua pergunta sobre ' + agent.area + ' que eu sigo com o atendimento. Se quiser voltar ao atendimento geral, e so me dizer.';
+  return msg;
+}
+
+function buildRoutingConfirmation(area) {
+  const agent = AGENT_LABELS[area];
+  if (!agent) return null;
+  return 'Sim, voce esta falando com a ' + agent.name + '. Pode fazer sua pergunta sobre ' + agent.area + ' que eu sigo com o atendimento.';
+}
+
+function buildRoutedGreeting(area) {
+  const agent = AGENT_LABELS[area];
+  if (!agent) return null;
+  return 'Ola! Voce esta falando com a ' + agent.name + '. Pode fazer sua pergunta sobre ' + agent.area + ' que eu sigo daqui.';
 }
 
 function isGreetingIntent(text) {
@@ -251,8 +334,17 @@ function buildAbstentionReply(intentProfile = null) {
   return 'Quero te ajudar com isso' + focus + ', mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.';
 }
 
-function buildGreetingReply() {
-  return 'Ola! Estou aqui para te ajudar como atendimento inicial da rede e da escola. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Me diga sua duvida e eu sigo com voce.';
+function buildGreetingReply(identity) {
+  let intro = 'Ola! Sou a Assistente Publica';
+  if (identity && identity.schoolName && identity.networkName) {
+    intro += ' da ' + identity.schoolName + ', vinculada a ' + identity.networkName;
+  } else if (identity && identity.schoolName) {
+    intro += ' da ' + identity.schoolName;
+  } else {
+    intro += ' da rede e da escola';
+  }
+  intro += '.';
+  return intro + ' Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Se precisar falar com a Secretaria, Tesouraria ou Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.';
 }
 
 function buildClarificationReply() {
@@ -482,6 +574,10 @@ module.exports = {
     const text = String(userMessage?.text || userMessage || "").trim();
     const resolvedSchoolId = String(userMessage?.school_id || userMessage?.metadata?.school_id || SCHOOL_ID || '').trim();
 
+    const session = getSession(from) || { step: 0, data: { history: [] } };
+    session.data = session.data || {};
+    session.data.history = Array.isArray(session.data.history) ? session.data.history : [];
+
     if (!text || String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("audio")) {
       return {
         text: "Este canal atende somente por texto. Envie sua consulta por escrito e eu sigo com a triagem institucional.",
@@ -502,9 +598,121 @@ module.exports = {
       };
     }
 
+    // If the user was previously routed to a specialized agent, keep routing there
+    if (session.data.routed_agent) {
+      const routedArea = session.data.routed_agent;
+
+      // "voltar", "outro assunto" → reset to receptionist
+      if (isReturnIntent(text)) {
+        session.data.routed_agent = null;
+        setSession(from, session);
+        const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
+        return {
+          text: buildGreetingReply(identity),
+          audit: {
+            assistant_key: 'public.assistant',
+            assistant_name: 'Assistente Publico',
+            confidence_score: 0.52,
+            evidence_score: 0.18,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_GREETING',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+
+      // Redirect to a DIFFERENT area
+      const newArea = detectArea(text);
+      if (newArea && newArea !== routedArea && isRedirectionIntent(text)) {
+        session.data.routed_agent = newArea;
+        setSession(from, session);
+        const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
+        const redirectMsg = buildRedirectionReply(newArea, identity);
+        if (redirectMsg) {
+          return {
+            text: redirectMsg,
+            audit: {
+              assistant_key: newArea,
+              assistant_name: (AGENT_LABELS[newArea] || {}).name || 'Assistente',
+              confidence_score: 0.88,
+              evidence_score: 0.5,
+              hallucination_risk_level: 'LOW',
+              review_required: false,
+              review_reason: null,
+              response_mode: 'AUTOMATIC_REDIRECT',
+              consulted_sources: [],
+              supporting_source: null,
+              fallback_to_human: false,
+              abstained: false
+            }
+          };
+        }
+      }
+
+      // Greeting while routed → agent-specific greeting
+      if (isGreetingIntent(text)) {
+        return {
+          text: buildRoutedGreeting(routedArea),
+          audit: {
+            assistant_key: routedArea,
+            assistant_name: (AGENT_LABELS[routedArea] || {}).name || 'Assistente',
+            confidence_score: 0.52,
+            evidence_score: 0.18,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_GREETING',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+
+      // Confirmation / meta-question ("falo com a secretaria?", "sim", etc.)
+      if (isRoutingMetaQuestion(text)) {
+        return {
+          text: buildRoutingConfirmation(routedArea),
+          audit: {
+            assistant_key: routedArea,
+            assistant_name: (AGENT_LABELS[routedArea] || {}).name || 'Assistente',
+            confidence_score: 0.88,
+            evidence_score: 0.5,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_REDIRECT',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+
+      // Content question → delegate to the routed agent
+      const routedAgentMap = {
+        'administration.secretariat': agents.administration.secretariat,
+        'administration.treasury': agents.administration.treasury,
+        'administration.direction': agents.administration.direction
+      };
+      const routedHandler = routedAgentMap[routedArea];
+      if (routedHandler) {
+        const intentProfile = detectIntentProfile(text);
+        return routedHandler.handleMessage(from, { text, school_id: resolvedSchoolId, intent_profile: intentProfile });
+      }
+    }
+
     if (isGreetingIntent(text)) {
+      const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
       return {
-        text: buildGreetingReply(),
+        text: buildGreetingReply(identity),
         audit: {
           assistant_key: "public.assistant",
           assistant_name: "Assistente Publico",
@@ -548,6 +756,31 @@ module.exports = {
       return structuredCalendarReply;
     }
     const area = detectArea(text) || intentProfile?.area || null;
+    if (area && isRedirectionIntent(text)) {
+      const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
+      const redirectMsg = buildRedirectionReply(area, identity);
+      if (redirectMsg) {
+        session.data.routed_agent = area;
+        setSession(from, session);
+        return {
+          text: redirectMsg,
+          audit: {
+            assistant_key: area,
+            assistant_name: (AGENT_LABELS[area] || {}).name || 'Assistente',
+            confidence_score: 0.88,
+            evidence_score: 0.5,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_REDIRECT',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+    }
     if (area === "administration.secretariat") {
       return agents.administration.secretariat.handleMessage(from, { text, school_id: resolvedSchoolId, intent_profile: intentProfile });
     }
@@ -557,9 +790,6 @@ module.exports = {
     if (area === "administration.direction") {
       return agents.administration.direction.handleMessage(from, { text, school_id: resolvedSchoolId, intent_profile: intentProfile });
     }
-
-    const session = getSession(from) || { step: 0, data: { history: [] } };
-    session.data.history = Array.isArray(session.data.history) ? session.data.history : [];
 
     const retrievalText = intentProfile?.searchHints?.length
       ? [text, ...intentProfile.searchHints].join(' | ')

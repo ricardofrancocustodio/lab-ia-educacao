@@ -481,6 +481,43 @@
       opacity: 0.82;
     }
 
+    .typing-indicator {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 14px 20px;
+      background: var(--gov-chat-assistant);
+      border: 1px solid var(--gov-border);
+      border-radius: 18px;
+      border-top-left-radius: 6px;
+      box-shadow: 0 8px 20px rgba(7, 29, 65, 0.06);
+    }
+
+    .typing-indicator .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gov-border-strong);
+      animation: typingBounce 1.2s infinite ease-in-out;
+    }
+
+    .typing-indicator .dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-indicator .dot:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    .bubble.assistant.fade-in {
+      animation: bubbleFadeIn 0.25s ease-out;
+    }
+
+    @keyframes bubbleFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .composer {
       border-top: 1px solid var(--gov-border);
       padding: 18px 22px 22px;
@@ -967,6 +1004,64 @@
       elements.messages.scrollTop = elements.messages.scrollHeight;
     }
 
+    function splitIntoBubbles(text) {
+      const raw = String(text || '').trim();
+      if (!raw) return [raw];
+      const parts = raw.split(/\n{2,}/);
+      const result = [];
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (!trimmed) continue;
+        if (result.length && result[result.length - 1].length + trimmed.length < 140) {
+          result[result.length - 1] += '\n\n' + trimmed;
+        } else {
+          result.push(trimmed);
+        }
+      }
+      return result.length ? result : [raw];
+    }
+
+    function showTypingIndicator(title) {
+      removeTypingIndicator();
+      const shell = document.createElement('div');
+      shell.className = 'message-shell assistant';
+      shell.id = 'typing-indicator';
+      const indicator = document.createElement('div');
+      indicator.className = 'typing-indicator';
+      indicator.innerHTML = '<small style="margin:0;font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;opacity:0.72;width:100%">' + escapeHtml(title) + '</small><span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+      shell.appendChild(indicator);
+      elements.messages.appendChild(shell);
+      elements.messages.scrollTop = elements.messages.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const existing = document.getElementById('typing-indicator');
+      if (existing) existing.remove();
+    }
+
+    async function appendAssistantBubbles(title, text, sourceCard) {
+      const chunks = splitIntoBubbles(text);
+      for (let i = 0; i < chunks.length; i++) {
+        if (i > 0) {
+          showTypingIndicator(title);
+          await new Promise(r => setTimeout(r, 400 + Math.min(chunks[i].length * 8, 800)));
+          removeTypingIndicator();
+        }
+        const shell = document.createElement('div');
+        shell.className = 'message-shell assistant';
+        const bubble = document.createElement('article');
+        bubble.className = 'bubble assistant fade-in';
+        const isLast = i === chunks.length - 1;
+        bubble.innerHTML = (i === 0 ? '<small>' + escapeHtml(title) + '</small>' : '') + escapeHtml(chunks[i]);
+        shell.appendChild(bubble);
+        if (isLast && sourceCard) {
+          shell.insertAdjacentHTML('beforeend', buildSourceCard(sourceCard));
+        }
+        elements.messages.appendChild(shell);
+        elements.messages.scrollTop = elements.messages.scrollHeight;
+      }
+    }
+
     function waitForNextPaint() {
       return new Promise((resolve) => {
         window.requestAnimationFrame(() => {
@@ -1113,13 +1208,19 @@
       elements.input.value = '';
       await waitForNextPaint();
 
+      const fallbackLabel = getAgentLabel(getMetadata().agent_key);
+      showTypingIndicator(fallbackLabel);
+
       try {
         const body = await sendMessage(text);
+        removeTypingIndicator();
         if (body?.reply) {
-          appendMessage('assistant', getAgentLabel(getMetadata().agent_key), String(body.reply || ''), body.source_card || null);
+          const agentLabel = getAgentLabel(body?.metadata?.routed_agent) || fallbackLabel;
+          await appendAssistantBubbles(agentLabel, String(body.reply || ''), body.source_card || null);
         }
         await loadConversation();
       } catch (error) {
+        removeTypingIndicator();
         appendMessage('system', 'Erro', error.message || 'Falha ao conversar com a IA.');
         showError(error.message || 'Falha ao conversar com a IA.');
       } finally {

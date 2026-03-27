@@ -1301,12 +1301,13 @@ async function appendAutomatedResponse({ consultation, text, eventType, summary,
   });
 }
 
+const STALE_CONVERSATION_THRESHOLD_MS = 60 * 60 * 1000;
+
 async function processIdleConversations() {
   if (!supabase) return;
 
   try {
-    const schoolId = String(process.env.SCHOOL_ID || "").trim();
-    let query = supabase
+    const { data: consultations, error } = await supabase
       .from("institutional_consultations")
       .select("id, school_id, requester_id, status, assigned_assistant_key, opened_at, resolved_at, metadata")
       .eq("channel", "webchat")
@@ -1314,9 +1315,6 @@ async function processIdleConversations() {
       .order("opened_at", { ascending: false })
       .limit(100);
 
-    if (schoolId) query = query.eq("school_id", schoolId);
-
-    const { data: consultations, error } = await query;
     if (error) throw error;
 
     const now = Date.now();
@@ -1332,13 +1330,28 @@ async function processIdleConversations() {
       if (messagesError) throw messagesError;
       const latestMessage = (messages || [])[0];
       if (!latestMessage) continue;
-      if (latestMessage.actor_type === "CITIZEN") continue;
 
       const latestTimestamp = new Date(latestMessage.created_at).getTime();
+      const idleMs = now - latestTimestamp;
+
+      if (idleMs >= STALE_CONVERSATION_THRESHOLD_MS) {
+        await appendAutomatedResponse({
+          consultation,
+          text: "Esta conversa foi encerrada automaticamente por inatividade. Quando quiser, voce pode iniciar um novo atendimento.",
+          eventType: "IDLE_CONVERSATION_CLOSED",
+          summary: "Conversa encerrada automaticamente — inativa por mais de 1 hora.",
+          mode: "AUTOMATIC",
+          markResolved: true
+        });
+        continue;
+      }
+
+      if (latestMessage.actor_type === "CITIZEN") continue;
+
       const followupSentAt = consultation.metadata?.idle_followup_sent_at ? new Date(consultation.metadata.idle_followup_sent_at).getTime() : null;
       const idleClosedAt = consultation.metadata?.idle_closed_at ? new Date(consultation.metadata.idle_closed_at).getTime() : null;
 
-      if (!followupSentAt && now - latestTimestamp >= IDLE_FOLLOWUP_AFTER_MS) {
+      if (!followupSentAt && idleMs >= IDLE_FOLLOWUP_AFTER_MS) {
         await appendAutomatedResponse({
           consultation,
           text: "Ainda estou por aqui. Se desejar continuar, basta responder esta mensagem com sua proxima pergunta.",
