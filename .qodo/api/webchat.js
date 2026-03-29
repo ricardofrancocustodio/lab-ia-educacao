@@ -86,6 +86,7 @@ function sanitizeAuditForCapabilities(audit = {}, capabilities = {}) {
     evidence_rows: capabilities.detailedEvidence ? (Array.isArray(audit.evidence_rows) ? audit.evidence_rows : []) : [],
     feedback_entries: capabilities.feedbackActions ? (Array.isArray(audit.feedback_entries) ? audit.feedback_entries : []) : [],
     incident_entries: capabilities.feedbackActions ? (Array.isArray(audit.incident_entries) ? audit.incident_entries : []) : [],
+    correction_entries: capabilities.feedbackActions ? (Array.isArray(audit.correction_entries) ? audit.correction_entries : []) : [],
     formal_events: capabilities.formalEvents ? (Array.isArray(audit.formal_events) ? audit.formal_events : []) : []
   };
 
@@ -332,7 +333,7 @@ router.get("/conversations/:id", async (req, res) => {
         .order("created_at", { ascending: true }),
       supabase
         .from("assistant_responses")
-        .select("id, assistant_key, response_text, source_version_id, confidence_score, response_mode, consulted_sources, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, origin_message_id, response_message_id, fallback_to_human, corrected_from_response_id, corrected_at, corrected_by, delivered_at, created_at")
+        .select("id, assistant_key, response_text, source_version_id, confidence_score, response_mode, consulted_sources, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, origin_message_id, response_message_id, fallback_to_human, corrected_from_response_id, corrected_at, corrected_by, quarantined_at, quarantined_by, quarantine_reason, delivered_at, created_at")
         .eq("consultation_id", conversationRow.id)
         .order("delivered_at", { ascending: false })
         .limit(20),
@@ -368,9 +369,11 @@ router.get("/conversations/:id", async (req, res) => {
       }, {});
     }
 
+    let correctionsByFeedbackId = {};
+
     if (responseIds.length) {
       const [feedbackResult, incidentResult, evidenceResult] = await Promise.all([
-        supabase.from("interaction_feedback").select("response_id, feedback_type, comment, created_by, created_at").in("response_id", responseIds).order("created_at", { ascending: false }),
+        supabase.from("interaction_feedback").select("id, response_id, feedback_type, comment, created_by, created_at").in("response_id", responseIds).order("created_at", { ascending: false }),
         supabase.from("incident_reports").select("id, response_id, incident_type, severity, status, opened_by, opened_at, resolved_at, resolution_notes").in("response_id", responseIds).order("opened_at", { ascending: false }),
         supabase.from("interaction_source_evidence").select("response_id, source_title, source_excerpt, source_version_id, relevance_score, retrieval_method, used_as_primary, created_at").in("response_id", responseIds).order("used_as_primary", { ascending: false })
       ]);
@@ -398,6 +401,24 @@ router.get("/conversations/:id", async (req, res) => {
           return acc;
         }, {});
       }
+
+      // Fetch corrections linked to feedback entries
+      const allFeedbackIds = Object.values(feedbackByResponseId).flat().map((fb) => fb.id).filter(Boolean);
+      if (allFeedbackIds.length) {
+        const correctionResult = await supabase
+          .from("response_corrections")
+          .select("id, feedback_id, status, correction_type, root_cause, corrected_answer, justification, recommended_action, submitted_by, submitted_at, reviewed_by, reviewed_at, applied_by, applied_at, review_notes")
+          .in("feedback_id", allFeedbackIds)
+          .order("submitted_at", { ascending: false });
+
+        if (!correctionResult.error || isMissingRelationError(correctionResult.error)) {
+          correctionsByFeedbackId = ((correctionResult.data || [])).reduce((acc, item) => {
+            acc[item.feedback_id] = acc[item.feedback_id] || [];
+            acc[item.feedback_id].push({ ...item, corrected_response: item.corrected_answer });
+            return acc;
+          }, {});
+        }
+      }
     }
 
     const responseAudits = responseRows.map((row) => {
@@ -412,9 +433,13 @@ router.get("/conversations/:id", async (req, res) => {
       });
       const latestGovernanceEvent = formalEvents.find((event) => event?.details?.hallucination_risk_level || event?.details?.review_required || event?.details?.evidence_score !== undefined) || null;
       const governanceDetails = latestGovernanceEvent?.details || {};
-      const feedbackEntries = feedbackByResponseId[row.id] || [];
+      const feedbackEntries = (feedbackByResponseId[row.id] || []).map((fb) => ({
+        ...fb,
+        correction: (correctionsByFeedbackId[fb.id] || [])[0] || null
+      }));
       const incidentEntries = incidentsByResponseId[row.id] || [];
       const evidenceEntries = evidenceByResponseId[row.id] || [];
+      const correctionEntries = feedbackEntries.map((fb) => fb.correction).filter(Boolean);
       return {
         response_id: row.id,
         response_message_id: row.response_message_id || null,
@@ -440,10 +465,15 @@ router.get("/conversations/:id", async (req, res) => {
         corrected: Boolean(row.corrected_at || row.corrected_from_response_id),
         corrected_at: row.corrected_at || null,
         corrected_by: row.corrected_by || null,
+        quarantined: Boolean(row.quarantined_at),
+        quarantined_at: row.quarantined_at || null,
+        quarantined_by: row.quarantined_by || null,
+        quarantine_reason: row.quarantine_reason || null,
         consulted_sources: consultedSources,
         evidence_rows: evidenceEntries,
         feedback_entries: feedbackEntries,
         incident_entries: incidentEntries,
+        correction_entries: correctionEntries,
         supporting_source: {
           source_title: row.supporting_source_title || consultedSources[0]?.source_title || null,
           source_version_label: row.supporting_source_version_label || sourceVersion?.version_label || sourceVersion?.version_number || null,
@@ -607,7 +637,60 @@ router.post("/responses/:id/feedback", async (req, res) => {
       details: { response_id: responseRow.id, feedback_type: feedbackType, comment: comment || null }
     });
 
-    return res.status(200).json({ ok: true, feedback: data });
+    // L2 — Feedback "incorreto" gera incidente automaticamente
+    let autoIncident = null;
+    if (feedbackType === 'incorrect') {
+      const { data: existing } = await supabase
+        .from('incident_reports')
+        .select('id')
+        .eq('response_id', responseRow.id)
+        .eq('incident_type', 'feedback_incorreto_auto')
+        .limit(1)
+        .maybeSingle();
+
+      if (!existing) {
+        const { data: incidentRow } = await supabase
+          .from('incident_reports')
+          .insert({
+            school_id: responseRow.school_id,
+            consultation_id: responseRow.consultation_id,
+            response_id: responseRow.id,
+            incident_type: 'feedback_incorreto_auto',
+            severity: 'HIGH',
+            topic: null,
+            details: {
+              description: comment || 'Incidente criado automaticamente por feedback incorreto.',
+              auto_generated: true,
+              feedback_id: data.id
+            },
+            opened_by: createdBy || 'Sistema (auto)'
+          })
+          .select('id')
+          .single();
+
+        if (incidentRow) {
+          autoIncident = incidentRow;
+          await supabase.from('formal_audit_events').insert({
+            school_id: responseRow.school_id,
+            consultation_id: responseRow.consultation_id,
+            event_type: 'INCIDENT_REPORTED',
+            severity: 'HIGH',
+            actor_type: 'SYSTEM',
+            actor_name: 'Sistema (auto-incidente)',
+            summary: 'Incidente criado automaticamente a partir de feedback incorreto.',
+            details: {
+              response_id: responseRow.id,
+              incident_id: incidentRow.id,
+              incident_type: 'feedback_incorreto_auto',
+              feedback_id: data.id,
+              auto_generated: true
+            }
+          });
+        }
+      }
+    }
+
+    return res.status(200).json({ ok: true, feedback: data, auto_incident: autoIncident });
   } catch (err) {
     console.error("Erro /api/webchat/responses/:id/feedback:", err);
     return res.status(500).json({ ok: false, error: "Falha ao registrar feedback." });

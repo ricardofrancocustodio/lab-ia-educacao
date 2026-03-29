@@ -27,6 +27,8 @@
     .evidence-item .ev-title { font-weight: 600; color: #0a58ca; }
     .evidence-item .ev-excerpt { color: #495057; margin-top: 4px; font-style: italic; }
     .text-purple { color: #6f42c1 !important; }
+    .corr-tl { padding: 4px 0; font-size: .85rem; border-left: 2px solid #dee2e6; padding-left: 10px; margin-left: 6px; margin-bottom: 2px; }
+    .corr-tl:last-child { margin-bottom: 0; }
   </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed" data-page="feedback">
@@ -64,6 +66,7 @@
               <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-danger" id="stat-incorrect">-</div><div class="stat-label">Incorretos</div></div></div>
               <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-primary" id="stat-positive-rate">-</div><div class="stat-label">Taxa Positiva</div></div></div>
               <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-purple" id="stat-pending">-</div><div class="stat-label">Pendentes Correcao</div></div></div>
+              <div class="col-6 col-md-3 col-lg mb-2"><div class="stat-card"><div class="stat-value text-warning" id="stat-awaiting-approval" style="cursor:pointer;" title="Clique para filtrar">-</div><div class="stat-label">Aguardando Aprovacao</div></div></div>
             </div>
 
             <!-- Filters -->
@@ -73,6 +76,14 @@
                 <option value="helpful">Positivo</option>
                 <option value="not_helpful">Nao util</option>
                 <option value="incorrect">Incorreto</option>
+              </select>
+              <select class="form-control form-control-sm" id="filter-correction-status" style="width:200px;">
+                <option value="">Todas as correcoes</option>
+                <option value="no_correction">Sem correcao</option>
+                <option value="SUBMITTED">Submetidas</option>
+                <option value="IN_REVIEW">Aguardando Aprovacao</option>
+                <option value="APPROVED">Aprovadas</option>
+                <option value="APPLIED">Aplicadas</option>
               </select>
               <label class="mb-0 ml-2" style="font-size:.88rem;">
                 <input type="checkbox" id="filter-pending-only" class="mr-1"> Somente pendentes de correcao
@@ -103,15 +114,71 @@
     </div>
   </div>
 
+  <!-- Modal: Correction Form -->
+  <div class="modal fade" id="correctionFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header" style="background:linear-gradient(135deg,#fff3cd,#fff);border-bottom:2px solid #e0a800;">
+          <h5 class="modal-title"><i class="fas fa-pen-fancy mr-2 text-warning"></i>Registrar Correcao Formal</h5>
+          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="corr-feedback-id">
+          <div class="card mb-3" style="background:#f0f4ff;border-left:3px solid #007bff;">
+            <div class="card-body py-2"><p class="font-weight-bold mb-1"><i class="fas fa-question-circle text-primary mr-1"></i>Pergunta Original</p><p id="corr-original-question" class="mb-0 small"></p></div>
+          </div>
+          <div class="card mb-3" style="background:#fff3cd;border-left:3px solid #e0a800;">
+            <div class="card-body py-2"><p class="font-weight-bold mb-1"><i class="fas fa-robot text-danger mr-1"></i>Resposta da IA (incorreta)</p><p id="corr-original-response" class="mb-0 small" style="max-height:120px;overflow-y:auto;"></p></div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group"><label><i class="fas fa-tag mr-1"></i>Tipo da Correcao <span class="text-danger">*</span></label>
+                <select class="form-control" id="corr-type"><option value="">Selecione...</option><option value="wrong_information">Informacao incorreta</option><option value="outdated_content">Conteudo desatualizado</option><option value="hallucination">Alucinacao da IA</option><option value="inappropriate_tone">Tom inadequado</option><option value="wrong_source">Fonte errada utilizada</option><option value="incomplete_answer">Resposta incompleta</option><option value="other">Outro</option></select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group"><label><i class="fas fa-microscope mr-1"></i>Causa Raiz <span class="text-danger">*</span></label>
+                <select class="form-control" id="corr-root-cause"><option value="">Selecione...</option><option value="outdated_knowledge_source">Fonte de conhecimento desatualizada</option><option value="missing_knowledge_source">Fonte de conhecimento ausente</option><option value="prompt_issue">Problema no prompt/instrucao</option><option value="model_hallucination">Alucinacao do modelo</option><option value="wrong_retrieval">Recuperacao incorreta de trechos</option><option value="ambiguous_question">Pergunta ambigua do usuario</option><option value="other">Outro</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="form-group"><label><i class="fas fa-check-double mr-1"></i>Resposta Correta <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="corr-answer" rows="4" placeholder="Escreva a resposta que a IA deveria ter dado..."></textarea>
+          </div>
+          <div class="form-group"><label><i class="fas fa-balance-scale mr-1"></i>Justificativa</label>
+            <textarea class="form-control" id="corr-justification" rows="2" placeholder="Por que esta e a resposta correta? (opcional)"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group"><label><i class="fas fa-tools mr-1"></i>Acao Recomendada <span class="text-danger">*</span></label>
+                <select class="form-control" id="corr-action"><option value="">Selecione...</option><option value="update_source">Atualizar fonte de conhecimento</option><option value="create_source">Criar nova fonte de conhecimento</option><option value="suspend_source">Suspender fonte problematica</option><option value="adjust_prompt">Ajustar prompt/instrucao</option><option value="no_action">Nenhuma acao necessaria</option><option value="other">Outra</option></select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group"><label><i class="fas fa-info-circle mr-1"></i>Detalhes da Acao</label>
+                <textarea class="form-control" id="corr-action-details" rows="2" placeholder="Detalhes da acao recomendada (opcional)"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button class="btn btn-warning" id="btnSubmitCorrection"><i class="fas fa-paper-plane mr-1"></i>Submeter Correcao</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabaseConfig.js"></script>
+  <script src="./js/school-switcher.js"></script>
   <script src="./js/session.js"></script>
   <script src="./js/coordinator/carregar-componentes.js"></script>
   <script src="./js/permissions.js"></script>
-  <script src="./js/feedback/feedback-panel.js"></script>
+  <script src="./js/feedback/feedback-panel.js?v=20260327c"></script>
 </body>
 </html>

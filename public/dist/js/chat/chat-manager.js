@@ -641,7 +641,7 @@ async function selecionarChat(id, silent = false) {
     }
 
     try {
-        const res = await fetch(`/api/webchat/conversations/${encodeURIComponent(id)}`);
+        const res = await fetch(`/api/webchat/conversations/${encodeURIComponent(id)}`, { headers: getChatManagerRequestHeaders({}) });
         const body = await res.json();
         const conversation = normalizarConversa(body?.conversation || {});
         conversaAtiva = conversation;
@@ -711,6 +711,7 @@ function renderizarAuditoria(conversation) {
     const incidentSummary = audit.incident_summary || {};
     const feedbackEntries = Array.isArray(audit.feedback_entries) ? audit.feedback_entries : [];
     const incidentEntries = Array.isArray(audit.incident_entries) ? audit.incident_entries : [];
+    const correctionEntries = Array.isArray(audit.correction_entries) ? audit.correction_entries : [];
     const events = Array.isArray(audit.formal_events) ? audit.formal_events : [];
     const panelIntro = capabilities.governanceDetails
         ? 'Painel completo de governanca e rastreabilidade da resposta.'
@@ -736,6 +737,17 @@ function renderizarAuditoria(conversation) {
         `).join('')
         : '<div class="audit-empty">Seu perfil nao visualiza os eventos formais detalhados desta conversa.</div>';
 
+    const correctionStatusLabels = { SUBMITTED: 'Submetida', IN_REVIEW: 'Em revisao', APPROVED: 'Aprovada', REJECTED: 'Rejeitada', APPLIED: 'Aplicada' };
+    const correctionStatusColors = { SUBMITTED: '#6c757d', IN_REVIEW: '#ffc107', APPROVED: '#28a745', REJECTED: '#dc3545', APPLIED: '#17a2b8' };
+
+    function renderCorrectionTimeline(c) {
+        const steps = [];
+        if (c.submitted_at) steps.push({ icon: 'fa-paper-plane', color: '#6c757d', label: 'Submetida', by: c.submitted_by, at: c.submitted_at });
+        if (c.reviewed_at) steps.push({ icon: 'fa-search', color: '#ffc107', label: c.status === 'REJECTED' ? 'Rejeitada' : (c.status === 'APPROVED' || c.status === 'APPLIED') ? 'Aprovada' : 'Revisada', by: c.reviewed_by, at: c.reviewed_at, notes: c.review_notes });
+        if (c.applied_at) steps.push({ icon: 'fa-check-circle', color: '#17a2b8', label: 'Aplicada', by: c.applied_by, at: c.applied_at });
+        return steps.map((s) => `<div class="small mb-1"><i class="fas ${s.icon} mr-1" style="color:${s.color};"></i>${escapeHtml(s.label)} por <strong>${escapeHtml(s.by || '-')}</strong> em ${escapeHtml(formatDateTime(s.at))}${s.notes ? ' &mdash; <em>' + escapeHtml(s.notes) + '</em>' : ''}</div>`).join('');
+    }
+
     const treatmentHtml = capabilities.feedbackActions
         ? `
             <div class="audit-box mb-2">
@@ -746,6 +758,17 @@ function renderizarAuditoria(conversation) {
                             <div class="small font-weight-bold">${escapeHtml(formatFeedbackTypeLabel(entry.feedback_type))}</div>
                             <div class="small text-muted mb-1">${escapeHtml(entry.created_by || 'Operador institucional')} | ${escapeHtml(formatDateTime(entry.created_at))}</div>
                             <div class="small">${escapeHtml(entry.comment || 'Sem comentario registrado.')}</div>
+                            ${entry.correction ? `
+                                <div class="mt-2 p-2" style="background:#e8f5e9; border-left:3px solid ${correctionStatusColors[entry.correction.status] || '#6c757d'}; border-radius:4px;">
+                                    <div class="small font-weight-bold mb-1">Correcao Formal <span class="badge" style="background:${correctionStatusColors[entry.correction.status] || '#6c757d'};color:#fff;font-size:0.7rem;">${escapeHtml(correctionStatusLabels[entry.correction.status] || entry.correction.status)}</span></div>
+                                    ${entry.correction.correction_type ? '<div class="small"><strong>Tipo:</strong> ' + escapeHtml(entry.correction.correction_type) + '</div>' : ''}
+                                    ${entry.correction.root_cause ? '<div class="small"><strong>Causa raiz:</strong> ' + escapeHtml(entry.correction.root_cause) + '</div>' : ''}
+                                    ${entry.correction.corrected_response ? '<div class="small mt-1 p-1" style="background:#c8e6c9; border-radius:3px;"><strong>Resposta correta:</strong> ' + escapeHtml(entry.correction.corrected_response) + '</div>' : ''}
+                                    ${entry.correction.justification ? '<div class="small mt-1"><strong>Justificativa:</strong> ' + escapeHtml(entry.correction.justification) + '</div>' : ''}
+                                    ${entry.correction.recommended_action ? '<div class="small"><strong>Acao recomendada:</strong> ' + escapeHtml(entry.correction.recommended_action) + '</div>' : ''}
+                                    <div class="mt-1">${renderCorrectionTimeline(entry.correction)}</div>
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')
                     : '<div class="audit-empty">Nenhum feedback institucional registrado para esta resposta.</div>'}
@@ -794,10 +817,14 @@ function renderizarAuditoria(conversation) {
                 <span class="audit-chip">Feedback incorreto: ${escapeHtml(String(feedbackSummary.incorrect || 0))}</span>
                 <span class="audit-chip">Incidentes abertos: ${escapeHtml(String(incidentSummary.open || 0))}</span>
                 <span class="audit-chip">Resposta corrigida depois: ${audit.corrected ? 'sim' : 'nao'}</span>
+                ${audit.quarantined ? `<span class="audit-chip" style="background:#6c3483;color:#fff;"><i class="fas fa-lock" style="margin-right:4px;"></i>Em quarentena</span>` : ''}
                 ${audit.abstained ? `<span class="audit-chip">Resposta contida por seguranca</span>` : ''}
                 ${audit.review_reason && audit.review_reason !== '-' ? `<span class="audit-chip">Motivo da revisao: ${escapeHtml(audit.review_reason)}</span>` : ''}
                 ${audit.corrected_at ? `<span class="audit-chip">Corrigida em: ${escapeHtml(formatDateTime(audit.corrected_at))}</span>` : ''}
                 ${audit.corrected_by ? `<span class="audit-chip">Corrigida por: ${escapeHtml(audit.corrected_by)}</span>` : ''}
+                ${audit.quarantined_at ? `<span class="audit-chip" style="background:#6c3483;color:#fff;">Quarentena em: ${escapeHtml(formatDateTime(audit.quarantined_at))}</span>` : ''}
+                ${audit.quarantined_by ? `<span class="audit-chip" style="background:#6c3483;color:#fff;">Quarentena por: ${escapeHtml(audit.quarantined_by)}</span>` : ''}
+                ${audit.quarantine_reason ? `<span class="audit-chip" style="background:#6c3483;color:#fff;">Motivo: ${escapeHtml(audit.quarantine_reason)}</span>` : ''}
         `
         : `
                 <span class="audit-chip">Fonte principal: ${escapeHtml(supportingSource?.source_title || 'Nao definida')}</span>
@@ -899,10 +926,11 @@ async function registrarFeedbackAuditoria(tipo) {
 
     let comment = '';
     if (tipo !== 'helpful') {
+        const questionPreview = audit.original_question || 'Pergunta nao registrada';
         const result = await Swal.fire({
             title: tipo === 'incorrect' ? 'Registrar resposta incorreta' : 'Registrar feedback',
+            html: `<div style="text-align:left;margin-bottom:12px;"><strong>Pergunta do usuario:</strong><div style="background:#f8f9fa;border-radius:6px;padding:10px 12px;margin-top:6px;font-size:0.92em;color:#333;max-height:120px;overflow-y:auto;">${escapeHtml(questionPreview)}</div></div><label class="swal2-input-label" style="display:block;text-align:left;">Comentario opcional</label>`,
             input: 'textarea',
-            inputLabel: 'Comentario opcional',
             inputPlaceholder: 'Descreva o problema observado...',
             showCancelButton: true,
             confirmButtonText: 'Salvar',

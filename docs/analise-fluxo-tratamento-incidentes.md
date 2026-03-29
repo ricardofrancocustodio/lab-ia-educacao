@@ -74,8 +74,9 @@ Sinais que poderiam disparar incidentes automaticamente, mas não disparam:
 - Feedback **"incorreto"** acumulado em múltiplas respostas do mesmo tópico
 - Detecção de **alucinação** ou conteúdo inconsistente com a base de conhecimento
 
-#### 1.2 — Feedback "Incorreto" Não Gera Incidente
-O endpoint de feedback (`POST /api/webchat/responses/:id/feedback` em `.qodo/api/webchat.js`, linhas 570-612) registra um evento de auditoria `INTERACTION_FEEDBACK_RECORDED` com severidade `HIGH` quando a avaliação é "incorreto", mas **não cria um `incident_reports`** automaticamente. São sistemas paralelos e desconectados.
+#### 1.2 — Feedback "Incorreto" Gera Incidente Automaticamente
+
+> ✅ **IMPLEMENTADO (29/03/2026)** — O endpoint `POST /api/webchat/responses/:id/feedback` agora cria automaticamente um `incident_reports` com tipo `feedback_incorreto_auto` e severidade `HIGH` quando o `feedback_type` é `incorrect`. O sistema verifica se já existe um incidente auto-gerado para a mesma resposta (idempotência) e registra evento de auditoria `INCIDENT_REPORTED` com `actor_type: SYSTEM`. O comentário do feedback é usado como descrição do incidente.
 
 #### 1.3 — Registro Direto pela Página de Incidentes
 A página de incidentes (`incidents-panel.js`) é **somente leitura para criação** — permite visualizar e gerenciar status, mas **não possui botão para criar novo incidente** fora do contexto de uma resposta específica do chat.
@@ -172,30 +173,33 @@ INCIDENTS_MANAGE_ROLES = [superadmin, network_manager, auditor]
 
 ### O que Está Faltando
 
-#### 3.1 — Ferramentas de Diagnóstico na Página de Incidentes
-A página de detalhe do incidente **não exibe**:
-- O texto da pergunta original do usuário
-- O texto da resposta da IA que gerou o incidente
-- Os trechos da base de conhecimento utilizados pela IA (chunks/embeddings)
-- O histórico de feedbacks daquela resposta específica
-- Outras respostas sobre o mesmo tópico para comparação
+#### 3.1 — Ferramentas de Diagnóstico na Página de Incidentes — ✅ IMPLEMENTADO (28/03/2026)
 
-O investigador precisa **navegar manualmente** até o Chat Manager, localizar a conversa original e cruzar informações — não há link direto da página de incidentes para a resposta no chat.
+> **Lacuna L5 resolvida.** O modal de detalhe do incidente agora exibe contexto completo de diagnóstico.
+
+**Implementação realizada:**
+- **Backend (`GET /api/incidents/:id`)** — enriquecido com join em `assistant_responses` (texto completo, confiança, modo, fallback, fonte principal, correção), `consultation_messages` (pergunta original do cidadão via `origin_message_id` ou busca por `actor_type=CITIZEN`), e `interaction_source_evidence` (todas as fontes/chunks recuperados com relevância)
+- **Frontend (`incidents-panel.js`)** — seção "Contexto de Diagnóstico" com:
+  - Pergunta original do cidadão (fundo verde)
+  - Resposta da IA com score de confiança colorido, modo (Automático/Abstido/Manual) e flag de fallback humano (fundo azul)
+  - Indicador de correção registrada, se houver (fundo laranja)
+  - Fonte principal usada pela IA com título, trecho e versão (fundo roxo)
+- **Frontend** — seção "Fontes e Evidências Recuperadas" com lista de todos os chunks/embeddings utilizados, mostrando título, trecho, score de relevância e badge "Principal"
+
+O investigador agora tem **tudo na mesma tela** sem precisar navegar ao Chat Manager.
 
 #### 3.2 — Fluxo de Investigação Estruturado
-Não há:
+
+> ✅ **IMPLEMENTADO (29/03/2026)** — Campo `assigned_to` + `assigned_at` adicionado à tabela `incident_reports`. O endpoint `PUT /api/incidents/:id/status` aceita `assigned_to` no body, permite atribuição independente de mudança de status, e registra evento de auditoria `INCIDENT_ASSIGNED`. Frontend exibe o responsável atribuído e botão "Atribuir" com dropdown de usuários gerenciados.
+
+Ainda pendente:
 - Campo de **diagnóstico/causa raiz** (root cause) no incidente
 - Checklist de investigação (ex: verificar base de conhecimento, verificar prompt, testar cenário)
-- Possibilidade de **atribuir** o incidente a um investigador específico (campo `assigned_to`)
 - Histórico de ações/comentários durante a investigação (timeline de atividades)
 
 #### 3.3 — Conexão com Eventos de Auditoria
-O sistema de auditoria (`POST /api/audit/events/:id/review`, `server.js` linhas 3095-3200) possui um fluxo paralelo sofisticado:
-- Estados: `PENDING_REVIEW` → `REVIEWED` → `KNOWLEDGE_CREATED` → `DISMISSED`
-- Destinos de tratamento: `content_curation`, `network_secretariat`, `service_operation`
-- Porém este fluxo **não está conectado** ao sistema de incidentes
 
-Um evento de auditoria com destino `content_curation` → `KNOWLEDGE_CREATED` poderia ser vinculado automaticamente a um incidente relacionado, mas hoje não há essa relação.
+> ✅ **IMPLEMENTADO (29/03/2026)** — O endpoint `GET /api/incidents/:id` agora busca todos os eventos de auditoria vinculados ao incidente via `details->>'incident_id'` ou `details->>'response_id'`, retornando no campo `audit_events`. O frontend renderiza uma "Trilha de Auditoria" com timeline de todos os eventos (status changes, corrections, feedback, hallucination mitigations, assignments), cada um com cor por severidade, tipo, resumo, ator e data.
 
 ### Recomendações
 
@@ -233,10 +237,8 @@ Não existe mecanismo para marcar uma resposta como "sob investigação" ou "inc
 - Notifique usuários que receberam aquela resposta
 
 #### 4.2 — Suspensão de Conteúdo na Base de Conhecimento
-Não há como:
-- Desativar temporariamente um `knowledge_source` específico suspeito de conter informação incorreta
-- Marcar embeddings específicos como "em revisão"
-- Impedir que a IA utilize determinados trechos até que sejam validados
+
+> ✅ **IMPLEMENTADO (29/03/2026)** — Coluna `active BOOLEAN DEFAULT true` adicionada à tabela `source_documents`. Endpoint `PUT /api/knowledge/sources/:id/suspend` permite suspender/reativar fontes com motivo, registrando eventos de auditoria `KNOWLEDGE_SOURCE_SUSPENDED` / `KNOWLEDGE_SOURCE_REACTIVATED`. O `GET /api/knowledge/sources` retorna o campo `active`. Frontend exibe badge "Suspensa" nas fontes inativas e botões "Suspender"/"Reativar" nas cards de fontes oficiais.
 
 #### 4.3 — Registro de Ações de Contenção
 Não há tabela ou campo para registrar:
@@ -476,13 +478,13 @@ As estatísticas atuais (`GET /api/incidents/stats/summary`) são básicas:
 | # | Lacuna | Severidade | Complexidade | Componentes Afetados |
 |---|--------|------------|--------------|---------------------|
 | L1 | Sem detecção automática de incidentes | ALTA | Média | server.js (novo job) |
-| L2 | Feedback "incorreto" não gera incidente | ALTA | Baixa | webchat.js |
+| L2 | ~~Feedback "incorreto" não gera incidente~~ ✅ | ~~ALTA~~ | ~~Baixa~~ | ✅ Implementado (29/03/2026) |
 | L3 | Sem matriz impacto × urgência | MÉDIA | Baixa | DB + frontend |
 | L4 | Sem SLA por severidade | MÉDIA | Média | DB + server.js + frontend |
-| L5 | Sem ferramentas de diagnóstico na página | ALTA | Média | incidents-panel.js + server.js |
-| L6 | Sem campo assigned_to | MÉDIA | Baixa | DB + server.js + frontend |
+| L5 | ~~Sem ferramentas de diagnóstico na página~~ ✅ | ~~ALTA~~ | ~~Média~~ | ✅ Implementado (28/03/2026) |
+| L6 | ~~Sem campo assigned_to~~ ✅ | ~~MÉDIA~~ | ~~Baixa~~ | ✅ Implementado (29/03/2026) |
 | L7 | **Sem contenção de respostas** | **CRÍTICA** | Média | DB + server.js + frontend |
-| L8 | **Sem suspensão de fontes de conhecimento** | **CRÍTICA** | Média | DB + server.js |
+| L8 | ~~Sem suspensão de fontes de conhecimento~~ ✅ | ~~CRÍTICA~~ | ~~Média~~ | ✅ Implementado (29/03/2026) |
 | L9 | **Endpoint de correção inexistente** | **CRÍTICA** | Média | server.js |
 | L10 | **Resolução não atualiza base de conhecimento** | **CRÍTICA** | Alta | server.js + embeddings |
 | L11 | Sem notificação ao reportador | ALTA | Média | server.js + notificações |
@@ -490,7 +492,7 @@ As estatísticas atuais (`GET /api/incidents/stats/summary`) são básicas:
 | L13 | Sem post-mortem estruturado | MÉDIA | Baixa | DB + frontend |
 | L14 | Sem lições aprendidas | MÉDIA | Média | DB + server.js + frontend |
 | L15 | Colunas corrected_at/by nunca preenchidas | ALTA | Baixa | server.js (novo endpoint) |
-| L16 | Auditoria KNOWLEDGE_CREATED desconectada de incidentes | ALTA | Média | server.js |
+| L16 | ~~Auditoria KNOWLEDGE_CREATED desconectada de incidentes~~ ✅ | ~~ALTA~~ | ~~Média~~ | ✅ Implementado (29/03/2026) |
 
 ---
 
@@ -500,7 +502,7 @@ As estatísticas atuais (`GET /api/incidents/stats/summary`) são básicas:
 1. **L9** — Endpoint de correção de respostas (usa colunas existentes)
 2. **L15** — Preencher `corrected_at/by` quando correção é registrada
 3. **L7** — Flag `quarantined` em respostas + exibição visual
-4. **L2** — Feedback "incorreto" gerar incidente automaticamente
+4. **L2** — ✅ Feedback "incorreto" gera incidente automaticamente (29/03/2026)
 
 ### Sprint 2 — Contenção e Diagnóstico
 5. **L8** — Campo `active` em knowledge_sources para suspensão

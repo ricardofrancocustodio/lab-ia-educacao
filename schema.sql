@@ -15,7 +15,7 @@ create table if not exists public.platform_members (
   user_id uuid null references auth.users(id) on delete set null,
   name text not null,
   email text not null unique,
-  role text not null check (role in ('superadmin')),
+  role text not null check (role in ('superadmin', 'auditor')),
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -165,6 +165,9 @@ create table if not exists public.assistant_responses (
   corrected_from_response_id uuid null references public.assistant_responses(id) on delete set null,
   corrected_at timestamptz null,
   corrected_by text null,
+  quarantined_at timestamptz null,
+  quarantined_by text null,
+  quarantine_reason text null,
   delivered_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
@@ -263,6 +266,61 @@ create index if not exists idx_evidence_response_primary on public.interaction_s
 create index if not exists idx_evidence_school_created on public.interaction_source_evidence (school_id, created_at desc);
 create index if not exists idx_incidents_school_status on public.incident_reports (school_id, status, opened_at desc);
 create index if not exists idx_incidents_response on public.incident_reports (response_id, opened_at desc);
+
+create table if not exists public.response_corrections (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  feedback_id uuid not null references public.interaction_feedback(id) on delete cascade,
+  response_id uuid not null references public.assistant_responses(id) on delete cascade,
+  consultation_id uuid null references public.institutional_consultations(id) on delete set null,
+  status text not null default 'SUBMITTED' check (status in ('SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'APPLIED')),
+  correction_type text not null check (correction_type in ('wrong_information', 'outdated_content', 'hallucination', 'inappropriate_tone', 'wrong_source', 'incomplete_answer', 'other')),
+  root_cause text not null check (root_cause in ('outdated_knowledge_source', 'missing_knowledge_source', 'prompt_issue', 'model_hallucination', 'wrong_retrieval', 'ambiguous_question', 'other')),
+  corrected_answer text not null,
+  justification text null,
+  affected_source_id uuid null references public.source_documents(id) on delete set null,
+  recommended_action text not null check (recommended_action in ('update_source', 'create_source', 'suspend_source', 'adjust_prompt', 'no_action', 'other')),
+  action_details text null,
+  submitted_by text not null,
+  submitted_by_user_id uuid null,
+  submitted_at timestamptz not null default now(),
+  reviewed_by text null,
+  reviewed_at timestamptz null,
+  review_notes text null,
+  approved_by text null,
+  approved_at timestamptz null,
+  approval_notes text null,
+  applied_by text null,
+  applied_at timestamptz null,
+  applied_destination text null,
+  applied_notes text null,
+  rejected_by text null,
+  rejected_at timestamptz null,
+  rejection_reason text null
+);
+
+create index if not exists idx_corrections_school_status on public.response_corrections (school_id, status, submitted_at desc);
+create index if not exists idx_corrections_feedback on public.response_corrections (feedback_id);
+create index if not exists idx_corrections_response on public.response_corrections (response_id);
+
+create table if not exists public.correction_kb_changes (
+  id uuid primary key default gen_random_uuid(),
+  correction_id uuid not null references public.response_corrections(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
+  source_document_id uuid references public.source_documents(id) on delete set null,
+  version_id uuid references public.knowledge_source_versions(id) on delete set null,
+  change_type text not null check (change_type in ('content_updated', 'source_created', 'source_suspended', 'prompt_adjusted', 'embedding_refreshed', 'faq_updated', 'other')),
+  change_description text not null,
+  before_snapshot text,
+  after_snapshot text,
+  applied_by text not null,
+  applied_by_user_id uuid,
+  applied_at timestamptz not null default now()
+);
+
+create index if not exists idx_kb_changes_correction on public.correction_kb_changes (correction_id);
+create index if not exists idx_kb_changes_source on public.correction_kb_changes (source_document_id);
+create index if not exists idx_kb_changes_school on public.correction_kb_changes (school_id, applied_at desc);
 
 create table if not exists public.official_content_records (
   id uuid primary key default gen_random_uuid(),

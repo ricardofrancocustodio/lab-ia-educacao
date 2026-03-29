@@ -1,13 +1,13 @@
 const DEFAULT_ROLE_PAGES = {
-  superadmin: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content', 'preferences', 'users'],
-  network_manager: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content', 'preferences', 'users'],
-  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'knowledge-gaps', 'knowledge', 'official-content'],
-  public_operator: ['dashboard', 'chat-manager', 'notices', 'reports', 'incidents', 'feedback', 'knowledge'],
-  secretariat: ['dashboard', 'chat-manager', 'notices', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
-  coordination: ['dashboard', 'chat-manager', 'notices', 'notifications', 'reports', 'incidents', 'knowledge'],
+  superadmin: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'preferences', 'users'],
+  network_manager: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'preferences', 'users'],
+  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'knowledge-gaps', 'knowledge', 'official-content'],
+  public_operator: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'incidents', 'feedback', 'corrections', 'knowledge'],
+  secretariat: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
+  coordination: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'reports', 'incidents', 'knowledge'],
   treasury: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'knowledge'],
-  direction: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
-  auditor: ['dashboard', 'reports', 'audit', 'incidents', 'feedback'],
+  direction: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content'],
+  auditor: ['dashboard', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'network-overview'],
   observer: ['dashboard', 'notices', 'reports', 'knowledge']
 };
 
@@ -79,8 +79,9 @@ async function computeAndApplyPermissions() {
   let effective = fallbackAllowedPages(role);
 
   try {
-    if (normalizeRoleKey(platformRole) === 'superadmin') {
-      effective = fallbackAllowedPages('superadmin');
+    const normalizedPlatformRole = normalizeRoleKey(platformRole);
+    if (normalizedPlatformRole === 'superadmin' || normalizedPlatformRole === 'auditor') {
+      effective = fallbackAllowedPages(platformRole);
     } else if (window.supabaseClient && schoolId && role) {
       const [roleAllowed, userOverrides] = await Promise.all([
         fetchRoleAllowedPages(schoolId, role),

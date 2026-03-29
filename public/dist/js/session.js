@@ -52,7 +52,7 @@ async function _doInitSession() {
     error = fallback.error || null;
   }
 
-  if ((!membro || error) && platformMember?.role === 'superadmin') {
+  if ((!membro || error) && ['superadmin', 'auditor'].includes(platformMember?.role)) {
     const firstSchool = await client
       .from('schools')
       .select('id')
@@ -62,7 +62,7 @@ async function _doInitSession() {
 
     membro = {
       school_id: firstSchool.data?.id || '',
-      role: 'superadmin',
+      role: platformMember.role,
       name: platformMember.name,
       email: platformMember.email,
       active: true

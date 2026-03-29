@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head id="component-head">
+  <title>Assistente Publico | Gestao de Correcoes</title>
+  <style>
+    body { opacity: 0; transition: opacity .3s ease; }
+    .corr-hero { background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%); border: 1px solid #c7d2e2; border-radius: 16px; padding: 20px; margin-bottom: 1rem; }
+    .corr-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; margin-bottom: 12px; transition: box-shadow .2s; cursor: pointer; }
+    .corr-card:hover { box-shadow: 0 4px 14px rgba(20,43,73,.08); }
+    .corr-st-submitted { border-left: 4px solid #17a2b8; }
+    .corr-st-in_review { border-left: 4px solid #ffc107; }
+    .corr-st-approved { border-left: 4px solid #28a745; }
+    .corr-st-applied { border-left: 4px solid #007bff; }
+    .corr-st-rejected { border-left: 4px solid #dc3545; }
+    .corr-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .badge-corr-submitted { background: #17a2b8; color: #fff; }
+    .badge-corr-in_review { background: #ffc107; color: #212529; }
+    .badge-corr-approved { background: #28a745; color: #fff; }
+    .badge-corr-applied { background: #007bff; color: #fff; }
+    .badge-corr-rejected { background: #dc3545; color: #fff; }
+    .corr-meta { color: #6c757d; font-size: .84rem; }
+    .corr-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    .corr-empty { border: 1px dashed #c7d2e2; border-radius: 12px; padding: 32px; color: #6c757d; background: #f8fbff; text-align: center; }
+    .stat-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; text-align: center; }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .stat-card .stat-label { font-size: .82rem; color: #6c757d; margin-top: 4px; }
+    .corr-timeline { list-style: none; padding-left: 0; margin: 0; }
+    .corr-timeline li { padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: .88rem; }
+    .corr-timeline li:last-child { border-bottom: none; }
+  </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed" data-page="corrections">
+  <div class="wrapper">
+    <div id="component-header"></div>
+    <div id="component-sidebar"></div>
+    <div class="content-wrapper">
+      <section class="content-header pb-0">
+        <div class="container-fluid">
+          <div class="corr-hero">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center">
+              <div>
+                <h1 class="m-0"><i class="fas fa-check-double mr-2 text-primary"></i>Gestao de Correcoes</h1>
+                <p class="text-muted mb-0 mt-2">Acompanhamento do ciclo de vida das correcoes de respostas da IA — submissao, revisao, aprovacao e aplicacao.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="container-fluid">
+          <div class="text-center py-4" id="corr-loading">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2 mb-0">Carregando correcoes...</p>
+          </div>
+
+          <div id="corr-root" style="display:none;">
+            <!-- Stats row -->
+            <div class="row mb-3" id="corr-stats-row">
+              <div class="col-6 col-md-4 col-lg mb-2"><div class="stat-card"><div class="stat-value text-info" id="stat-submitted">-</div><div class="stat-label">Submetidas</div></div></div>
+              <div class="col-6 col-md-4 col-lg mb-2"><div class="stat-card"><div class="stat-value text-warning" id="stat-in-review">-</div><div class="stat-label">Em Revisao</div></div></div>
+              <div class="col-6 col-md-4 col-lg mb-2"><div class="stat-card"><div class="stat-value text-success" id="stat-approved">-</div><div class="stat-label">Aprovadas</div></div></div>
+              <div class="col-6 col-md-4 col-lg mb-2"><div class="stat-card"><div class="stat-value text-primary" id="stat-applied">-</div><div class="stat-label">Aplicadas</div></div></div>
+              <div class="col-6 col-md-4 col-lg mb-2"><div class="stat-card"><div class="stat-value text-danger" id="stat-rejected">-</div><div class="stat-label">Rejeitadas</div></div></div>
+              <div class="col-6 col-md-4 col-lg mb-2"><div class="stat-card"><div class="stat-value text-secondary" id="stat-avg-hours">-</div><div class="stat-label">Horas (media)</div></div></div>
+            </div>
+
+            <!-- Filters -->
+            <div class="corr-toolbar">
+              <select class="form-control form-control-sm" id="filter-status" style="width:170px;">
+                <option value="">Todos os status</option>
+                <option value="SUBMITTED">Submetida</option>
+                <option value="IN_REVIEW">Em Revisao</option>
+                <option value="APPROVED">Aprovada</option>
+                <option value="APPLIED">Aplicada</option>
+                <option value="REJECTED">Rejeitada</option>
+              </select>
+              <select class="form-control form-control-sm" id="filter-type" style="width:200px;">
+                <option value="">Todos os tipos</option>
+                <option value="wrong_information">Informacao Errada</option>
+                <option value="outdated_content">Conteudo Desatualizado</option>
+                <option value="hallucination">Alucinacao</option>
+                <option value="inappropriate_tone">Tom Inadequado</option>
+                <option value="wrong_source">Fonte Errada</option>
+                <option value="incomplete_answer">Resposta Incompleta</option>
+                <option value="other">Outro</option>
+              </select>
+              <span class="ml-auto corr-meta" id="corr-count-label"></span>
+            </div>
+
+            <!-- List container -->
+            <div id="corr-list"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="component-footer"></div>
+  </div>
+
+  <!-- Modal: Correction Detail -->
+  <div class="modal fade" id="corrDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-check-double mr-2"></i>Detalhes da Correcao</h5>
+          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body" id="corrDetailBody">
+          <div class="text-center py-3"><div class="spinner-border text-primary"></div></div>
+        </div>
+        <div class="modal-footer" id="corrDetailFooter"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabaseConfig.js"></script>
+  <script src="./js/school-switcher.js"></script>
+  <script src="./js/session.js"></script>
+  <script src="./js/coordinator/carregar-componentes.js"></script>
+  <script src="./js/permissions.js"></script>
+  <script src="./js/corrections/corrections-panel.js?v=20260327a"></script>
+</body>
+</html>

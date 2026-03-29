@@ -196,6 +196,7 @@ function renderizarListaFontes() {
     .map((source) => {
       const current = source.current_version || {};
       const activeClass = source.id === sourceState.selectedSourceId ? "selected" : "";
+      const suspendedBadge = source.active === false ? '<span class="badge badge-danger ml-1"><i class="fas fa-ban mr-1"></i>Suspensa</span>' : '';
       return `
         <div class="card card-outline card-primary source-card ${activeClass}" onclick="selecionarFonte('${source.id}')">
           <div class="card-body">
@@ -204,7 +205,7 @@ function renderizarListaFontes() {
                 <h5 class="mb-1">${escapeHtml(source.title)}</h5>
                 <div class="text-muted small">${escapeHtml(getSourceAssistantLabel(source.owning_area))}</div>
               </div>
-              <span class="badge badge-info">${escapeHtml(source.document_type || "fonte")}</span>
+              <div><span class="badge badge-info">${escapeHtml(source.document_type || "fonte")}</span>${suspendedBadge}</div>
             </div>
             <div class="small text-muted mb-2">${escapeHtml(source.description || source.canonical_reference || "Sem descricao complementar")}</div>
             <div class="row small mb-3">
@@ -219,9 +220,14 @@ function renderizarListaFontes() {
             </div>
             <div class="d-flex justify-content-between align-items-center">
               <span class="small text-muted">${escapeHtml(current.file_name || source.canonical_reference || "Fonte manual")}</span>
-              <button class="btn btn-outline-primary btn-sm" onclick="abrirModalNovaVersao('${source.id}'); event.stopPropagation();">
-                <i class="fas fa-code-branch mr-1"></i> Nova versao
-              </button>
+              <div>
+                ${source.active === false
+                  ? '<button class="btn btn-outline-success btn-sm mr-1" onclick="toggleSuspenderFonte(\'' + source.id + '\', false); event.stopPropagation();"><i class="fas fa-play mr-1"></i>Reativar</button>'
+                  : '<button class="btn btn-outline-danger btn-sm mr-1" onclick="toggleSuspenderFonte(\'' + source.id + '\', true); event.stopPropagation();"><i class="fas fa-ban mr-1"></i>Suspender</button>'}
+                <button class="btn btn-outline-primary btn-sm" onclick="abrirModalNovaVersao('${source.id}'); event.stopPropagation();">
+                  <i class="fas fa-code-branch mr-1"></i> Nova versao
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -514,6 +520,35 @@ window.abrirModalNovaVersao = abrirModalNovaVersao;
 window.salvarNovaVersaoFonte = salvarNovaVersaoFonte;
 window.selecionarFonte = selecionarFonte;
 window.carregarFontesOficiais = carregarFontesOficiais;
+window.toggleSuspenderFonte = toggleSuspenderFonte;
+
+async function toggleSuspenderFonte(sourceId, suspend) {
+  const action = suspend ? 'Suspender' : 'Reativar';
+  const { value: reason, isConfirmed } = await Swal.fire({
+    title: `${action} fonte`,
+    text: suspend ? 'A fonte sera desativada e nao sera usada em novas respostas.' : 'A fonte sera reativada e voltara a ser usada nas respostas.',
+    input: suspend ? 'textarea' : undefined,
+    inputLabel: suspend ? 'Motivo da suspensao' : undefined,
+    inputPlaceholder: suspend ? 'Descreva o motivo...' : undefined,
+    showCancelButton: true,
+    confirmButtonText: action,
+    confirmButtonColor: suspend ? '#dc3545' : '#28a745',
+    cancelButtonText: 'Cancelar'
+  });
+  if (!isConfirmed) return;
+
+  try {
+    await apiJson(`/api/knowledge/sources/${sourceId}/suspend`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ suspend, reason: reason || '' })
+    });
+    Swal.fire({ icon: 'success', title: suspend ? 'Fonte suspensa' : 'Fonte reativada', timer: 1500, showConfirmButton: false });
+    await carregarFontesOficiais();
+  } catch (err) {
+    Swal.fire('Erro', err.message, 'error');
+  }
+}
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", inicializarFontesOficiais);

@@ -546,10 +546,11 @@ async function registrarFeedbackAuditoria(tipo) {
 
     let comment = '';
     if (tipo !== 'helpful') {
+        const questionPreview = audit.original_question || 'Pergunta nao registrada';
         const result = await Swal.fire({
             title: tipo === 'incorrect' ? 'Registrar resposta incorreta' : 'Registrar feedback',
+            html: `<div style="text-align:left;margin-bottom:12px;"><strong>Pergunta do usuario:</strong><div style="background:#f8f9fa;border-radius:6px;padding:10px 12px;margin-top:6px;font-size:0.92em;color:#333;max-height:120px;overflow-y:auto;">${escapeHtml(questionPreview)}</div></div><label class="swal2-input-label" style="display:block;text-align:left;">Comentario opcional</label>`,
             input: 'textarea',
-            inputLabel: 'Comentario opcional',
             inputPlaceholder: 'Descreva o problema observado...',
             showCancelButton: true,
             confirmButtonText: 'Salvar',

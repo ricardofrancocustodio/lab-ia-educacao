@@ -37,9 +37,24 @@ const INCIDENTS_READ_ROLES = new Set(["superadmin", "network_manager", "auditor"
 const INCIDENTS_MANAGE_ROLES = new Set(["superadmin", "network_manager", "auditor"]);
 const FEEDBACK_READ_ROLES = new Set(["superadmin", "network_manager", "content_curator", "auditor", "direction", "public_operator"]);
 const FEEDBACK_ACT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
+const CORRECTION_TRANSITIONS = {
+  review:  { from: ["SUBMITTED"], to: "IN_REVIEW", event: "CORRECTION_IN_REVIEW", severity: "MEDIUM", summary: "Correcao em revisao." },
+  approve: { from: ["IN_REVIEW"], to: "APPROVED", event: "CORRECTION_APPROVED", severity: "HIGH", summary: "Correcao aprovada." },
+  reject:  { from: ["IN_REVIEW"], to: "REJECTED", event: "CORRECTION_REJECTED", severity: "MEDIUM", summary: "Correcao rejeitada." },
+  apply:   { from: ["APPROVED"], to: "APPLIED", event: "CORRECTION_APPLIED", severity: "HIGH", summary: "Correcao aplicada no sistema." }
+};
+const INCIDENT_VALID_TRANSITIONS = {
+  OPEN: ["IN_REVIEW", "RESOLVED", "DISMISSED"],
+  IN_REVIEW: ["OPEN", "RESOLVED", "DISMISSED"],
+  RESOLVED: ["OPEN", "CONFIRMED"],
+  DISMISSED: ["OPEN"],
+  CONFIRMED: []
+};
 const NOTIFICATIONS_ADMIN_ROLES = new Set(["superadmin", "network_manager", "direction", "secretariat", "coordination"]);
 const NOTIFICATIONS_SEND_ROLES = new Set(["superadmin", "network_manager", "direction", "secretariat"]);
 const KNOWLEDGE_GAPS_ROLES = new Set(["superadmin", "network_manager", "content_curator", "direction", "secretariat"]);
+const HANDOFF_QUEUE_ROLES = new Set(["superadmin", "network_manager", "public_operator", "secretariat", "coordination", "direction"]);
+const NETWORK_OVERVIEW_ROLES = new Set(["superadmin", "network_manager", "auditor", "direction"]);
 const OFFICIAL_CONTENT_NETWORK_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
 const OFFICIAL_CONTENT_SCHOOL_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat", "direction", "coordination"]);
 const AUDIT_TREATMENT_DESTINATIONS = {
@@ -131,8 +146,12 @@ const distPages = new Set([
   "notice-board",
   "incidents",
   "feedback",
+  "corrections",
   "notifications",
-  "knowledge-gaps"
+  "knowledge-gaps",
+  "handoff-queue",
+  "improvement-cycle",
+  "network-overview"
 ]);
 
 app.get("/", (_req, res) => serveDistPage(res, "index.html"));
@@ -157,6 +176,10 @@ app.get("/conteudo-oficial", (_req, res) => serveDistPage(res, "official-content
 app.get("/comunicados", (_req, res) => serveDistPage(res, "notice-board.html"));
 app.get("/incidentes", (_req, res) => serveDistPage(res, "incidents.html"));
 app.get("/feedback", (_req, res) => serveDistPage(res, "feedback.html"));
+app.get("/correcoes", (_req, res) => serveDistPage(res, "corrections.html"));
+app.get("/fila-humana", (_req, res) => serveDistPage(res, "handoff-queue.html"));
+app.get("/ciclo-melhoria", (_req, res) => serveDistPage(res, "improvement-cycle.html"));
+app.get("/visao-rede", (_req, res) => serveDistPage(res, "network-overview.html"));
 app.get("/notificacoes", (_req, res) => serveDistPage(res, "notifications.html"));
 app.get("/lacunas", (_req, res) => serveDistPage(res, "knowledge-gaps.html"));
 app.get("/calendario-escolar", (_req, res) => serveDistPage(res, "calendario-escolar.html"));
@@ -255,7 +278,8 @@ async function resolveRequestContext(req, options = {}) {
   let schoolRole = normalizeRoleKey(schoolMember?.role || "");
   let platformRole = normalizeRoleKey(platformMember?.role || "");
 
-  if (!schoolId && options.allowSuperadminFallback !== false && platformRole === "superadmin") {
+  const PLATFORM_GLOBAL_ROLES = ["superadmin", "auditor"];
+  if (!schoolId && options.allowSuperadminFallback !== false && PLATFORM_GLOBAL_ROLES.includes(platformRole)) {
     const firstSchoolResult = await supabase
       .from("schools")
       .select("id")
@@ -268,7 +292,7 @@ async function resolveRequestContext(req, options = {}) {
     }
 
     schoolId = String(firstSchoolResult.data?.id || "").trim();
-    schoolRole = "superadmin";
+    schoolRole = platformRole;
   }
 
   if (!schoolId) {
@@ -276,14 +300,16 @@ async function resolveRequestContext(req, options = {}) {
   }
 
   const requestedSchoolId = getSchoolId(req);
+  let schoolOverridden = false;
   if (requestedSchoolId && requestedSchoolId !== schoolId) {
-    if (platformRole === "superadmin") {
+    if (PLATFORM_GLOBAL_ROLES.includes(platformRole)) {
       const requestedSchool = await fetchSchoolContextById(requestedSchoolId);
       if (!requestedSchool?.id) {
-        throw Object.assign(new Error("A instituicao solicitada pelo superadmin nao foi encontrada."), { statusCode: 404 });
+        throw Object.assign(new Error("A instituicao solicitada nao foi encontrada."), { statusCode: 404 });
       }
       schoolId = requestedSchool.id;
-      schoolRole = "superadmin";
+      schoolRole = platformRole;
+      schoolOverridden = true;
     } else {
       throw Object.assign(new Error("A escola informada na requisicao nao corresponde ao contexto autenticado."), { statusCode: 403 });
     }
@@ -300,6 +326,7 @@ async function resolveRequestContext(req, options = {}) {
     schoolRole,
     platformRole,
     effectiveRole,
+    schoolOverridden,
     memberName: schoolMember?.name || platformMember?.name || user.user_metadata?.full_name || user.user_metadata?.name || "",
     memberEmail: schoolMember?.email || platformMember?.email || user.email || ""
   };
@@ -394,7 +421,8 @@ async function resolveManagedSchoolScope(accessContext) {
     throw Object.assign(new Error("Contexto institucional da gestao de usuarios nao encontrado."), { statusCode: 404 });
   }
 
-  if (accessContext?.effectiveRole === "superadmin") {
+  if (accessContext?.effectiveRole === "superadmin" ||
+      (accessContext?.effectiveRole === "auditor" && !accessContext?.schoolOverridden)) {
     const { data, error } = await supabase
       .from("schools")
       .select("id, name, slug, institution_type, parent_school_id")
@@ -1394,7 +1422,7 @@ app.get("/api/knowledge/sources", async (req, res) => {
     const [documentsResult, versionsResult] = await Promise.all([
       supabase
         .from("source_documents")
-        .select("id, title, document_type, owning_area, canonical_reference, description, created_at, updated_at")
+        .select("id, title, document_type, owning_area, canonical_reference, description, active, created_at, updated_at")
         .eq("school_id", schoolId)
         .order("updated_at", { ascending: false }),
       supabase
@@ -1555,6 +1583,56 @@ app.post("/api/knowledge/sources/:id/versions", async (req, res) => {
   } catch (error) {
     console.error("Erro /api/knowledge/sources/:id/versions:", error);
     return res.status(500).json({ ok: false, error: "Falha ao publicar nova versao." });
+  }
+});
+
+app.put("/api/knowledge/sources/:id/suspend", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...INCIDENTS_MANAGE_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const sourceId = String(req.params.id || "").trim();
+    const suspend = req.body.suspend !== false;
+    const reason = String(req.body.reason || "").trim();
+    const actorName = String(access.context.memberName || access.context.memberEmail || "Operador").trim();
+
+    if (!sourceId) return res.status(400).json({ ok: false, error: "ID da fonte invalido." });
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("source_documents")
+      .select("id, school_id, title, active")
+      .eq("id", sourceId)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!existing) return res.status(404).json({ ok: false, error: "Fonte nao encontrada na sua instituicao." });
+
+    if (existing.active === !suspend) {
+      return res.status(400).json({ ok: false, error: suspend ? "Fonte ja esta suspensa." : "Fonte ja esta ativa." });
+    }
+
+    const { error: updateErr } = await supabase
+      .from("source_documents")
+      .update({ active: !suspend, updated_at: new Date().toISOString() })
+      .eq("id", sourceId);
+    if (updateErr) throw updateErr;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: existing.school_id,
+      event_type: suspend ? "KNOWLEDGE_SOURCE_SUSPENDED" : "KNOWLEDGE_SOURCE_REACTIVATED",
+      severity: suspend ? "HIGH" : "MEDIUM",
+      actor_type: "HUMAN",
+      actor_name: actorName,
+      summary: suspend ? `Fonte "${existing.title}" suspensa.` : `Fonte "${existing.title}" reativada.`,
+      details: { source_document_id: sourceId, title: existing.title, reason: reason || null }
+    });
+
+    return res.json({ ok: true, source_id: sourceId, active: !suspend });
+  } catch (error) {
+    console.error("Erro PUT /api/knowledge/sources/:id/suspend:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao alterar status da fonte." });
   }
 });
 
@@ -1889,6 +1967,23 @@ app.get("/api/chat-manager/schools", async (req, res) => {
   } catch (error) {
     console.error("Erro /api/chat-manager/schools:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar as escolas do chat manager." });
+  }
+});
+
+// ── Schools list for cross-school roles (auditor, superadmin) ────────
+app.get("/api/schools/list", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: ["superadmin", "auditor"] });
+    if (!access.ok) return access.response;
+    const { data, error } = await supabase
+      .from("schools")
+      .select("id, name, slug, institution_type, parent_school_id")
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return res.json({ ok: true, schools: data || [] });
+  } catch (error) {
+    console.error("Erro /api/schools/list:", error);
+    return res.status(error.statusCode || 500).json({ ok: false, error: error.message || "Falha ao carregar as escolas." });
   }
 });
 
@@ -4012,7 +4107,76 @@ app.get("/api/incidents/:id", async (req, res) => {
     if (error) throw error;
     if (!data) return res.status(404).json({ ok: false, error: "Incidente nao encontrado." });
 
-    return res.json({ ok: true, incident: { ...data, school_name: (scope.managedSchools.find(s => s.id === data.school_id) || {}).name || "" } });
+    let quarantine_status = null;
+    let responseData = null;
+    let originalQuestion = null;
+    let evidence = [];
+
+    if (data.response_id) {
+      const { data: resp } = await supabase
+        .from("assistant_responses")
+        .select("id, consultation_id, origin_message_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, corrected_from_response_id, corrected_at, corrected_by, quarantined_at, quarantined_by, quarantine_reason, delivered_at")
+        .eq("id", data.response_id)
+        .maybeSingle();
+      if (resp) {
+        quarantine_status = resp.quarantined_at
+          ? { quarantined: true, quarantined_at: resp.quarantined_at, quarantined_by: resp.quarantined_by, reason: resp.quarantine_reason }
+          : { quarantined: false };
+        responseData = resp;
+
+        // Buscar pergunta original
+        const consultationId = resp.consultation_id || data.consultation_id;
+        if (consultationId) {
+          if (resp.origin_message_id) {
+            const { data: originMsg } = await supabase
+              .from("consultation_messages")
+              .select("message_text")
+              .eq("id", resp.origin_message_id)
+              .maybeSingle();
+            if (originMsg) originalQuestion = originMsg.message_text;
+          }
+          if (!originalQuestion) {
+            const { data: citizenMsgs } = await supabase
+              .from("consultation_messages")
+              .select("message_text, created_at")
+              .eq("consultation_id", consultationId)
+              .eq("actor_type", "CITIZEN")
+              .order("created_at", { ascending: false })
+              .limit(10);
+            if (citizenMsgs && citizenMsgs.length) {
+              if (resp.delivered_at) {
+                const deliveredAt = new Date(resp.delivered_at).getTime();
+                const before = citizenMsgs.find(m => new Date(m.created_at).getTime() <= deliveredAt);
+                originalQuestion = before ? before.message_text : citizenMsgs[0].message_text;
+              } else {
+                originalQuestion = citizenMsgs[0].message_text;
+              }
+            }
+          }
+        }
+
+        // Buscar evidencias/fontes usadas
+        const { data: evData } = await supabase
+          .from("interaction_source_evidence")
+          .select("source_title, source_excerpt, relevance_score, used_as_primary, evidence_type")
+          .eq("response_id", data.response_id)
+          .order("relevance_score", { ascending: false });
+        if (evData) evidence = evData;
+      }
+    }
+
+    // L16: Buscar eventos de auditoria vinculados ao incidente
+    let auditEvents = [];
+    const { data: auditData } = await supabase
+      .from("formal_audit_events")
+      .select("id, event_type, severity, actor_type, actor_name, summary, created_at")
+      .eq("school_id", data.school_id)
+      .or(`details->>incident_id.eq.${data.id}${data.response_id ? ',details->>response_id.eq.' + data.response_id : ''}`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (auditData) auditEvents = auditData;
+
+    return res.json({ ok: true, incident: { ...data, school_name: (scope.managedSchools.find(s => s.id === data.school_id) || {}).name || "", quarantine_status, original_question: originalQuestion, response: responseData, evidence, audit_events: auditEvents } });
   } catch (error) {
     console.error("Erro GET /api/incidents/:id:", error);
     return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar incidente." });
@@ -4032,13 +4196,14 @@ app.put("/api/incidents/:id/status", async (req, res) => {
     const nextStatus = String(req.body.status || "").trim().toUpperCase();
     const nextSeverity = String(req.body.severity || "").trim().toUpperCase();
     const resolutionNotes = String(req.body.resolution_notes || "").trim();
+    const assignedTo = req.body.assigned_to != null ? String(req.body.assigned_to).trim() : null;
     const actorName = String(access.context.memberName || access.context.memberEmail || "Operador").trim();
 
     if (!incidentId) {
       return res.status(400).json({ ok: false, error: "ID do incidente invalido." });
     }
 
-    const validStatuses = ["OPEN", "IN_REVIEW", "RESOLVED", "DISMISSED"];
+    const validStatuses = ["OPEN", "IN_REVIEW", "RESOLVED", "DISMISSED", "CONFIRMED"];
     if (nextStatus && !validStatuses.includes(nextStatus)) {
       return res.status(400).json({ ok: false, error: "Status invalido. Valores aceitos: " + validStatuses.join(", ") });
     }
@@ -4050,20 +4215,39 @@ app.put("/api/incidents/:id/status", async (req, res) => {
 
     const { data: existing, error: fetchErr } = await supabase
       .from("incident_reports")
-      .select("id, school_id, status, severity")
+      .select("id, school_id, status, severity, response_id, consultation_id")
       .eq("id", incidentId)
       .in("school_id", scope.managedSchoolIds)
       .maybeSingle();
     if (fetchErr) throw fetchErr;
     if (!existing) return res.status(404).json({ ok: false, error: "Incidente nao encontrado na sua instituicao." });
 
+    if (nextStatus && existing.status === nextStatus) {
+      return res.status(400).json({ ok: false, error: "O incidente ja esta neste status." });
+    }
+
+    if (nextStatus) {
+      const allowed = INCIDENT_VALID_TRANSITIONS[existing.status] || [];
+      if (!allowed.includes(nextStatus)) {
+        return res.status(400).json({ ok: false, error: `Transicao de '${existing.status}' para '${nextStatus}' nao permitida. Transicoes validas: ${allowed.join(", ")}.` });
+      }
+    }
+
     const updateData = {};
     if (nextStatus) updateData.status = nextStatus;
     if (nextSeverity) updateData.severity = nextSeverity;
     if (resolutionNotes) updateData.resolution_notes = resolutionNotes;
+    if (assignedTo !== null) {
+      updateData.assigned_to = assignedTo || null;
+      updateData.assigned_at = assignedTo ? new Date().toISOString() : null;
+    }
     if (nextStatus === "RESOLVED" || nextStatus === "DISMISSED") {
       updateData.resolved_by = actorName;
       updateData.resolved_at = new Date().toISOString();
+    }
+    if (nextStatus === "CONFIRMED") {
+      updateData.confirmed_by = actorName;
+      updateData.confirmed_at = new Date().toISOString();
     }
 
     if (!Object.keys(updateData).length) {
@@ -4078,10 +4262,136 @@ app.put("/api/incidents/:id/status", async (req, res) => {
       .single();
     if (updateErr) throw updateErr;
 
+    if (nextStatus) {
+      const eventSeverity = (nextStatus === "RESOLVED" || nextStatus === "DISMISSED") ? "HIGH" : "MEDIUM";
+      await supabase.from("formal_audit_events").insert({
+        school_id: existing.school_id,
+        consultation_id: existing.consultation_id || null,
+        event_type: "INCIDENT_STATUS_" + nextStatus,
+        severity: eventSeverity,
+        actor_type: "HUMAN",
+        actor_name: actorName,
+        summary: `Incidente atualizado de ${existing.status} para ${nextStatus}.`,
+        details: { incident_id: incidentId, response_id: existing.response_id, from_status: existing.status, to_status: nextStatus, resolution_notes: resolutionNotes || null, assigned_to: assignedTo || null }
+      });
+
+      // L11 — Notificar reportador quando incidente e resolvido/descartado
+      if (nextStatus === "RESOLVED" || nextStatus === "DISMISSED") {
+        const statusLabel = nextStatus === "RESOLVED" ? "resolvido" : "descartado";
+        const notifMessage = `O incidente #${incidentId.slice(0,8)} foi ${statusLabel} por ${actorName}.${resolutionNotes ? ' Notas: ' + resolutionNotes.slice(0, 200) : ''}`;
+        const openedByValue = updated.opened_by || null;
+        const isUuid = openedByValue && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(openedByValue);
+        await supabase.from("notification_queue").insert({
+          school_id: existing.school_id,
+          user_id: isUuid ? openedByValue : null,
+          topic: "incident_resolved",
+          message: notifMessage,
+          details: { incident_id: incidentId, status: nextStatus, resolved_by: actorName, opened_by: openedByValue },
+          sent: false,
+          dispatch_date: new Date().toISOString().slice(0, 10)
+        });
+      }
+    } else if (assignedTo !== null) {
+      await supabase.from("formal_audit_events").insert({
+        school_id: existing.school_id,
+        consultation_id: existing.consultation_id || null,
+        event_type: "INCIDENT_ASSIGNED",
+        severity: "LOW",
+        actor_type: "HUMAN",
+        actor_name: actorName,
+        summary: assignedTo ? `Incidente atribuido a ${assignedTo}.` : "Atribuicao do incidente removida.",
+        details: { incident_id: incidentId, response_id: existing.response_id, assigned_to: assignedTo || null }
+      });
+    }
+
     return res.json({ ok: true, incident: updated });
   } catch (error) {
     console.error("Erro PUT /api/incidents/:id/status:", error);
     return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao atualizar incidente." });
+  }
+});
+
+app.put("/api/incidents/:id/quarantine", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...INCIDENTS_MANAGE_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const actorName = String(access.context.memberName || access.context.memberEmail || access.context.userName || access.context.userId || "Operador").trim();
+
+    const incidentId = String(req.params.id || "").trim();
+    const reason = String(req.body.reason || "").trim();
+    const undo = req.body.undo === true;
+
+    const { data: inc, error: incErr } = await supabase
+      .from("incident_reports")
+      .select("id, school_id, response_id, status")
+      .eq("id", incidentId)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (incErr) throw incErr;
+    if (!inc) return res.status(404).json({ ok: false, error: "Incidente nao encontrado." });
+    if (!inc.response_id) return res.status(400).json({ ok: false, error: "Incidente nao possui resposta associada." });
+
+    const { data: resp, error: respErr } = await supabase
+      .from("assistant_responses")
+      .select("id, quarantined_at")
+      .eq("id", inc.response_id)
+      .maybeSingle();
+    if (respErr) throw respErr;
+    if (!resp) return res.status(404).json({ ok: false, error: "Resposta associada nao encontrada." });
+
+    const nowIso = new Date().toISOString();
+
+    if (undo) {
+      if (!resp.quarantined_at) return res.status(400).json({ ok: false, error: "A resposta nao esta em quarentena." });
+      const { error: updErr } = await supabase
+        .from("assistant_responses")
+        .update({ quarantined_at: null, quarantined_by: null, quarantine_reason: null })
+        .eq("id", resp.id);
+      if (updErr) throw updErr;
+
+      await supabase.from("formal_audit_events").insert({
+        school_id: inc.school_id,
+        consultation_id: null,
+        event_type: "RESPONSE_QUARANTINE_LIFTED",
+        severity: "MEDIUM",
+        actor_type: "Gestao",
+        actor_name: actorName,
+        summary: "Quarentena removida da resposta da IA.",
+        details: { incident_id: inc.id, response_id: resp.id, lifted_at: nowIso }
+      });
+
+      return res.json({ ok: true, quarantined: false });
+    }
+
+    if (resp.quarantined_at) return res.status(400).json({ ok: false, error: "A resposta ja esta em quarentena." });
+
+    if (!reason) return res.status(400).json({ ok: false, error: "Informe o motivo da quarentena (campo reason)." });
+
+    const { error: updErr } = await supabase
+      .from("assistant_responses")
+      .update({ quarantined_at: nowIso, quarantined_by: actorName, quarantine_reason: reason || null })
+      .eq("id", resp.id);
+    if (updErr) throw updErr;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: inc.school_id,
+      consultation_id: null,
+      event_type: "RESPONSE_QUARANTINED",
+      severity: "HIGH",
+      actor_type: "Gestao",
+      actor_name: actorName,
+      summary: "Resposta da IA colocada em quarentena por incidente.",
+      details: { incident_id: inc.id, response_id: resp.id, reason: reason || null, quarantined_at: nowIso }
+    });
+
+    return res.json({ ok: true, quarantined: true, quarantined_at: nowIso });
+  } catch (error) {
+    console.error("Erro PUT /api/incidents/:id/quarantine:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao aplicar quarentena." });
   }
 });
 
@@ -4164,7 +4474,7 @@ app.get("/api/feedback", async (req, res) => {
       const [respResult, evResult] = await Promise.all([
         supabase
           .from("assistant_responses")
-          .select("id, consultation_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, corrected_from_response_id, corrected_at, corrected_by, delivered_at")
+          .select("id, consultation_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, corrected_from_response_id, corrected_at, corrected_by, quarantined_at, quarantined_by, delivered_at")
           .in("id", responseIds),
         supabase
           .from("interaction_source_evidence")
@@ -4184,6 +4494,20 @@ app.get("/api/feedback", async (req, res) => {
     const schoolMap = {};
     for (const s of scope.managedSchools) { schoolMap[s.id] = s.name; }
 
+    const feedbackIds = (feedbackRows || []).map(r => r.id);
+    let correctionsMap = {};
+    if (feedbackIds.length) {
+      const { data: corrections } = await supabase
+        .from("response_corrections")
+        .select("id, feedback_id, status, submitted_at")
+        .in("feedback_id", feedbackIds)
+        .not("status", "eq", "REJECTED")
+        .order("submitted_at", { ascending: false });
+      for (const c of (corrections || [])) {
+        if (!correctionsMap[c.feedback_id]) correctionsMap[c.feedback_id] = c;
+      }
+    }
+
     const feedbacks = (feedbackRows || []).map(fb => {
       const resp = responsesMap[fb.response_id] || {};
       return {
@@ -4198,6 +4522,11 @@ app.get("/api/feedback", async (req, res) => {
         corrected_at: resp.corrected_at || null,
         corrected_by: resp.corrected_by || null,
         has_correction: !!resp.corrected_at,
+        correction_status: correctionsMap[fb.id]?.status || null,
+        correction_id: correctionsMap[fb.id]?.id || null,
+        quarantined_at: resp.quarantined_at || null,
+        quarantined_by: resp.quarantined_by || null,
+        is_quarantined: !!resp.quarantined_at,
         evidence: (evidenceMap[fb.response_id] || []).slice(0, 3)
       };
     });
@@ -4229,7 +4558,7 @@ app.get("/api/feedback/:id", async (req, res) => {
 
     const { data: resp } = await supabase
       .from("assistant_responses")
-      .select("id, consultation_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, corrected_from_response_id, corrected_at, corrected_by, delivered_at")
+      .select("id, consultation_id, origin_message_id, assistant_key, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, supporting_source_version_label, corrected_from_response_id, corrected_at, corrected_by, quarantined_at, quarantined_by, quarantine_reason, delivered_at")
       .eq("id", fb.response_id)
       .maybeSingle();
 
@@ -4238,18 +4567,781 @@ app.get("/api/feedback/:id", async (req, res) => {
       .select("source_title, source_excerpt, relevance_score, used_as_primary, evidence_type")
       .eq("response_id", fb.response_id);
 
+    let correction = null;
+    const { data: correctionRows } = await supabase
+      .from("response_corrections")
+      .select("*")
+      .eq("feedback_id", req.params.id)
+      .order("submitted_at", { ascending: false })
+      .limit(1);
+    if (correctionRows && correctionRows.length) correction = correctionRows[0];
+
+    let originalQuestion = null;
+    if (resp && resp.consultation_id) {
+      if (resp.origin_message_id) {
+        const { data: originMsg } = await supabase
+          .from("consultation_messages")
+          .select("message_text")
+          .eq("id", resp.origin_message_id)
+          .maybeSingle();
+        if (originMsg) originalQuestion = originMsg.message_text;
+      }
+      if (!originalQuestion) {
+        const { data: citizenMsgs } = await supabase
+          .from("consultation_messages")
+          .select("message_text, created_at")
+          .eq("consultation_id", resp.consultation_id)
+          .eq("actor_type", "CITIZEN")
+          .order("created_at", { ascending: false })
+          .limit(10);
+        if (citizenMsgs && citizenMsgs.length) {
+          if (resp.delivered_at) {
+            const deliveredAt = new Date(resp.delivered_at).getTime();
+            const before = citizenMsgs.find(m => new Date(m.created_at).getTime() <= deliveredAt);
+            originalQuestion = before ? before.message_text : citizenMsgs[0].message_text;
+          } else {
+            originalQuestion = citizenMsgs[0].message_text;
+          }
+        }
+      }
+    }
+
     return res.json({
       ok: true,
       feedback: {
         ...fb,
         school_name: (scope.managedSchools.find(s => s.id === fb.school_id) || {}).name || "",
+        original_question: originalQuestion,
         response: resp || null,
-        evidence: evidence || []
+        evidence: evidence || [],
+        correction: correction,
+        correction_status: correction?.status || null,
+        quarantine_status: resp?.quarantined_at ? "quarantined" : "active",
+        quarantined_at: resp?.quarantined_at || null,
+        quarantined_by: resp?.quarantined_by || null,
+        is_quarantined: !!resp?.quarantined_at
       }
     });
   } catch (error) {
     console.error("Erro GET /api/feedback/:id:", error);
     return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar feedback." });
+  }
+});
+
+app.put("/api/feedback/:id/correct", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    }
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_ACT_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const actorName = access.context.userName || access.context.userId || "unknown";
+
+    const correctionNotes = String(req.body.correction_notes || "").trim();
+
+    const { data: fb, error: fbErr } = await supabase
+      .from("interaction_feedback")
+      .select("id, school_id, consultation_id, response_id, feedback_type")
+      .eq("id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (fbErr) throw fbErr;
+    if (!fb) return res.status(404).json({ ok: false, error: "Feedback nao encontrado." });
+    if (fb.feedback_type !== "incorrect") {
+      return res.status(400).json({ ok: false, error: "Somente feedbacks do tipo 'incorreto' podem ser corrigidos." });
+    }
+
+    const { data: resp } = await supabase
+      .from("assistant_responses")
+      .select("id, corrected_at")
+      .eq("id", fb.response_id)
+      .maybeSingle();
+    if (!resp) return res.status(404).json({ ok: false, error: "Resposta associada nao encontrada." });
+    if (resp.corrected_at) return res.status(400).json({ ok: false, error: "Esta resposta ja foi corrigida." });
+
+    const nowIso = new Date().toISOString();
+    const { error: updateErr } = await supabase
+      .from("assistant_responses")
+      .update({ corrected_at: nowIso, corrected_by: actorName })
+      .eq("id", fb.response_id);
+    if (updateErr) throw updateErr;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: fb.school_id,
+      consultation_id: fb.consultation_id || null,
+      event_type: "RESPONSE_CORRECTED",
+      severity: "HIGH",
+      actor_type: "Gestao",
+      actor_name: actorName,
+      summary: "Resposta da IA marcada como corrigida apos feedback incorreto.",
+      details: {
+        feedback_id: fb.id,
+        response_id: fb.response_id,
+        correction_notes: correctionNotes || null,
+        corrected_at: nowIso
+      }
+    });
+
+    return res.json({ ok: true, corrected_at: nowIso, corrected_by: actorName });
+  } catch (error) {
+    console.error("Erro PUT /api/feedback/:id/correct:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao registrar correcao." });
+  }
+});
+
+// ── Structured Correction Lifecycle ─────────────────────────────────
+app.post("/api/corrections", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_ACT_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const actorName = access.context.memberName || access.context.memberEmail || access.context.user?.id || "unknown";
+
+    const { feedback_id, correction_type, root_cause, corrected_answer, justification, recommended_action, action_details } = req.body;
+    if (!feedback_id || !correction_type || !root_cause || !corrected_answer || !recommended_action) {
+      return res.status(400).json({ ok: false, error: "Campos obrigatorios: feedback_id, correction_type, root_cause, corrected_answer, recommended_action." });
+    }
+
+    const { data: fb, error: fbErr } = await supabase
+      .from("interaction_feedback")
+      .select("id, school_id, consultation_id, response_id, feedback_type")
+      .eq("id", feedback_id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (fbErr) throw fbErr;
+    if (!fb) return res.status(404).json({ ok: false, error: "Feedback nao encontrado." });
+    if (fb.feedback_type !== "incorrect") {
+      return res.status(400).json({ ok: false, error: "Somente feedbacks do tipo 'incorreto' podem receber correcao." });
+    }
+
+    const { data: existing } = await supabase
+      .from("response_corrections")
+      .select("id, status")
+      .eq("feedback_id", feedback_id)
+      .not("status", "eq", "REJECTED")
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ ok: false, error: "Ja existe uma correcao ativa para este feedback." });
+    }
+
+    const { data: correction, error: insertErr } = await supabase
+      .from("response_corrections")
+      .insert({
+        school_id: fb.school_id,
+        feedback_id: fb.id,
+        response_id: fb.response_id,
+        consultation_id: fb.consultation_id || null,
+        status: "SUBMITTED",
+        correction_type,
+        root_cause,
+        corrected_answer: String(corrected_answer).trim(),
+        justification: justification ? String(justification).trim() : null,
+        recommended_action,
+        action_details: action_details ? String(action_details).trim() : null,
+        submitted_by: actorName,
+        submitted_by_user_id: access.context.user?.id || null
+      })
+      .select()
+      .single();
+    if (insertErr) throw insertErr;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: fb.school_id,
+      consultation_id: fb.consultation_id || null,
+      event_type: "CORRECTION_SUBMITTED",
+      severity: "HIGH",
+      actor_type: "HUMAN",
+      actor_name: actorName,
+      summary: "Correcao formal submetida para resposta da IA.",
+      details: { correction_id: correction.id, feedback_id: fb.id, response_id: fb.response_id, correction_type, root_cause, recommended_action }
+    });
+
+    return res.json({ ok: true, correction });
+  } catch (error) {
+    console.error("Erro POST /api/corrections:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao submeter correcao." });
+  }
+});
+
+app.put("/api/corrections/:id/transition", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+
+    const { action, notes } = req.body;
+    const transition = CORRECTION_TRANSITIONS[action];
+    if (!transition) return res.status(400).json({ ok: false, error: "Acao invalida. Validas: review, approve, reject, apply." });
+
+    const allowedRoles = [...new Set([...FEEDBACK_ACT_ROLES, ...INCIDENTS_MANAGE_ROLES])];
+    const access = await requireRequestContext(req, res, { allowedRoles });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const actorName = access.context.memberName || access.context.memberEmail || access.context.user?.id || "unknown";
+
+    const { data: corr, error: corrErr } = await supabase
+      .from("response_corrections")
+      .select("*")
+      .eq("id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (corrErr) throw corrErr;
+    if (!corr) return res.status(404).json({ ok: false, error: "Correcao nao encontrada." });
+    if (!transition.from.includes(corr.status)) {
+      return res.status(400).json({ ok: false, error: `Transicao '${action}' nao permitida a partir do status '${corr.status}'.` });
+    }
+
+    if (action === "review" && corr.submitted_by_user_id && access.context.user?.id === corr.submitted_by_user_id) {
+      return res.status(403).json({ ok: false, error: "Voce nao pode revisar uma correcao submetida por voce mesmo." });
+    }
+
+    const nowIso = new Date().toISOString();
+    const updateFields = { status: transition.to };
+    if (action === "review") {
+      updateFields.reviewed_by = actorName;
+      updateFields.reviewed_at = nowIso;
+      updateFields.review_notes = notes ? String(notes).trim() : null;
+    } else if (action === "approve") {
+      updateFields.approved_by = actorName;
+      updateFields.approved_at = nowIso;
+      updateFields.approval_notes = notes ? String(notes).trim() : null;
+    } else if (action === "reject") {
+      updateFields.rejected_by = actorName;
+      updateFields.rejected_at = nowIso;
+      updateFields.rejection_reason = notes ? String(notes).trim() : null;
+    } else if (action === "apply") {
+      updateFields.applied_by = actorName;
+      updateFields.applied_at = nowIso;
+      updateFields.applied_notes = notes ? String(notes).trim() : null;
+      updateFields.applied_destination = req.body.destination ? String(req.body.destination).trim() : null;
+      if (req.body.affected_source_id) {
+        updateFields.affected_source_id = String(req.body.affected_source_id).trim();
+      }
+    }
+
+    const { error: updateErr } = await supabase
+      .from("response_corrections")
+      .update(updateFields)
+      .eq("id", req.params.id);
+    if (updateErr) throw updateErr;
+
+    if (action === "approve") {
+      await supabase.from("assistant_responses")
+        .update({ corrected_at: nowIso, corrected_by: actorName })
+        .eq("id", corr.response_id);
+    }
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: corr.school_id,
+      consultation_id: corr.consultation_id || null,
+      event_type: transition.event,
+      severity: transition.severity,
+      actor_type: "HUMAN",
+      actor_name: actorName,
+      summary: transition.summary,
+      details: { correction_id: corr.id, feedback_id: corr.feedback_id, response_id: corr.response_id, from_status: corr.status, to_status: transition.to, notes: notes || null }
+    });
+
+    // G4: If applying with kb_changes, create traceability records
+    if (action === "apply" && Array.isArray(req.body.kb_changes) && req.body.kb_changes.length > 0) {
+      const validChangeTypes = new Set(["content_updated", "source_created", "source_suspended", "prompt_adjusted", "embedding_refreshed", "faq_updated", "other"]);
+      const kbRows = req.body.kb_changes
+        .filter(ch => ch.change_description && validChangeTypes.has(ch.change_type))
+        .slice(0, 10)
+        .map(ch => ({
+          correction_id: corr.id,
+          school_id: corr.school_id,
+          source_document_id: ch.source_document_id || null,
+          version_id: ch.version_id || null,
+          change_type: ch.change_type,
+          change_description: String(ch.change_description).trim().substring(0, 2000),
+          before_snapshot: ch.before_snapshot ? String(ch.before_snapshot).trim().substring(0, 5000) : null,
+          after_snapshot: ch.after_snapshot ? String(ch.after_snapshot).trim().substring(0, 5000) : null,
+          applied_by: actorName,
+          applied_by_user_id: access.context.user?.id || null,
+          applied_at: nowIso
+        }));
+      if (kbRows.length) {
+        await supabase.from("correction_kb_changes").insert(kbRows);
+      }
+    }
+
+    return res.json({ ok: true, status: transition.to });
+  } catch (error) {
+    console.error("Erro PUT /api/corrections/:id/transition:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha na transicao." });
+  }
+});
+
+// ── G4: KB Changes traceability endpoints ──────────────────────────────
+app.get("/api/corrections/:id/kb-changes", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data: changes, error } = await supabase
+      .from("correction_kb_changes")
+      .select("*")
+      .eq("correction_id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .order("applied_at", { ascending: false });
+    if (error && !error.message?.includes("schema cache")) throw error;
+    if (error) return res.json({ ok: true, kb_changes: [], count: 0 });
+
+    // Enrich with source document title
+    const sourceIds = [...new Set((changes || []).map(c => c.source_document_id).filter(Boolean))];
+    let sourceMap = {};
+    if (sourceIds.length) {
+      const { data: docs } = await supabase.from("source_documents").select("id, title").in("id", sourceIds);
+      for (const d of (docs || [])) sourceMap[d.id] = d.title;
+    }
+
+    const enriched = (changes || []).map(c => ({
+      ...c,
+      source_title: sourceMap[c.source_document_id] || null
+    }));
+
+    return res.json({ ok: true, kb_changes: enriched, count: enriched.length });
+  } catch (error) {
+    console.error("Erro GET /api/corrections/:id/kb-changes:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao listar mudancas na base." });
+  }
+});
+
+app.post("/api/corrections/:id/kb-changes", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_ACT_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+    const actorName = access.context.memberName || access.context.memberEmail || access.context.user?.id || "unknown";
+
+    const { data: corr, error: corrErr } = await supabase
+      .from("response_corrections")
+      .select("id, school_id, status")
+      .eq("id", req.params.id)
+      .in("school_id", scope.managedSchoolIds)
+      .maybeSingle();
+    if (corrErr) throw corrErr;
+    if (!corr) return res.status(404).json({ ok: false, error: "Correcao nao encontrada." });
+    if (corr.status !== "APPLIED") return res.status(400).json({ ok: false, error: "Mudancas na base so podem ser registradas para correcoes com status APPLIED." });
+
+    const { change_type, change_description, source_document_id, version_id, before_snapshot, after_snapshot } = req.body;
+    const validChangeTypes = new Set(["content_updated", "source_created", "source_suspended", "prompt_adjusted", "embedding_refreshed", "faq_updated", "other"]);
+    if (!change_type || !validChangeTypes.has(change_type)) return res.status(400).json({ ok: false, error: "change_type invalido." });
+    if (!change_description || !String(change_description).trim()) return res.status(400).json({ ok: false, error: "change_description obrigatorio." });
+
+    const row = {
+      correction_id: corr.id,
+      school_id: corr.school_id,
+      source_document_id: source_document_id || null,
+      version_id: version_id || null,
+      change_type,
+      change_description: String(change_description).trim().substring(0, 2000),
+      before_snapshot: before_snapshot ? String(before_snapshot).trim().substring(0, 5000) : null,
+      after_snapshot: after_snapshot ? String(after_snapshot).trim().substring(0, 5000) : null,
+      applied_by: actorName,
+      applied_by_user_id: access.context.user?.id || null
+    };
+
+    const { data: inserted, error: insertErr } = await supabase.from("correction_kb_changes").insert(row).select().single();
+    if (insertErr) throw insertErr;
+
+    return res.json({ ok: true, kb_change: inserted });
+  } catch (error) {
+    console.error("Erro POST /api/corrections/:id/kb-changes:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao registrar mudanca na base." });
+  }
+});
+
+// ── G5: Improvement Cycle stats endpoint ──────────────────────────────
+app.get("/api/improvement-cycle/stats", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    // 1. Feedbacks
+    const { data: feedbacks, error: fbErr } = await supabase
+      .from("interaction_feedback")
+      .select("id, feedback_type, created_at")
+      .in("school_id", scope.managedSchoolIds);
+    if (fbErr) throw fbErr;
+    const feedbackRows = feedbacks || [];
+
+    // 2. Corrections (all statuses)
+    const { data: corrections, error: corrErr } = await supabase
+      .from("response_corrections")
+      .select("id, feedback_id, status, submitted_at, approved_at, applied_at, correction_type, root_cause")
+      .in("school_id", scope.managedSchoolIds);
+    if (corrErr) throw corrErr;
+    const correctionRows = corrections || [];
+
+    // 3. KB changes (table may not exist yet — migration pending)
+    let kbChangeRows = [];
+    const { data: kbChanges, error: kbErr } = await supabase
+      .from("correction_kb_changes")
+      .select("id, correction_id, change_type, applied_at")
+      .in("school_id", scope.managedSchoolIds);
+    if (kbErr && !kbErr.message?.includes("schema cache")) throw kbErr;
+    kbChangeRows = kbChanges || [];
+
+    // Build indexes
+    const feedbackIds = new Set(feedbackRows.map(f => f.id));
+    const feedbacksWithCorrections = new Set(correctionRows.map(c => c.feedback_id));
+    const correctionIdsWithKb = new Set(kbChangeRows.map(k => k.correction_id));
+
+    // Funnel metrics
+    const totalFeedbacks = feedbackRows.length;
+    const negativeFeedbacks = feedbackRows.filter(f => f.feedback_type === "negative" || f.feedback_type === "incorrect").length;
+    const feedbacksLeadingToCorrections = feedbacksWithCorrections.size;
+    const totalCorrections = correctionRows.length;
+    const appliedCorrections = correctionRows.filter(c => c.status === "APPLIED").length;
+    const correctionsWithKbChanges = correctionIdsWithKb.size;
+    const totalKbChanges = kbChangeRows.length;
+
+    // SLA metrics (in hours)
+    let feedbackToCorrectionHours = [];
+    let correctionToAppliedHours = [];
+    let appliedToKbHours = [];
+    let fullCycleHours = [];
+
+    for (const c of correctionRows) {
+      const fb = feedbackRows.find(f => f.id === c.feedback_id);
+      if (fb && c.submitted_at) {
+        const diff = (new Date(c.submitted_at) - new Date(fb.created_at)) / 3600000;
+        if (diff >= 0) feedbackToCorrectionHours.push(diff);
+      }
+      if (c.submitted_at && c.applied_at) {
+        const diff = (new Date(c.applied_at) - new Date(c.submitted_at)) / 3600000;
+        if (diff >= 0) correctionToAppliedHours.push(diff);
+      }
+    }
+
+    for (const kb of kbChangeRows) {
+      const c = correctionRows.find(cr => cr.id === kb.correction_id);
+      if (c && c.applied_at && kb.applied_at) {
+        const diff = (new Date(kb.applied_at) - new Date(c.applied_at)) / 3600000;
+        if (diff >= 0) appliedToKbHours.push(diff);
+      }
+      if (c) {
+        const fb = feedbackRows.find(f => f.id === c.feedback_id);
+        if (fb && kb.applied_at) {
+          const diff = (new Date(kb.applied_at) - new Date(fb.created_at)) / 3600000;
+          if (diff >= 0) fullCycleHours.push(diff);
+        }
+      }
+    }
+
+    const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10 : null;
+
+    // Correction type distribution
+    const typeDist = {};
+    for (const c of correctionRows) {
+      typeDist[c.correction_type] = (typeDist[c.correction_type] || 0) + 1;
+    }
+
+    // Root cause distribution
+    const rootDist = {};
+    for (const c of correctionRows) {
+      rootDist[c.root_cause] = (rootDist[c.root_cause] || 0) + 1;
+    }
+
+    // KB change type distribution
+    const kbTypeDist = {};
+    for (const k of kbChangeRows) {
+      kbTypeDist[k.change_type] = (kbTypeDist[k.change_type] || 0) + 1;
+    }
+
+    // Conversion rates
+    const feedbackToCorrection = totalFeedbacks > 0 ? Math.round(feedbacksLeadingToCorrections / totalFeedbacks * 1000) / 10 : 0;
+    const correctionToApplied = totalCorrections > 0 ? Math.round(appliedCorrections / totalCorrections * 1000) / 10 : 0;
+    const appliedToKb = appliedCorrections > 0 ? Math.round(correctionsWithKbChanges / appliedCorrections * 1000) / 10 : 0;
+    const fullCycleRate = totalFeedbacks > 0 ? Math.round(correctionsWithKbChanges / totalFeedbacks * 1000) / 10 : 0;
+
+    return res.json({
+      ok: true,
+      stats: {
+        funnel: {
+          total_feedbacks: totalFeedbacks,
+          negative_feedbacks: negativeFeedbacks,
+          feedbacks_with_corrections: feedbacksLeadingToCorrections,
+          total_corrections: totalCorrections,
+          applied_corrections: appliedCorrections,
+          corrections_with_kb_changes: correctionsWithKbChanges,
+          total_kb_changes: totalKbChanges
+        },
+        conversion_rates: {
+          feedback_to_correction: feedbackToCorrection,
+          correction_to_applied: correctionToApplied,
+          applied_to_kb: appliedToKb,
+          full_cycle: fullCycleRate
+        },
+        sla: {
+          avg_feedback_to_correction_hours: avg(feedbackToCorrectionHours),
+          avg_correction_to_applied_hours: avg(correctionToAppliedHours),
+          avg_applied_to_kb_hours: avg(appliedToKbHours),
+          avg_full_cycle_hours: avg(fullCycleHours)
+        },
+        distributions: {
+          correction_types: typeDist,
+          root_causes: rootDist,
+          kb_change_types: kbTypeDist
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/improvement-cycle/stats:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar metricas do ciclo de melhoria." });
+  }
+});
+
+// ── GET /api/network/overview — Consolidated network view per school ──
+app.get("/api/network/overview", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...NETWORK_OVERVIEW_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    if (scope.managedSchools.length < 2) {
+      return res.json({ ok: true, schools: [], scope_mode: scope.scopeMode, message: "Visao de rede requer mais de uma escola." });
+    }
+
+    const schoolIds = scope.managedSchoolIds;
+
+    // Parallel queries for all schools
+    const [
+      consultationsRes, incidentsRes, feedbackRes, correctionsRes, snapshotsRes
+    ] = await Promise.all([
+      supabase.from("institutional_consultations").select("id, school_id, status").in("school_id", schoolIds),
+      supabase.from("incident_reports").select("id, school_id, status, severity").in("school_id", schoolIds),
+      supabase.from("interaction_feedback").select("id, school_id, feedback_type").in("school_id", schoolIds),
+      supabase.from("response_corrections").select("id, school_id, status").in("school_id", schoolIds),
+      supabase.from("intelligence_snapshots").select("school_id, source_coverage_rate, avg_confidence, consultations_total, consultations_resolved, snapshot_date")
+        .in("school_id", schoolIds).order("snapshot_date", { ascending: false })
+    ]);
+
+    const consultations = consultationsRes.data || [];
+    const incidents = incidentsRes.data || [];
+    const feedbacks = feedbackRes.data || [];
+    const corrections = correctionsRes.data || [];
+    const snapshots = snapshotsRes.data || [];
+
+    // Build per-school metrics
+    const schoolMetrics = scope.managedSchools.map(school => {
+      const sid = school.id;
+
+      // Consultations
+      const schoolConsultations = consultations.filter(c => c.school_id === sid);
+      const totalConsultations = schoolConsultations.length;
+      const resolvedConsultations = schoolConsultations.filter(c => c.status === "resolved").length;
+
+      // Incidents
+      const schoolIncidents = incidents.filter(i => i.school_id === sid);
+      const openIncidents = schoolIncidents.filter(i => i.status === "OPEN" || i.status === "IN_REVIEW").length;
+      const criticalOpen = schoolIncidents.filter(i => (i.status === "OPEN" || i.status === "IN_REVIEW") && i.severity === "CRITICAL").length;
+      const totalIncidents = schoolIncidents.length;
+
+      // Feedback
+      const schoolFeedbacks = feedbacks.filter(f => f.school_id === sid);
+      const totalFeedback = schoolFeedbacks.length;
+      const negativeFeedbacks = schoolFeedbacks.filter(f => f.feedback_type === "not_helpful" || f.feedback_type === "incorrect").length;
+      const positiveRate = totalFeedback > 0 ? Math.round((totalFeedback - negativeFeedbacks) / totalFeedback * 1000) / 10 : 0;
+
+      // Corrections
+      const schoolCorrections = corrections.filter(c => c.school_id === sid);
+      const totalCorrections = schoolCorrections.length;
+      const pendingCorrections = schoolCorrections.filter(c => c.status === "SUBMITTED" || c.status === "IN_REVIEW").length;
+      const appliedCorrections = schoolCorrections.filter(c => c.status === "APPLIED").length;
+
+      // Latest intelligence snapshot
+      const latestSnapshot = snapshots.find(s => s.school_id === sid);
+      const coverageRate = latestSnapshot ? parseFloat(latestSnapshot.source_coverage_rate) : null;
+      const avgConfidence = latestSnapshot ? parseFloat(latestSnapshot.avg_confidence) : null;
+
+      // Resolution rate
+      const resolutionRate = totalConsultations > 0 ? Math.round(resolvedConsultations / totalConsultations * 1000) / 10 : 0;
+
+      // Health score (0-100): weighted composite
+      let healthScore = 50; // baseline
+      if (coverageRate !== null) healthScore += (coverageRate - 50) * 0.3;
+      if (avgConfidence !== null) healthScore += (avgConfidence - 50) * 0.3;
+      if (positiveRate > 0) healthScore += (positiveRate - 50) * 0.2;
+      if (totalIncidents > 0) healthScore -= (openIncidents / totalIncidents) * 20;
+      if (criticalOpen > 0) healthScore -= criticalOpen * 10;
+      healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
+
+      return {
+        school_id: sid,
+        school_name: school.name,
+        institution_type: school.institution_type || "school_unit",
+        parent_school_id: school.parent_school_id || null,
+        metrics: {
+          total_consultations: totalConsultations,
+          resolved_consultations: resolvedConsultations,
+          resolution_rate: resolutionRate,
+          total_incidents: totalIncidents,
+          open_incidents: openIncidents,
+          critical_open: criticalOpen,
+          total_feedback: totalFeedback,
+          negative_feedbacks: negativeFeedbacks,
+          positive_rate: positiveRate,
+          total_corrections: totalCorrections,
+          pending_corrections: pendingCorrections,
+          applied_corrections: appliedCorrections,
+          source_coverage_rate: coverageRate,
+          avg_confidence: avgConfidence,
+          health_score: healthScore
+        }
+      };
+    });
+
+    // Filter only school_unit children (exclude the network entity itself from ranking)
+    const schoolUnits = schoolMetrics.filter(s => s.institution_type === "school_unit" || s.parent_school_id);
+
+    // Network-level aggregation
+    const networkTotals = {
+      total_schools: schoolUnits.length,
+      total_consultations: schoolUnits.reduce((s, u) => s + u.metrics.total_consultations, 0),
+      total_incidents: schoolUnits.reduce((s, u) => s + u.metrics.total_incidents, 0),
+      open_incidents: schoolUnits.reduce((s, u) => s + u.metrics.open_incidents, 0),
+      critical_open: schoolUnits.reduce((s, u) => s + u.metrics.critical_open, 0),
+      total_feedback: schoolUnits.reduce((s, u) => s + u.metrics.total_feedback, 0),
+      negative_feedbacks: schoolUnits.reduce((s, u) => s + u.metrics.negative_feedbacks, 0),
+      total_corrections: schoolUnits.reduce((s, u) => s + u.metrics.total_corrections, 0),
+      pending_corrections: schoolUnits.reduce((s, u) => s + u.metrics.pending_corrections, 0),
+      avg_coverage: schoolUnits.filter(u => u.metrics.source_coverage_rate !== null).length > 0
+        ? Math.round(schoolUnits.filter(u => u.metrics.source_coverage_rate !== null).reduce((s, u) => s + u.metrics.source_coverage_rate, 0) / schoolUnits.filter(u => u.metrics.source_coverage_rate !== null).length * 10) / 10
+        : null,
+      avg_confidence: schoolUnits.filter(u => u.metrics.avg_confidence !== null).length > 0
+        ? Math.round(schoolUnits.filter(u => u.metrics.avg_confidence !== null).reduce((s, u) => s + u.metrics.avg_confidence, 0) / schoolUnits.filter(u => u.metrics.avg_confidence !== null).length * 10) / 10
+        : null,
+      avg_health_score: schoolUnits.length > 0
+        ? Math.round(schoolUnits.reduce((s, u) => s + u.metrics.health_score, 0) / schoolUnits.length)
+        : null
+    };
+
+    return res.json({
+      ok: true,
+      scope_mode: scope.scopeMode,
+      network_totals: networkTotals,
+      schools: schoolMetrics.sort((a, b) => a.metrics.health_score - b.metrics.health_score),
+      school_count: schoolMetrics.length
+    });
+  } catch (error) {
+    console.error("Erro GET /api/network/overview:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar visao da rede." });
+  }
+});
+
+// ── GET /api/corrections — List corrections with filters ──────────────
+app.get("/api/corrections", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    let query = supabase
+      .from("response_corrections")
+      .select("id, school_id, feedback_id, response_id, consultation_id, status, correction_type, root_cause, corrected_answer, justification, recommended_action, action_details, submitted_by, submitted_at, submitted_by_user_id, reviewed_by, reviewed_at, review_notes, approved_by, approved_at, approval_notes, applied_by, applied_at, applied_notes, applied_destination, rejected_by, rejected_at, rejection_reason, affected_source_id")
+      .in("school_id", scope.managedSchoolIds)
+      .order("submitted_at", { ascending: false });
+
+    const statusFilter = String(req.query.status || "").trim().toUpperCase();
+    if (statusFilter && ["SUBMITTED", "IN_REVIEW", "APPROVED", "APPLIED", "REJECTED"].includes(statusFilter)) {
+      query = query.eq("status", statusFilter);
+    }
+    const typeFilter = String(req.query.correction_type || "").trim().toLowerCase();
+    if (typeFilter) {
+      query = query.eq("correction_type", typeFilter);
+    }
+
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 200, 1), 1000);
+    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const corrections = data || [];
+    const feedbackIds = [...new Set(corrections.map(c => c.feedback_id).filter(Boolean))];
+    let feedbackMap = {};
+    if (feedbackIds.length) {
+      const { data: fbRows } = await supabase.from("interaction_feedback").select("id, feedback_type, comment, user_name").in("id", feedbackIds);
+      for (const fb of (fbRows || [])) feedbackMap[fb.id] = fb;
+    }
+    const responseIds = [...new Set(corrections.map(c => c.response_id).filter(Boolean))];
+    let responseMap = {};
+    if (responseIds.length) {
+      const { data: respRows } = await supabase.from("assistant_responses").select("id, response_text, corrected_at, corrected_by").in("id", responseIds);
+      for (const r of (respRows || [])) responseMap[r.id] = r;
+    }
+    const schoolIds = [...new Set(corrections.map(c => c.school_id).filter(Boolean))];
+    let schoolMap = {};
+    if (schoolIds.length) {
+      const { data: schRows } = await supabase.from("schools").select("id, name").in("id", schoolIds);
+      for (const s of (schRows || [])) schoolMap[s.id] = s.name;
+    }
+
+    const enriched = corrections.map(c => ({
+      ...c,
+      feedback: feedbackMap[c.feedback_id] || null,
+      response_text: responseMap[c.response_id]?.response_text || null,
+      response_corrected_at: responseMap[c.response_id]?.corrected_at || null,
+      school_name: schoolMap[c.school_id] || null,
+    }));
+
+    return res.json({ ok: true, corrections: enriched, count: enriched.length });
+  } catch (error) {
+    console.error("Erro GET /api/corrections:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao listar correcoes." });
+  }
+});
+
+// ── GET /api/corrections/stats/summary — Correction statistics ────────
+app.get("/api/corrections/stats/summary", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...FEEDBACK_READ_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("response_corrections")
+      .select("status, submitted_at, approved_at, applied_at, rejected_at")
+      .in("school_id", scope.managedSchoolIds);
+    if (error) throw error;
+
+    const rows = data || [];
+    const counts = { submitted: 0, in_review: 0, approved: 0, applied: 0, rejected: 0 };
+    for (const r of rows) {
+      const k = String(r.status).toLowerCase();
+      if (counts[k] !== undefined) counts[k]++;
+    }
+
+    let totalResolutionMs = 0;
+    let resolvedCount = 0;
+    for (const r of rows) {
+      if (r.status === "APPLIED" && r.submitted_at && r.applied_at) {
+        totalResolutionMs += new Date(r.applied_at).getTime() - new Date(r.submitted_at).getTime();
+        resolvedCount++;
+      }
+    }
+    const avgResolutionHours = resolvedCount ? Math.round((totalResolutionMs / resolvedCount) / 3600000 * 10) / 10 : null;
+    const pendingReview = counts.submitted + counts.in_review;
+
+    return res.json({
+      ok: true,
+      stats: { total: rows.length, ...counts, pending_review: pendingReview, avg_resolution_hours: avgResolutionHours }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/corrections/stats/summary:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar estatisticas de correcoes." });
   }
 });
 
@@ -4286,13 +5378,137 @@ app.get("/api/feedback/stats/summary", async (req, res) => {
       pendingCorrection = incorrectResponseIds.length - (corrected || []).length;
     }
 
+    const { data: corrStatusRows } = await supabase
+      .from("response_corrections")
+      .select("status")
+      .in("school_id", scope.managedSchoolIds)
+      .not("status", "eq", "REJECTED");
+    const corrCounts = { submitted: 0, in_review: 0, approved: 0, applied: 0 };
+    for (const r of (corrStatusRows || [])) {
+      const k = String(r.status).toLowerCase();
+      if (corrCounts[k] !== undefined) corrCounts[k]++;
+    }
+
     return res.json({
       ok: true,
-      stats: { total, helpful, not_helpful: notHelpful, incorrect, positive_rate: positiveRate, pending_correction: pendingCorrection }
+      stats: { total, helpful, not_helpful: notHelpful, incorrect, positive_rate: positiveRate, pending_correction: pendingCorrection, correction_counts: corrCounts }
     });
   } catch (error) {
     console.error("Erro GET /api/feedback/stats/summary:", error);
     return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar estatisticas de feedback." });
+  }
+});
+
+// ── Handoff Queue endpoints ──────────────────────────────────────────
+app.get("/api/handoff-queue", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...HANDOFF_QUEUE_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const statusFilter = String(req.query.status || "").trim().toUpperCase();
+    const validStatuses = ["WAITING_HUMAN", "OPEN", "IN_PROGRESS"];
+    const statuses = statusFilter && validStatuses.includes(statusFilter) ? [statusFilter] : ["WAITING_HUMAN"];
+
+    const { data: consultations, error } = await supabase
+      .from("institutional_consultations")
+      .select("id, school_id, channel, requester_id, requester_name, primary_topic, status, assigned_assistant_key, opened_at, resolved_at, metadata")
+      .in("school_id", scope.managedSchoolIds)
+      .in("status", statuses)
+      .order("opened_at", { ascending: true });
+    if (error) throw error;
+
+    const rows = consultations || [];
+    const consultationIds = rows.map(c => c.id);
+    let responseMap = {};
+    if (consultationIds.length) {
+      const { data: respRows } = await supabase
+        .from("assistant_responses")
+        .select("consultation_id, assistant_key, confidence_score, response_mode, fallback_to_human, response_text, created_at")
+        .in("consultation_id", consultationIds)
+        .order("created_at", { ascending: false });
+      for (const r of (respRows || [])) {
+        if (!responseMap[r.consultation_id]) responseMap[r.consultation_id] = r;
+      }
+    }
+    const schoolIds = [...new Set(rows.map(c => c.school_id).filter(Boolean))];
+    let schoolMap = {};
+    if (schoolIds.length) {
+      const { data: schRows } = await supabase.from("schools").select("id, name").in("id", schoolIds);
+      for (const s of (schRows || [])) schoolMap[s.id] = s.name;
+    }
+
+    const now = Date.now();
+    const enriched = rows.map(c => {
+      const lastResp = responseMap[c.id] || null;
+      const waitMs = now - new Date(c.opened_at).getTime();
+      return {
+        ...c,
+        school_name: schoolMap[c.school_id] || null,
+        wait_minutes: Math.round(waitMs / 60000),
+        last_response: lastResp ? {
+          assistant_key: lastResp.assistant_key,
+          confidence_score: lastResp.confidence_score,
+          response_mode: lastResp.response_mode,
+          fallback_to_human: lastResp.fallback_to_human,
+          response_text: lastResp.response_text ? lastResp.response_text.substring(0, 200) : null,
+          created_at: lastResp.created_at
+        } : null
+      };
+    });
+
+    return res.json({ ok: true, queue: enriched, count: enriched.length });
+  } catch (error) {
+    console.error("Erro GET /api/handoff-queue:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao listar fila de atendimento humano." });
+  }
+});
+
+app.get("/api/handoff-queue/stats", async (req, res) => {
+  try {
+    if (!supabase) return res.status(500).json({ ok: false, error: "Supabase nao configurado no servidor." });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...HANDOFF_QUEUE_ROLES] });
+    if (!access.ok) return access.response;
+    const scope = await resolveManagedSchoolScope(access.context);
+
+    const { data, error } = await supabase
+      .from("institutional_consultations")
+      .select("id, status, opened_at, resolved_at")
+      .in("school_id", scope.managedSchoolIds)
+      .in("status", ["WAITING_HUMAN", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]);
+    if (error) throw error;
+
+    const rows = data || [];
+    const now = Date.now();
+    const waiting = rows.filter(r => r.status === "WAITING_HUMAN");
+    const open = rows.filter(r => r.status === "OPEN");
+    const inProgress = rows.filter(r => r.status === "IN_PROGRESS");
+    const resolved = rows.filter(r => r.status === "RESOLVED" || r.status === "CLOSED");
+
+    let totalWaitMs = 0;
+    for (const w of waiting) {
+      totalWaitMs += now - new Date(w.opened_at).getTime();
+    }
+    const avgWaitMinutes = waiting.length ? Math.round(totalWaitMs / waiting.length / 60000) : null;
+
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayResolved = resolved.filter(r => r.resolved_at && new Date(r.resolved_at) >= todayStart).length;
+
+    return res.json({
+      ok: true,
+      stats: {
+        waiting: waiting.length,
+        open: open.length,
+        in_progress: inProgress.length,
+        resolved_today: todayResolved,
+        avg_wait_minutes: avgWaitMinutes,
+        total: rows.length
+      }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/handoff-queue/stats:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar estatisticas da fila." });
   }
 });
 

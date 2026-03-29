@@ -482,6 +482,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await renderSidebarInstitutionContext();
 
+    if (typeof renderSchoolSwitcher === 'function') {
+        await renderSchoolSwitcher();
+    }
+
     document.body.style.opacity = '1';
 });
 

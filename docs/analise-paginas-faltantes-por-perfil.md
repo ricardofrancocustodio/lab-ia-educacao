@@ -337,73 +337,121 @@ Alem das 4 paginas confirmadas, a analise do backend revela lacunas de visibilid
 
 ---
 
-### 5.2 Fila de Atendimento Humano (Human Handoff Queue)
+### 5.2 Fila de Atendimento Humano (Human Handoff Queue) — ✅ IMPLEMENTADO
 
-**Dados existentes no backend:**
-- `institutional_consultations` com `status = 'WAITING_HUMAN'`
-- `assistant_responses` com `fallback_to_human = true`
-- `fallback_rate` por assistente e por tema (ja calculado)
-- `review_required = true` em eventos de auditoria
+> **Status:** Implementado como pagina dedicada `/fila-humana` (`handoff-queue.html` + `handoff-queue-panel.js`).
 
-**Frontend atual:** o chat-manager mostra conversas, mas nao ha fila priorizada de atendimentos que precisam de humano
+**Implementacao realizada:**
+- **Backend:** `GET /api/handoff-queue` (listagem de conversas com status WAITING_HUMAN/OPEN/IN_PROGRESS filtrado por escola, enriquecimento com ultima resposta da IA, nome da escola e tempo de espera em minutos) + `GET /api/handoff-queue/stats` (contagens: aguardando, abertas, em andamento, resolvidas hoje, tempo medio de espera)
+- **Frontend:** Pagina dedicada em `/fila-humana` com 5 stat cards (Aguardando Humano, Abertas, Em Andamento, Resolvidas Hoje, Espera Media), filtro por status, lista de cards priorizados por tempo de espera (cores: >60min vermelho, >30min laranja), modal de detalhes com info da conversa + ultima resposta da IA (confianca, modo, flag de fallback)
+- **Sidebar:** Item "Fila Humana" com icone `fa-headset` na secao ATENDIMENTO, logo abaixo de "Atendimento"
+- **Permissoes:** Acessivel a: superadmin, network_manager, public_operator, secretariat, coordination, direction (mesmos roles de `HANDOFF_QUEUE_ROLES`)
 
-**Pagina sugerida:** Aba "Fila Humana" dentro de `/atendimento` | Ou visao filtrada no chat-manager
-
-| Perfil | O que gostaria de ver | Por que |
+| Perfil | O que ve | Status |
 |---|---|---|
-| `public_operator` | **Fila priorizada:** conversas onde a IA pediu humano, ordenadas por tempo de espera e severidade | E o trabalho principal desse perfil — responder o cidadao quando a IA nao consegue |
-| `secretariat` | Fila de conversas que a IA encaminhou para a secretaria | Responder perguntas sobre documentos e processos |
-| `coordination` | Fila de conversas pedagogicas que a IA nao conseguiu tratar | Dar orientacoes especializadas |
-| `direction` | Visao gerencial: quantas conversas estao na fila, ha quanto tempo, por qual motivo | Identificar gargalos e escalar se necessario |
-| `network_manager` | Visao consolidada: fila humana de todas as escolas | Redistribuir operadores se uma escola esta sobrecarregada |
+| `public_operator` | Fila priorizada: conversas onde a IA pediu humano, ordenadas por tempo de espera | ✅ Implementado |
+| `secretariat` | Fila de conversas encaminhadas para a secretaria | ✅ Implementado |
+| `coordination` | Fila de conversas pedagogicas nao tratadas pela IA | ✅ Implementado |
+| `direction` | Visao gerencial: quantas na fila, ha quanto tempo, por qual motivo | ✅ Implementado |
+| `network_manager` | Visao consolidada: fila humana de todas as escolas | ✅ Implementado |
 
-**Cenario de crise:** 30 cidadaos perguntam sobre suspensao de aula no mesmo dia. A IA nao tem resposta na base e faz fallback humano em todas. Sem fila priorizada, o operador nao sabe por onde comecar. Com a fila, ele ve a quantidade, o tempo de espera e pode atender por ordem.
+**Cenario de crise:** 30 cidadaos perguntam sobre suspensao de aula no mesmo dia. A IA nao tem resposta na base e faz fallback humano em todas. Na pagina `/fila-humana`, o operador ve a quantidade, o tempo de espera (destacado em vermelho quando >60min), e pode abrir cada conversa para ver a ultima resposta da IA e o nivel de confianca.
 
 ---
 
-### 5.3 Trilha de Correcoes da IA (AI Correction Trail)
+### 5.3 Trilha de Correcoes da IA (AI Correction Trail) — ✅ IMPLEMENTADO
 
-**Dados existentes no backend:**
-- `assistant_responses.corrected_from_response_id` — referencia a resposta corrigida
-- `assistant_responses.corrected_at` e `corrected_by` — quem e quando corrigiu
-- Evento de auditoria `AUDIT_REVIEW_STATUS_UPDATED` com `review_status = 'KNOWLEDGE_CREATED'`
-- `interaction_source_evidence` — fontes usadas antes e depois da correcao
+> **Status:** Implementado como pagina dedicada `/correcoes` (`corrections.html` + `corrections-panel.js`).
 
-**Frontend atual:** nenhuma visao dedicada; dados dispersos entre auditoria e respostas
+**Implementacao realizada:**
+- **Backend:** `GET /api/corrections` (listagem com filtros por status e tipo, paginacao, enriquecimento com feedback/resposta/escola) + `GET /api/corrections/stats/summary` (contagens por status, media de horas ate resolucao, pendentes de revisao)
+- **Frontend:** Pagina dedicada em `/correcoes` com 6 stat cards (Submetidas, Em Revisao, Aprovadas, Aplicadas, Rejeitadas, Media de horas), filtros por status e tipo, lista de cards com timeline completa, modal de detalhes com botoes de transicao (review/approve/reject/apply)
+- **Sidebar:** Item "Correcoes" com icone `fa-check-double` na secao GESTAO, logo abaixo de "Feedback da IA"
+- **Permissoes:** Acessivel a: superadmin, network_manager, content_curator, public_operator, direction, auditor (mesmos roles de `FEEDBACK_READ_ROLES`). Acoes de transicao limitadas a `FEEDBACK_ACT_ROLES` (superadmin, network_manager, content_curator)
 
-**Pagina sugerida:** Aba "Correcoes" dentro de `/audit` ou `/feedback`
-
-| Perfil | O que gostaria de ver | Por que |
+| Perfil | O que ve | Status |
 |---|---|---|
-| `auditor` | Historico completo: resposta original → correcao → quem corrigiu → impacto | Garantir que correcoes foram feitas e registradas conforme governanca |
-| `content_curator` | Suas correcoes e as pendentes; ver se a correcao se refletiu na base | Fechar o ciclo: correcao da resposta → atualizacao da base |
-| `direction` | Quantas correcoes foram feitas na escola, por quem, em quais temas | Supervisao da qualidade operacional |
-| `network_manager` | Visao consolidada: taxa de correcao por escola e por tema | Identificar escolas que corrigem pouco (risco) ou muito (base fraca) |
+| `auditor` | Historico completo: resposta original → correcao → quem corrigiu → linha do tempo | ✅ Implementado |
+| `content_curator` | Suas correcoes e as pendentes; pode revisar, aprovar e aplicar | ✅ Implementado |
+| `direction` | Visualizacao de correcoes da escola com stat cards | ✅ Implementado |
+| `network_manager` | Visao multi-escola de correcoes com filtros | ✅ Implementado |
 
-**Cenario de crise:** Apos um incidente HIGH (resposta incorreta sobre procedimento de saude), a trilha de correcao documenta: a resposta original, quem corrigiu, a nova resposta, e se a base foi atualizada. Isso e essencial para prestacao de contas.
+**Cenario de crise:** Apos um incidente HIGH (resposta incorreta sobre procedimento de saude), a trilha de correcao na pagina `/correcoes` documenta: a resposta original, quem corrigiu, a nova resposta, e toda a linha do tempo (submissao → revisao → aprovacao → aplicacao). Isso e essencial para prestacao de contas.
+
+> **Lacuna remanescente (L10, Sprint 3):** A transicao "APPLIED" ainda e administrativa — nao altera automaticamente a base de conhecimento. O destino de aplicacao e registrado, mas a mudanca real na base precisa ser feita manualmente.
+
+#### 5.3.1 Rastreabilidade Correcao → Mudanca na Base (G4) — ✅ IMPLEMENTADO
+
+> **Status:** Implementado com nova tabela `correction_kb_changes` e endpoints dedicados.
+
+**Gap original (G4):** Sem rastreabilidade "correcao → mudanca na base" — CRITICA. Quando uma correcao era aplicada, nao havia registro de qual mudanca real foi feita na base de conhecimento.
+
+**Solucao implementada:**
+- **Nova tabela `correction_kb_changes`** — registra cada mudanca na base vinculada a uma correcao (tipo de mudanca, descricao, snapshots antes/depois, documento fonte afetado, versao)
+- **Migracao SQL:** `supabase/snippets/correction_kb_changes_migration.sql`
+- **Transicao "apply" aprimorada** — `PUT /api/corrections/:id/transition` aceita array `kb_changes` no corpo da requisicao para registrar mudancas automaticamente ao aplicar
+- **`GET /api/corrections/:id/kb-changes`** — lista mudancas na base vinculadas a uma correcao (com titulo do documento fonte)
+- **`POST /api/corrections/:id/kb-changes`** — registra manualmente uma mudanca na base para correcao ja aplicada
+- **Frontend atualizado em `corrections-panel.js`:** secao de mudancas na base no modal de detalhes, botao "Registrar Mudanca na Base" para correcoes APPLIED, snapshots expansiveis antes/depois
+
+| Tipos de mudanca suportados | Descricao |
+|---|---|
+| `content_updated` | Conteudo do documento atualizado |
+| `source_created` | Novo documento criado |
+| `source_suspended` | Documento suspenso |
+| `prompt_adjusted` | Prompt do sistema ajustado |
+| `embedding_refreshed` | Embeddings recalculados |
+| `faq_updated` | FAQ atualizado |
+| `other` | Outro tipo de mudanca |
 
 ---
 
-### 5.4 Visao Consolidada da Rede (Network Overview)
+#### 5.3.2 Dashboard de Ciclo de Melhoria com SLA (G5) — ✅ IMPLEMENTADO
 
-**Dados existentes no backend:**
+> **Status:** Implementado como pagina dedicada `/ciclo-melhoria` (`improvement-cycle.html` + `improvement-cycle-panel.js`).
+
+**Gap original (G5):** Sem dashboard de ciclo de melhoria (SLA feedback→correcao) — MEDIA. Nao havia visao consolidada do funil de melhoria continua nem metricas de tempo (SLA) entre as etapas.
+
+**Solucao implementada:**
+- **`GET /api/improvement-cycle/stats`** — endpoint com metricas completas:
+  - **Funil de 7 niveis:** total_feedbacks → negative_feedbacks → feedbacks_with_corrections → total_corrections → applied_corrections → corrections_with_kb_changes → total_kb_changes
+  - **4 taxas de conversao:** feedback→correcao, correcao→aplicada, aplicada→mudanca KB, ciclo completo
+  - **4 metricas SLA (em horas):** feedback→correcao, correcao→aplicada, aplicada→mudanca KB, ciclo total
+  - **3 distribuicoes:** tipos de correcao, causas raiz, tipos de mudanca KB
+- **Pagina `/ciclo-melhoria`:** tema laranja, icone fa-sync-alt, 4 cards SLA, visualizacao de funil, 4 cards de taxa de conversao, 3 secoes de distribuicao
+
+| Perfil | Acesso |
+|---|---|
+| `superadmin` | ✅ |
+| `network_manager` | ✅ |
+| `content_curator` | ✅ |
+| `direction` | ✅ |
+| `auditor` | ✅ |
+
+---
+
+### 5.4 Visao Consolidada da Rede (Network Overview) — ✅ IMPLEMENTADO
+
+**Status:** Implementado em 2025-07-18.
+
+**O que foi entregue:**
+- **Backend** — `GET /api/network/overview`: retorna metricas por escola (cobertura, confianca, consultas, resolucao, incidentes, feedbacks, correcoes, health score composto) com totais agregados da rede. Usa `resolveManagedSchoolScope` para escopo automatico. Roles: `superadmin`, `network_manager`, `auditor`, `direction`.
+- **Frontend** — `/visao-rede` → `network-overview.html` + `network-overview-panel.js`: hero azul, 8 stat cards de totais da rede, tabela de ranking com ordenacao por coluna (escola, saude, cobertura, confianca, consultas, resolucao, incidentes, feedback+, correcoes). Health score com badges coloridos (verde/laranja/vermelho).
+- **Wiring** — `distPages`, rota `/visao-rede`, sidebar (secao GESTAO com icone `fa-project-diagram`), `permissions.js` (superadmin, network_manager, auditor, direction).
+
+**Health Score:** Composicao ponderada (0-100): cobertura (30%), confianca (30%), feedback positivo (20%), incidentes abertos (-20% proporcional), criticos (-10 cada).
+
+**Dados existentes no backend (originais):**
 - `resolveManagedSchoolScope` ja resolve escolas filhas de uma rede
-- Todos os endpoints ja filtram por `schoolIds` (array de escolas gerenciadas)
 - `intelligence_snapshots` registra metricas diarias por escola (`source_coverage_rate`, `avg_confidence`)
-- `scope_mode: 'network'` ja retornado pelo backend
+- `incident_reports`, `interaction_feedback`, `response_corrections` todos com `school_id`
 
-**Frontend atual:** dashboards e relatorios mostram dados da escola ativa — nao ha comparacao entre escolas
-
-**Pagina sugerida:** Aba "Rede" dentro de `/dashboard` ou `/relatorios`
-
-| Perfil | O que gostaria de ver | Por que |
+| Perfil | O que gostaria de ver | Entregue |
 |---|---|---|
-| `network_manager` | **Principal usuario.** Ranking de escolas por: cobertura documental, confianca media, taxa de fallback, incidentes abertos, feedbacks negativos | Saber onde intervir: qual escola precisa de mais curadoria, qual tem muitos incidentes |
-| `superadmin` | Mesma visao, em nivel de plataforma | Gestao global |
-| `auditor` | Comparativo de governanca por escola: correcoes feitas, incidentes resolvidos, revisoes pendentes | Auditoria cruzada — nenhuma escola pode ficar sem supervisao |
-| `direction` | Posicao da sua escola em relacao a rede (anonimizado ou nao, conforme politica) | Entender como esta em relacao ao todo |
-
-**Cenario de crise:** O gestor da rede precisa saber qual escola foi mais impactada por uma mudanca de politica (ex: novo calendario). A visao consolidada mostra: escola X teve 80% de abstencao no tema "calendario" → intervencao prioritaria.
+| `network_manager` | Ranking de escolas por cobertura, confianca, incidentes, feedbacks | ✅ Tabela completa com ordenacao |
+| `superadmin` | Mesma visao, nivel plataforma | ✅ Escopo global automatico |
+| `auditor` | Comparativo de governanca: correcoes, incidentes, revisoes | ✅ Colunas de correcoes e incidentes |
+| `direction` | Posicao da escola em relacao a rede | ✅ Ranking visivel |
 
 ---
 

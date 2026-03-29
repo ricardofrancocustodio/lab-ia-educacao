@@ -1042,11 +1042,12 @@
         "profile": "simulador_chat",
         "parent_name": "Usuario de teste",
         "agent_key": "",
-        "agent_title": "Auto-roteamento"
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
       },
       "summary": "",
       "created_at": "2026-03-27T13:02:42.382Z",
-      "updated_at": "2026-03-27T13:02:42.599Z",
+      "updated_at": "2026-03-27T13:02:42.600Z",
       "transcript": [
         {
           "id": "6930ce04-b960-4444-adf4-5d5d19ff947a",
@@ -1061,6 +1062,46 @@
           "source": "public.assistant",
           "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
           "created_at": "2026-03-27T13:02:42.599Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:1fadce47-cd31-4905-88ed-64afe3f8ec23",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:1fadce47-cd31-4905-88ed-64afe3f8ec23",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:1fadce47-cd31-4905-88ed-64afe3f8ec23",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "Escola A - Sandbox",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento"
+      },
+      "summary": "",
+      "created_at": "2026-03-27T13:44:11.606Z",
+      "updated_at": "2026-03-27T13:44:12.038Z",
+      "transcript": [
+        {
+          "id": "dc933c87-22f0-40b8-a790-34525d5bf72a",
+          "role": "user",
+          "source": "webchat",
+          "text": "quem que é hein?",
+          "created_at": "2026-03-27T13:44:11.608Z"
+        },
+        {
+          "id": "c1847392-d508-41e7-a9d5-25dd86f1c5a6",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-03-27T13:44:12.038Z"
         }
       ],
       "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho."
