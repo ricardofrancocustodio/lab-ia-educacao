@@ -3,6 +3,8 @@
 const { askAI } = require(path.resolve("./.qodo/services/ai/index.js"));
 const { findMatchingEntries } = require(path.resolve("./.qodo/services/supabase.js"));
 const { getSession, setSession } = require(path.resolve("./.qodo/store/sessions.js"));
+const buildAssistantGuardrails = require(path.resolve("./.qodo/core/constants/buildAssistantGuardrails.js"));
+const { detectAssistantSafetyIssue, buildSafetyRedirectMessage } = require(path.resolve("./.qodo/core/assistantSafety.js"));
 
 const SCHOOL_ID = process.env.SCHOOL_ID;
 const SAFE_EVIDENCE_SCORE = 0.78;
@@ -181,6 +183,35 @@ function createAgent(config) {
       const session = getSession(sessionId) || { step: 0, data: { history: [] } };
       session.data.history = Array.isArray(session.data.history) ? session.data.history : [];
 
+      const safetyIssue = detectAssistantSafetyIssue(text);
+      if (safetyIssue) {
+        return {
+          text: buildSafetyRedirectMessage({
+            issue: safetyIssue,
+            scopeLabel: scopeDescription,
+            scopeReturnLabel: scopeDescription,
+            humanHandoffLabel: routeHints.length ? routeHints.join(" ou ") : "o atendimento humano da instituicao",
+            humanHandoffAction: routeHints.length
+              ? `Procure ${routeHints.join(" ou ")}`
+              : "Procure o atendimento humano da instituicao"
+          }),
+          audit: {
+            assistant_key: agentKey,
+            assistant_name: name,
+            confidence_score: 0.42,
+            evidence_score: 0.12,
+            hallucination_risk_level: safetyIssue.severity === 'high' ? 'HIGH' : 'MEDIUM',
+            review_required: false,
+            review_reason: 'safety_redirect',
+            response_mode: 'AUTOMATIC_LIMITED',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: true,
+            abstained: false
+          }
+        };
+      }
+
       const entries = await findMatchingEntries(text, resolvedSchoolId || SCHOOL_ID, {
         categories: knowledgeCategories,
         limit: 3
@@ -212,6 +243,19 @@ function createAgent(config) {
         `Voce e ${name}, assistente da area ${areaLabel}.`,
         `Escopo principal: ${scopeDescription}.`,
         'Tom esperado: linguagem acolhedora, simples e objetiva, como um atendimento institucional humano.',
+        buildAssistantGuardrails({
+          assistantName: name,
+          scopeLabel: scopeDescription,
+          scopeReturnLabel: scopeDescription,
+          allowedTopicLabel: `temas diretamente ligados a ${scopeDescription}`,
+          blockedTopicsLabel: 'desabafos pessoais, terapia, saude pessoal e qualquer tema sem relacao com a area institucional desta assistente',
+          humanHandoffLabel: routeHints.length ? routeHints.join(', ') : 'o atendimento humano da instituicao',
+          humanHandoffAction: routeHints.length ? `encaminhar para ${routeHints.join(', ')}` : 'encaminhar para o atendimento humano da instituicao',
+          greetingInstruction: 'Se a mensagem for apenas uma saudacao, apresente-se brevemente e diga com que tipo de demanda institucional pode ajudar.',
+          redirectInstruction: 'Se o tema estiver fora da sua area ou do escopo institucional, recuse com educacao e encaminhe para o atendimento humano adequado.',
+          noInfoMessage: 'Nao encontrei base institucional suficiente para responder com seguranca.',
+          useEmojis: false
+        }),
         'Regras:',
         '1. Responda em portugues do Brasil.',
         '2. Nao invente regras, prazos, politicas, documentos ou compromissos institucionais.',

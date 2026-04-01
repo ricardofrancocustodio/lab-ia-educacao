@@ -296,7 +296,7 @@ const StudentChatPage = (() => {
         sources: result.sources || []
       });
 
-      if (!result.has_context) {
+      if (!result.has_context && !result.handled_by_safety_policy) {
         addMessage('system', 'Não encontrei conteúdo relevante nos materiais. Considere clicar em "Falar com Professor".');
       }
     } catch (error) {

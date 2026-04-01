@@ -10,6 +10,8 @@ const TeachingContentPage = (() => {
     statusFilter: 'all'
   };
 
+  const TEACHING_APPROVAL_ROLES = new Set(['superadmin', 'network_manager', 'content_curator', 'coordination', 'direction']);
+
   function escapeHtml(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -56,6 +58,64 @@ const TeachingContentPage = (() => {
     const key = String(approvalStatus || 'none').toLowerCase();
     if (key === 'none') return '';
     return `teaching-pill teaching-approval-${key}`;
+  }
+
+  function getEffectiveRole() {
+    const normalized = String(sessionStorage.getItem('EFFECTIVE_ROLE') || sessionStorage.getItem('USER_ROLE') || '').trim().toLowerCase();
+    if (['coordinator', 'coordenador', 'coordenacao'].includes(normalized)) return 'coordination';
+    if (['professor', 'docente'].includes(normalized)) return 'teacher';
+    if (normalized === 'diretor') return 'direction';
+    return normalized;
+  }
+
+  function canApproveTeachingContent() {
+    return TEACHING_APPROVAL_ROLES.has(getEffectiveRole());
+  }
+
+  function setSaveButtonState(metadata = null) {
+    const saveButton = document.getElementById('teaching-save-button');
+    if (!saveButton) return;
+
+    const itemId = document.getElementById('teaching-source-document-id')?.value;
+    const status = String(metadata?.status || 'draft').toLowerCase();
+    const approval = String(metadata?.approval_status || 'none').toLowerCase();
+
+    if (!itemId) {
+      saveButton.innerHTML = '<i class="fas fa-save mr-1"></i>Salvar material';
+      return;
+    }
+
+    if (status === 'pending_approval' || approval === 'pending') {
+      saveButton.innerHTML = '<i class="fas fa-check mr-1"></i>Salvo e enviado';
+      return;
+    }
+
+    if (status === 'published' && approval === 'approved') {
+      saveButton.innerHTML = '<i class="fas fa-code-branch mr-1"></i>Salvar nova versão';
+      return;
+    }
+
+    saveButton.innerHTML = '<i class="fas fa-save mr-1"></i>Salvar rascunho';
+  }
+
+  function updateManagementButtons(item = null) {
+    const toggleButton = document.getElementById('teaching-toggle-active-button');
+    const deleteButton = document.getElementById('teaching-delete-button');
+    if (!toggleButton || !deleteButton) return;
+
+    if (!item?.id) {
+      toggleButton.style.display = 'none';
+      deleteButton.style.display = 'none';
+      return;
+    }
+
+    const isActive = item.active !== false;
+    toggleButton.style.display = '';
+    deleteButton.style.display = '';
+    toggleButton.className = isActive ? 'btn btn-outline-warning' : 'btn btn-outline-success';
+    toggleButton.innerHTML = isActive
+      ? '<i class="fas fa-ban mr-1"></i>Desativar conteúdo'
+      : '<i class="fas fa-check-circle mr-1"></i>Reativar conteúdo';
   }
 
   function clearPdfPreview() {
@@ -227,11 +287,13 @@ const TeachingContentPage = (() => {
     const statusSelect = document.getElementById('teaching-status');
     const statusHint = document.getElementById('teaching-status-hint');
     const itemId = document.getElementById('teaching-source-document-id')?.value;
+    const canApprove = canApproveTeachingContent();
     if (!card) return;
 
     if (!itemId) {
       card.style.display = 'none';
       if (statusHint) statusHint.textContent = 'Para publicar, envie para aprovação da coordenação.';
+      setSaveButtonState(null);
       return;
     }
 
@@ -242,6 +304,10 @@ const TeachingContentPage = (() => {
     if (submitBtn) submitBtn.style.display = 'none';
     if (approveBtn) approveBtn.style.display = 'none';
     if (rejectBtn) rejectBtn.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i>Enviar para aprovação';
+    }
 
     if (status === 'published' && approval === 'approved') {
       label.innerHTML = `<span class="teaching-pill teaching-approval-approved"><i class="fas fa-check-circle mr-1"></i>Aprovado e publicado</span>${metadata.approval_by ? ` por ${escapeHtml(metadata.approval_by)}` : ''}${metadata.approval_at ? ` em ${formatDateTime(metadata.approval_at)}` : ''}`;
@@ -255,8 +321,14 @@ const TeachingContentPage = (() => {
       }
     } else if (status === 'pending_approval' || approval === 'pending') {
       label.innerHTML = '<span class="teaching-pill teaching-status-pending_approval"><i class="fas fa-clock mr-1"></i>Enviado para aprovação</span> Aguardando análise da coordenação.';
-      if (approveBtn) approveBtn.style.display = '';
-      if (rejectBtn) rejectBtn.style.display = '';
+      if (canApprove) {
+        if (approveBtn) approveBtn.style.display = '';
+        if (rejectBtn) rejectBtn.style.display = '';
+      } else if (submitBtn) {
+        submitBtn.style.display = '';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-clock mr-1"></i>Aguardando aprovação';
+      }
       if (statusHint) statusHint.textContent = 'Material aguardando aprovação da coordenação.';
       if (statusSelect) {
         statusSelect.value = 'draft';
@@ -281,6 +353,8 @@ const TeachingContentPage = (() => {
         if (pubOption) pubOption.remove();
       }
     }
+
+    setSaveButtonState(metadata);
   }
 
   async function handleApproval(action) {
@@ -341,7 +415,7 @@ const TeachingContentPage = (() => {
         renderList();
       }
       const messages = {
-        pending: 'Material enviado para aprovação da coordenação.',
+        pending: 'Enviado para aprovação.',
         approved: 'Material aprovado e publicado com sucesso!',
         rejected: 'Material reprovado. O professor será notificado.'
       };
@@ -394,15 +468,23 @@ const TeachingContentPage = (() => {
   async function apiJson(url, options = {}) {
     const token = await window.getAccessToken();
     const schoolId = sessionStorage.getItem('SCHOOL_ID') || '';
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'x-school-id': schoolId,
-        ...(options.headers || {})
+    let response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-school-id': schoolId,
+          ...(options.headers || {})
+        }
+      });
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error('Não foi possível conectar ao servidor. Verifique se a API está online e tente novamente.');
       }
-    });
+      throw error;
+    }
     const payload = await response.json().catch(() => ({ ok: false, error: 'Resposta inválida do servidor.' }));
     if (!response.ok || payload.ok === false) {
       throw new Error(payload.error || 'Falha na requisição.');
@@ -413,14 +495,22 @@ const TeachingContentPage = (() => {
   async function apiBlob(url, options = {}) {
     const token = await window.getAccessToken();
     const schoolId = sessionStorage.getItem('SCHOOL_ID') || '';
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'x-school-id': schoolId,
-        ...(options.headers || {})
+    let response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-school-id': schoolId,
+          ...(options.headers || {})
+        }
+      });
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error('Não foi possível conectar ao servidor. Verifique se a API está online e tente novamente.');
       }
-    });
+      throw error;
+    }
     if (!response.ok) {
       let message = 'Falha na requisição.';
       try {
@@ -505,6 +595,22 @@ const TeachingContentPage = (() => {
     openComparisonModal();
   }
 
+  async function openSelectedComparison() {
+    const item = state.items.find((entry) => entry.id === state.selectedId) || null;
+    if (!item) {
+      openComparisonModal();
+      return;
+    }
+
+    const currentVersion = item.current_version || null;
+    if (currentVersion?.id) {
+      await openVersionComparison(item, currentVersion);
+      return;
+    }
+
+    openComparisonModal();
+  }
+
   function clearForm() {
     document.getElementById('teaching-content-form').reset();
     document.getElementById('teaching-source-document-id').value = '';
@@ -514,6 +620,8 @@ const TeachingContentPage = (() => {
     setExtractedText('', 'Se o PDF estiver em imagem ou vier sem camada de texto, complete manualmente o conteúdo oficial no campo abaixo.');
     clearPdfPreview();
     updateApprovalCard(null);
+    setSaveButtonState(null);
+    updateManagementButtons(null);
     renderList();
     renderVersions(null, []);
   }
@@ -568,6 +676,7 @@ const TeachingContentPage = (() => {
     document.getElementById('teaching-support-links').value = Array.isArray(metadata.support_links) ? metadata.support_links.join('\n') : '';
     document.getElementById('teaching-raw-text').value = '';
     updateApprovalCard(metadata);
+    updateManagementButtons(item);
     setModalVersionContext(null, 'extraction');
     setExtractedText('', 'Carregue um novo PDF se quiser comparar novamente o original com a extração.');
     clearPdfPreview();
@@ -595,6 +704,7 @@ const TeachingContentPage = (() => {
       const hasStoredPdf = Boolean(item.current_version && item.current_version.storage_path);
       const approvalStatus = String(metadata.approval_status || 'none').toLowerCase();
       const approvalLabel = getApprovalLabel(approvalStatus);
+      const activeLabel = item.active === false ? '<span class="teaching-pill teaching-status-archived">Desativado</span>' : '';
       return `
         <div class="teaching-item ${activeClass}" data-id="${escapeHtml(item.id)}">
           <div class="d-flex justify-content-between align-items-start" style="gap:12px;">
@@ -605,6 +715,7 @@ const TeachingContentPage = (() => {
             <div class="d-flex flex-column align-items-end" style="gap:4px;">
               <span class="${getStatusClass(item.status)}">${escapeHtml(getStatusLabel(item.status))}</span>
               ${approvalLabel ? `<span class="${getApprovalClass(approvalStatus)}">${escapeHtml(approvalLabel)}</span>` : ''}
+              ${activeLabel}
             </div>
           </div>
           <div class="small text-muted mt-2">${escapeHtml(item.summary || 'Sem resumo pedagógico cadastrado.')}</div>
@@ -761,7 +872,7 @@ const TeachingContentPage = (() => {
         renderList();
         await loadVersions(savedId);
       }
-      Swal.fire({ icon: 'success', title: 'Material salvo', text: 'A curadoria pedagógica foi registrada com versionamento.' });
+      Swal.fire({ icon: 'success', title: 'Material salvo', text: 'Curadoria registrada com versionamento. Os vetores de busca IA estão sendo gerados em segundo plano.' });
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Falha ao salvar', text: error.message });
     } finally {
@@ -770,17 +881,96 @@ const TeachingContentPage = (() => {
     }
   }
 
+  async function toggleActiveState() {
+    const itemId = document.getElementById('teaching-source-document-id')?.value;
+    const item = state.items.find((entry) => entry.id === itemId);
+    if (!itemId || !item) {
+      Swal.fire({ icon: 'warning', title: 'Selecione um material', text: 'Selecione um material na lista antes.' });
+      return;
+    }
+
+    const nextActive = item.active === false;
+    const result = await Swal.fire({
+      title: nextActive ? 'Reativar conteúdo?' : 'Desativar conteúdo?',
+      text: nextActive
+        ? 'O material voltará a ficar ativo na curadoria.'
+        : 'O material será mantido no histórico, mas marcado como desativado.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: nextActive ? 'Reativar' : 'Desativar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: nextActive ? '#28a745' : '#f0ad4e'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      await apiJson(`/api/teaching-content/${itemId}/active`, {
+        method: 'PUT',
+        body: JSON.stringify({ active: nextActive })
+      });
+      await loadItems(false);
+      const selected = state.items.find((entry) => entry.id === itemId) || null;
+      if (selected) {
+        state.selectedId = selected.id;
+        fillForm(selected);
+        renderList();
+        await loadVersions(selected.id);
+      } else {
+        clearForm();
+      }
+      Swal.fire({ icon: 'success', title: nextActive ? 'Conteúdo reativado' : 'Conteúdo desativado', timer: 2200, showConfirmButton: false });
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Falha na operação', text: error.message });
+    }
+  }
+
+  async function deleteSelectedContent() {
+    const itemId = document.getElementById('teaching-source-document-id')?.value;
+    const item = state.items.find((entry) => entry.id === itemId);
+    if (!itemId || !item) {
+      Swal.fire({ icon: 'warning', title: 'Selecione um material', text: 'Selecione um material na lista antes.' });
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Apagar conteúdo?',
+      text: `O material "${item.title}" e todas as versões dele serão removidos.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Apagar definitivamente',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      await apiJson(`/api/teaching-content/${itemId}`, { method: 'DELETE' });
+      state.selectedId = null;
+      await loadItems(false);
+      clearForm();
+      Swal.fire({ icon: 'success', title: 'Conteúdo apagado', timer: 2200, showConfirmButton: false });
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Falha ao apagar', text: error.message });
+    }
+  }
+
   function bindEvents() {
     document.getElementById('teaching-content-form')?.addEventListener('submit', saveForm);
     document.getElementById('teaching-new-button')?.addEventListener('click', clearForm);
     document.getElementById('teaching-reset-button')?.addEventListener('click', clearForm);
-    document.getElementById('teaching-open-comparison-button')?.addEventListener('click', openComparisonModal);
+    document.getElementById('teaching-open-comparison-button')?.addEventListener('click', () => {
+      openSelectedComparison().catch((error) => {
+        Swal.fire({ icon: 'error', title: 'Falha ao abrir comparação', text: error.message });
+      });
+    });
     document.getElementById('teaching-focus-editor-button')?.addEventListener('click', focusOfficialEditor);
     document.getElementById('teaching-use-extracted-button')?.addEventListener('click', copyExtractedToOfficialEditor);
     document.getElementById('teaching-copy-and-edit-button')?.addEventListener('click', copyExtractedToOfficialEditor);
     document.getElementById('teaching-submit-approval-button')?.addEventListener('click', () => handleApproval('pending'));
     document.getElementById('teaching-approve-button')?.addEventListener('click', () => handleApproval('approved'));
     document.getElementById('teaching-reject-button')?.addEventListener('click', () => handleApproval('rejected'));
+    document.getElementById('teaching-toggle-active-button')?.addEventListener('click', toggleActiveState);
+    document.getElementById('teaching-delete-button')?.addEventListener('click', deleteSelectedContent);
     document.getElementById('teaching-segment')?.addEventListener('change', toggleEjaContext);
     document.getElementById('teaching-subject')?.addEventListener('change', toggleSubjectOther);
     document.querySelectorAll('#teaching-status-filter .btn').forEach((btn) => {

@@ -4,6 +4,8 @@ const { askAI } = require(path.resolve("./.qodo/services/ai/index.js"));
 const { findMatchingEntries, findPublishedCalendarContext, loadSchoolContext } = require(path.resolve("./.qodo/services/supabase.js"));
 const { getSession, setSession } = require(path.resolve("./.qodo/store/sessions.js"));
 const agents = require(path.resolve("./.qodo/agents/index.js"));
+const buildAssistantGuardrails = require(path.resolve("./.qodo/core/constants/buildAssistantGuardrails.js"));
+const { detectAssistantSafetyIssue, buildSafetyRedirectMessage } = require(path.resolve("./.qodo/core/assistantSafety.js"));
 
 const SCHOOL_ID = process.env.SCHOOL_ID;
 const SAFE_EVIDENCE_SCORE = 0.78;
@@ -750,6 +752,33 @@ module.exports = {
       };
     }
 
+    const safetyIssue = detectAssistantSafetyIssue(text);
+    if (safetyIssue) {
+      return {
+        text: buildSafetyRedirectMessage({
+          issue: safetyIssue,
+          scopeLabel: 'assuntos institucionais e escolares',
+          scopeReturnLabel: 'algo relacionado a secretaria, calendario, documentos, atendimento ou outro tema da escola',
+          humanHandoffLabel: 'um responsavel da escola, um familiar ou outro adulto de confianca',
+          humanHandoffAction: 'Procure um responsavel da escola, um familiar ou outro adulto de confianca'
+        }),
+        audit: {
+          assistant_key: "public.assistant",
+          assistant_name: "Assistente Publico",
+          confidence_score: 0.42,
+          evidence_score: 0.12,
+          hallucination_risk_level: safetyIssue.severity === 'high' ? 'HIGH' : 'MEDIUM',
+          review_required: false,
+          review_reason: 'safety_redirect',
+          response_mode: "AUTOMATIC_LIMITED",
+          consulted_sources: [],
+          supporting_source: null,
+          fallback_to_human: true,
+          abstained: false
+        }
+      };
+    }
+
     const intentProfile = detectIntentProfile(text);
     const structuredCalendarReply = await tryBuildStructuredCalendarReply(text, resolvedSchoolId || SCHOOL_ID);
     if (structuredCalendarReply) {
@@ -826,6 +855,19 @@ module.exports = {
       "Voce e o Assistente Publico de uma instituicao de ensino.",
       "Objetivo: acolher a consulta, responder somente com base em fonte institucional e encaminhar para a area correta quando necessario.",
       "Tom esperado: fale como uma recepcionista institucional, com linguagem simples, acolhedora e objetiva.",
+      buildAssistantGuardrails({
+        assistantName: 'Assistente Publico',
+        scopeLabel: 'assuntos institucionais e escolares',
+        scopeReturnLabel: 'algo relacionado a escola',
+        allowedTopicLabel: 'matricula, documentos, calendario, horarios, atendimento, comunicados e demais temas institucionais da escola',
+        blockedTopicsLabel: 'desabafos pessoais, terapia, saude pessoal e temas sem relacao com a escola',
+        humanHandoffLabel: 'a secretaria, a direcao ou a area responsavel',
+        humanHandoffAction: 'encaminhar para a secretaria, a direcao ou a area responsavel',
+        greetingInstruction: 'Se a mensagem for apenas uma saudacao, apresente-se brevemente e diga que pode ajudar com temas institucionais da escola.',
+        redirectInstruction: 'Se o assunto estiver fora do escopo escolar, recuse com educacao e redirecione para um tema institucional da escola.',
+        noInfoMessage: 'Nao encontrei base institucional suficiente para responder com seguranca.',
+        useEmojis: false
+      }),
       "Regras:",
       "1. Responda em portugues do Brasil.",
       "2. Nao invente normas, prazos, decisoes, documentos ou compromissos institucionais.",

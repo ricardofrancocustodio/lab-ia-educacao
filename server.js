@@ -12,6 +12,8 @@ const webhookRoutes = require("./.qodo/web/webhook.js");
 const webchatRoutes = require("./.qodo/api/webchat.js");
 const faqController = require("./.qodo/api/faqController.js");
 const { askAI, loadRuntimeSettings, invalidateAIProviderCache } = require("./.qodo/services/ai");
+const buildAssistantGuardrails = require("./.qodo/core/constants/buildAssistantGuardrails");
+const { detectAssistantSafetyIssue, buildSafetyRedirectMessage } = require("./.qodo/core/assistantSafety");
 
 const app = express();
 const PORT = Number(process.env.PORT || 8084);
@@ -223,7 +225,17 @@ function getBearerToken(req) {
 }
 
 function normalizeRoleKey(role) {
-  return String(role || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const normalized = String(role || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const aliases = {
+    coordinator: "coordination",
+    coordenador: "coordination",
+    coordenacao: "coordination",
+    professor: "teacher",
+    docente: "teacher",
+    diretor: "direction",
+    direcao_escolar: "direction"
+  };
+  return aliases[normalized] || normalized;
 }
 
 async function resolveRequestContext(req, options = {}) {
@@ -1284,7 +1296,7 @@ async function uploadTeachingPdfAsset({ schoolId, sourceDocumentId, versionNumbe
 async function listTeachingContentRecords(schoolId) {
   const { data: docs, error: docsError } = await supabase
     .from("source_documents")
-    .select("id, school_id, title, document_type, canonical_reference, description, created_at, updated_at")
+    .select("id, school_id, title, document_type, canonical_reference, description, created_at, updated_at, active")
     .eq("school_id", schoolId)
     .eq("document_type", "teaching_material")
     .order("updated_at", { ascending: false });
@@ -1318,6 +1330,7 @@ async function listTeachingContentRecords(schoolId) {
       summary: stripTeachingMetadataTag(doc.description),
       canonical_reference: doc.canonical_reference,
       metadata,
+      active: doc.active !== false,
       status: metadata.status || "draft",
       current_version: currentVersion,
       version_count: currentVersions.length,
@@ -1465,6 +1478,48 @@ async function generateEmbeddingsForRows(rows) {
   return results;
 }
 
+/**
+ * Background embedding generation — updates existing knowledge_base rows with embeddings.
+ * Fire-and-forget: does not block the HTTP response.
+ */
+function generateEmbeddingsInBackground(insertedRows, sourceTitle) {
+  if (!insertedRows.length || !HUGGINGFACE_API_KEY) return;
+
+  const total = insertedRows.length;
+  console.log(`[BG Embeddings] Iniciando geração assíncrona de ${total} embeddings para "${sourceTitle}"...`);
+
+  setImmediate(async () => {
+    let success = 0;
+    let failures = 0;
+    for (let i = 0; i < insertedRows.length; i++) {
+      const row = insertedRows[i];
+      try {
+        const textForEmbedding = `${row.question}\n${row.answer}`;
+        const embedding = await generateEmbedding(textForEmbedding);
+        if (embedding) {
+          const { error: updateErr } = await supabase
+            .from("knowledge_base")
+            .update({ embedding })
+            .eq("id", row.id);
+          if (updateErr) throw updateErr;
+          success++;
+        } else {
+          failures++;
+        }
+      } catch (error) {
+        failures++;
+        console.error(`[BG Embeddings] Erro chunk ${i + 1}/${total} (id=${row.id}):`, error.message);
+      }
+      if ((i + 1) % 10 === 0 || i === insertedRows.length - 1) {
+        console.log(`[BG Embeddings] "${sourceTitle}": ${i + 1}/${total} processados (${success} ok, ${failures} falhas)`);
+      }
+      // small delay to avoid rate-limiting
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    console.log(`[BG Embeddings] Concluído "${sourceTitle}": ${success}/${total} embeddings gerados com sucesso.`);
+  });
+}
+
 function buildKnowledgeRows({ schoolId, sourceDocument, version, content }) {
   const assistantArea = ensureAssistantArea(sourceDocument.owning_area);
   const areaConfig = ASSISTANT_AREAS[assistantArea] || ASSISTANT_AREAS["public.assistant"];
@@ -1493,7 +1548,7 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
 
   const { data: existingVersions, error: versionsError } = await supabase
     .from("knowledge_source_versions")
-    .select("id, version_number")
+    .select("id, version_number, file_name, mime_type, storage_bucket, storage_path, is_current")
     .eq("school_id", schoolId)
     .eq("source_document_id", sourceDocument.id)
     .order("version_number", { ascending: false });
@@ -1502,6 +1557,7 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
 
   const nextVersionNumber = ((existingVersions || [])[0]?.version_number || 0) + 1;
   const checksum = crypto.createHash("sha256").update(normalizedContent, "utf8").digest("hex");
+  const previousStoredAsset = (existingVersions || []).find((version) => version.storage_bucket && version.storage_path) || null;
   const storedAsset = originalAsset?.file_base64
     ? await uploadTeachingPdfAsset({
         schoolId,
@@ -1511,7 +1567,14 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
         mimeType: originalAsset.mime_type,
         base64Content: originalAsset.file_base64
       })
-    : { storageBucket: null, storagePath: null, fileName: null, mimeType: null };
+    : previousStoredAsset
+      ? {
+          storageBucket: previousStoredAsset.storage_bucket,
+          storagePath: previousStoredAsset.storage_path,
+          fileName: previousStoredAsset.file_name,
+          mimeType: previousStoredAsset.mime_type
+        }
+      : { storageBucket: null, storagePath: null, fileName: null, mimeType: null };
 
   const { error: resetCurrentError } = await supabase
     .from("knowledge_source_versions")
@@ -1555,24 +1618,16 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
 
   const knowledgeRows = buildKnowledgeRows({ schoolId, sourceDocument, version, content: normalizedContent });
 
-  let rowsWithEmbeddings = knowledgeRows;
-  if (knowledgeRows.length && HUGGINGFACE_API_KEY) {
-    try {
-      console.log(`Gerando embeddings BGE-M3 para ${knowledgeRows.length} chunks de "${sourceDocument.title}"...`);
-      rowsWithEmbeddings = await generateEmbeddingsForRows(knowledgeRows);
-      const withEmbed = rowsWithEmbeddings.filter((r) => r.embedding).length;
-      console.log(`  Embeddings concluidos: ${withEmbed}/${knowledgeRows.length} com vetor.`);
-    } catch (error) {
-      console.error("Erro ao gerar embeddings (prosseguindo sem vetores):", error.message);
-    }
-  }
-
-  if (rowsWithEmbeddings.length) {
-    const { error: kbError } = await supabase
+  if (knowledgeRows.length) {
+    const { data: insertedData, error: kbError } = await supabase
       .from("knowledge_base")
-      .insert(rowsWithEmbeddings);
+      .insert(knowledgeRows)
+      .select("id, question, answer");
 
     if (kbError) throw kbError;
+
+    // Fire-and-forget: generate embeddings in background
+    generateEmbeddingsInBackground(insertedData || [], sourceDocument.title);
   }
 
   const { error: updateVersionError } = await supabase
@@ -1981,13 +2036,153 @@ app.get("/api/teaching-content", async (req, res) => {
     const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_ALLOWED_ROLES] });
     if (!access.ok) return access.response;
     const items = await listTeachingContentRecords(access.context.schoolId);
-    const role = access.context.effectiveRole;
-    const isTeacher = role === 'teacher';
-    const visibleItems = isTeacher ? items : items.filter((item) => item.status !== 'draft');
-    return res.json({ ok: true, items: visibleItems });
+    return res.json({ ok: true, items });
   } catch (error) {
     console.error("Erro /api/teaching-content:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar a curadoria pedagogica." });
+  }
+});
+
+app.put("/api/teaching-content/:id/active", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_WRITE_ROLES] });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.params.id || "").trim();
+    const active = req.body?.active !== false;
+    if (!sourceDocumentId) return res.status(400).json({ ok: false, error: "Material invalido." });
+
+    const { data: doc, error: docError } = await supabase
+      .from("source_documents")
+      .select("id, title, active")
+      .eq("school_id", schoolId)
+      .eq("id", sourceDocumentId)
+      .eq("document_type", "teaching_material")
+      .maybeSingle();
+    if (docError) throw docError;
+    if (!doc?.id) return res.status(404).json({ ok: false, error: "Material nao encontrado." });
+
+    const { error: updateError } = await supabase
+      .from("source_documents")
+      .update({ active, updated_at: new Date().toISOString() })
+      .eq("id", sourceDocumentId)
+      .eq("school_id", schoolId);
+    if (updateError) throw updateError;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: schoolId,
+      consultation_id: null,
+      event_type: active ? "TEACHING_CONTENT_REACTIVATED" : "TEACHING_CONTENT_DEACTIVATED",
+      severity: "INFO",
+      actor_type: "HUMAN",
+      actor_name: access.context.user.email || access.context.user.id || "",
+      summary: active ? `Material pedagogico reativado: ${doc.title}.` : `Material pedagogico desativado: ${doc.title}.`,
+      details: {
+        source_document_id: sourceDocumentId,
+        active
+      }
+    });
+
+    const items = await listTeachingContentRecords(schoolId);
+    const item = items.find((entry) => entry.id === sourceDocumentId) || null;
+    return res.json({ ok: true, item });
+  } catch (error) {
+    console.error("Erro /api/teaching-content/:id/active:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao atualizar o status do material." });
+  }
+});
+
+app.delete("/api/teaching-content/:id", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_WRITE_ROLES] });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.params.id || "").trim();
+    if (!sourceDocumentId) return res.status(400).json({ ok: false, error: "Material invalido." });
+
+    const { data: doc, error: docError } = await supabase
+      .from("source_documents")
+      .select("id, title")
+      .eq("school_id", schoolId)
+      .eq("id", sourceDocumentId)
+      .eq("document_type", "teaching_material")
+      .maybeSingle();
+    if (docError) throw docError;
+    if (!doc?.id) return res.status(404).json({ ok: false, error: "Material nao encontrado." });
+
+    const { data: versions, error: versionsError } = await supabase
+      .from("knowledge_source_versions")
+      .select("id, storage_bucket, storage_path")
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId);
+    if (versionsError) throw versionsError;
+
+    const storageGroups = new Map();
+    for (const version of versions || []) {
+      if (!version.storage_bucket || !version.storage_path) continue;
+      if (!storageGroups.has(version.storage_bucket)) storageGroups.set(version.storage_bucket, []);
+      storageGroups.get(version.storage_bucket).push(version.storage_path);
+    }
+
+    for (const [bucket, paths] of storageGroups.entries()) {
+      const uniquePaths = [...new Set(paths)];
+      if (!uniquePaths.length) continue;
+      const { error: removeStorageError } = await supabase.storage.from(bucket).remove(uniquePaths);
+      if (removeStorageError) console.warn("Falha ao remover PDF(s) do storage:", removeStorageError.message);
+    }
+
+    const { error: deleteEvidenceError } = await supabase
+      .from("interaction_source_evidence")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId);
+    if (deleteEvidenceError) throw deleteEvidenceError;
+
+    const { error: deleteKbError } = await supabase
+      .from("knowledge_base")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId);
+    if (deleteKbError) throw deleteKbError;
+
+    const { error: deleteVersionsError } = await supabase
+      .from("knowledge_source_versions")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId);
+    if (deleteVersionsError) throw deleteVersionsError;
+
+    const { error: deleteDocError } = await supabase
+      .from("source_documents")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("id", sourceDocumentId);
+    if (deleteDocError) throw deleteDocError;
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: schoolId,
+      consultation_id: null,
+      event_type: "TEACHING_CONTENT_DELETED",
+      severity: "MEDIUM",
+      actor_type: "HUMAN",
+      actor_name: access.context.user.email || access.context.user.id || "",
+      summary: `Material pedagogico removido: ${doc.title}.`,
+      details: {
+        source_document_id: sourceDocumentId,
+        deleted_versions: (versions || []).length
+      }
+    });
+
+    return res.json({ ok: true, deleted_id: sourceDocumentId });
+  } catch (error) {
+    console.error("Erro DELETE /api/teaching-content/:id:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao apagar o material." });
   }
 });
 
@@ -2333,18 +2528,8 @@ app.put("/api/teaching-content/:id/approval", async (req, res) => {
 
         const rowsWithoutEmbedding = (rows || []).filter((r) => !r.embedding);
         if (rowsWithoutEmbedding.length) {
-          console.log(`Aprovacao: gerando embeddings para ${rowsWithoutEmbedding.length} chunks de "${doc.title}"...`);
-          for (const row of rowsWithoutEmbedding) {
-            try {
-              const embedding = await generateEmbedding(`${row.question}\n${row.answer}`);
-              if (embedding) {
-                await supabase.from("knowledge_base").update({ embedding }).eq("id", row.id);
-              }
-            } catch (embError) {
-              console.error(`Erro embedding chunk ${row.id}:`, embError.message);
-            }
-          }
-          console.log(`  Embeddings de aprovacao concluidos para "${doc.title}".`);
+          // Fire-and-forget: generate embeddings in background
+          generateEmbeddingsInBackground(rowsWithoutEmbedding, doc.title || sourceDocumentId);
         }
       } catch (embPipelineError) {
         console.error("Erro no pipeline de embeddings pos-aprovacao:", embPipelineError.message);
@@ -7242,19 +7427,44 @@ const STUDENT_CHAT_ALLOWED_ROLES = new Set([
 const STUDENT_CHAT_SYSTEM_PROMPT_TEMPLATE = `Voce e um assistente educacional de apoio pedagogico para alunos da Educacao de Jovens e Adultos (EJA).
 Seu papel e ajudar o aluno a entender o conteudo didatico da disciplina, explicando de forma clara, acessivel e acolhedora.
 
+REGRAS TRANSVERSAIS DE SEGURANCA E CONDUTA:
+{{GUARDRAILS}}
+
 REGRAS OBRIGATORIAS:
-- Responda EXCLUSIVAMENTE com base no conteudo fornecido abaixo (material didatico curado pela escola).
-- Se a pergunta nao puder ser respondida com o conteudo disponivel, diga: "Nao encontrei essa informacao no material da disciplina. Voce pode clicar em 'Falar com Professor' para tirar essa duvida."
+- Use os trechos do material didatico fornecidos abaixo para fundamentar suas respostas.
+- Quando os trechos contiverem informacoes relevantes, mesmo que parciais, utilize-os para construir uma resposta util ao aluno. Explique os conceitos com suas palavras, de forma didatica, sempre referenciando o material.
+- Quando o aluno perguntar quais assuntos, temas ou conteudos estao disponiveis, use a lista de MATERIAIS CADASTRADOS abaixo para responder.
+- Somente diga "Nao encontrei essa informacao no material da disciplina. Voce pode clicar em 'Falar com Professor' para tirar essa duvida." se os trechos realmente nao tiverem NENHUMA relacao com a pergunta do aluno.
 - NUNCA invente informacoes, datas, formulas ou fatos que nao estejam no material.
 - Use linguagem simples, frases curtas e exemplos praticos quando possivel.
 - Trate o aluno com respeito e incentive a aprendizagem.
 - Nao faca julgamentos sobre o nivel de conhecimento do aluno.
-- Quando citar trechos do material, indique a fonte brevemente.
+- Quando citar trechos do material, indique a fonte brevemente (ex: "conforme o material GEO_CE_VOL 1").
+- Quando o aluno fizer uma saudacao ou cumprimento, apresente-se brevemente e liste os assuntos disponiveis para estudo usando a lista de materiais.
 
 DISCIPLINA: {{DISCIPLINE}}
 
-MATERIAL DIDATICO DISPONIVEL:
+MATERIAIS CADASTRADOS NESTA DISCIPLINA:
+{{MATERIALS_CATALOG}}
+
+TRECHOS DO MATERIAL DIDATICO (usados para responder a pergunta atual):
 {{CONTEXT}}`;
+
+function buildStudentChatGuardrails(discipline) {
+  return buildAssistantGuardrails({
+    assistantName: `assistente pedagogico de ${discipline}`,
+    scopeLabel: `duvidas pedagogicas exclusivamente sobre o conteudo da disciplina ${discipline}`,
+    scopeReturnLabel: `uma duvida sobre o conteudo de ${discipline}`,
+    allowedTopicLabel: `explicacoes, revisao, exemplos, resumos e duvidas do material da disciplina ${discipline}`,
+    blockedTopicsLabel: `desabafos pessoais, terapia, saude pessoal, politica, religiao, esportes profissionais, receitas, piadas e qualquer tema sem relacao com o material da disciplina`,
+    humanHandoffLabel: 'o botao "Falar com Professor" ou outro adulto de confianca da escola',
+    humanHandoffAction: 'clicar em "Falar com Professor" ou procurar um professor, coordenacao ou outro adulto de confianca da escola',
+    greetingInstruction: 'Se a mensagem for apenas uma saudacao, apresente-se brevemente e liste os assuntos disponiveis para estudo.',
+    redirectInstruction: 'Se o assunto estiver fora do material da disciplina, recuse com educacao e redirecione para a materia ou para o botao "Falar com Professor".',
+    noInfoMessage: "Nao encontrei essa informacao no material da disciplina. Voce pode clicar em 'Falar com Professor' para tirar essa duvida.",
+    useEmojis: false
+  });
+}
 
 app.get("/api/student-chat/disciplines", async (req, res) => {
   if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
@@ -7349,11 +7559,26 @@ app.post("/api/student-chat/message", async (req, res) => {
       .single();
     if (inboundError) throw inboundError;
 
+    const safetyIssue = detectAssistantSafetyIssue(userMessage);
+
     // 2. RAG: generate embedding and search knowledge_base
     let contextChunks = [];
     let evidenceRows = [];
+    let aiResponse = "";
+    let responseMode = "AUTOMATIC";
 
-    if (HUGGINGFACE_API_KEY) {
+    if (safetyIssue) {
+      aiResponse = buildSafetyRedirectMessage({
+        issue: safetyIssue,
+        scopeLabel: `duvidas pedagogicas sobre a disciplina ${discipline}`,
+        scopeReturnLabel: `uma duvida sobre o conteudo de ${discipline}`,
+        humanHandoffLabel: 'um professor, a coordenacao, sua familia ou outro adulto de confianca da escola',
+        humanHandoffAction: 'Clique em "Falar com Professor" ou procure um professor, a coordenacao, sua familia ou outro adulto de confianca da escola'
+      });
+      responseMode = "AUTOMATIC_LIMITED";
+    }
+
+    if (!safetyIssue && HUGGINGFACE_API_KEY) {
       try {
         const queryEmbedding = await generateEmbedding(userMessage);
         if (queryEmbedding) {
@@ -7401,9 +7626,36 @@ app.post("/api/student-chat/message", async (req, res) => {
       contextText = "(Nenhum conteudo relevante encontrado no material didatico para esta pergunta.)";
     }
 
+    // 3b. Build materials catalog for the discipline
+    let materialsCatalog = "";
+    try {
+      const allItems = await listTeachingContentRecords(schoolId);
+      const publishedForDiscipline = allItems.filter((item) =>
+        item.status === "published" &&
+        (item.metadata?.subject || "").toLowerCase() === discipline.toLowerCase()
+      );
+      if (publishedForDiscipline.length) {
+        materialsCatalog = publishedForDiscipline.map((item) => {
+          const parts = [`- "${item.title}"`];
+          if (item.metadata?.topic) parts.push(`Assunto: ${item.metadata.topic}`);
+          if (item.metadata?.segment) parts.push(`Segmento: ${item.metadata.segment}`);
+          if (item.metadata?.module_name) parts.push(`Modulo/Serie: ${item.metadata.module_name}`);
+          if (item.summary) parts.push(`Resumo: ${item.summary.slice(0, 200)}`);
+          return parts.join(" | ");
+        }).join("\n");
+      } else {
+        materialsCatalog = "(Nenhum material publicado para esta disciplina.)";
+      }
+    } catch (catalogErr) {
+      console.error("Erro ao montar catalogo de materiais:", catalogErr.message);
+      materialsCatalog = "(Erro ao carregar catalogo de materiais.)";
+    }
+
     // 4. Build system prompt
     const systemPrompt = STUDENT_CHAT_SYSTEM_PROMPT_TEMPLATE
       .replace("{{DISCIPLINE}}", discipline)
+      .replace("{{GUARDRAILS}}", buildStudentChatGuardrails(discipline))
+      .replace("{{MATERIALS_CATALOG}}", materialsCatalog)
       .replace("{{CONTEXT}}", contextText);
 
     // 5. Load conversation history for context
@@ -7421,8 +7673,10 @@ app.post("/api/student-chat/message", async (req, res) => {
         content: row.message_text || ""
       }));
 
-    // 6. Call LLM via askAI
-    const aiResponse = await askAI(systemPrompt, userMessage, chatHistory);
+    // 6. Call LLM via askAI only if the message passed the deterministic safety filter
+    if (!safetyIssue) {
+      aiResponse = await askAI(systemPrompt, userMessage, chatHistory);
+    }
 
     // 7. Save outbound message
     const { data: outboundMsg, error: outboundError } = await supabase
@@ -7450,13 +7704,13 @@ app.post("/api/student-chat/message", async (req, res) => {
         response_text: aiResponse,
         source_version_id: topSource?.source_version_id || null,
         confidence_score: topSource ? topSource.similarity : null,
-        response_mode: "AUTOMATIC",
+        response_mode: responseMode,
         consulted_sources: evidenceRows.map((e) => ({ title: e.source_title, similarity: e.similarity })),
         supporting_source_title: topSource?.source_title || null,
         supporting_source_excerpt: topSource?.answer?.slice(0, 300) || null,
         origin_message_id: inboundMsg.id,
         response_message_id: outboundMsg.id,
-        fallback_to_human: contextChunks.length === 0
+        fallback_to_human: Boolean(safetyIssue) || contextChunks.length === 0
       })
       .select("id")
       .single();
@@ -7489,7 +7743,8 @@ app.post("/api/student-chat/message", async (req, res) => {
       response: aiResponse,
       response_id: responseRecord?.id || null,
       sources: evidenceRows.map((e) => ({ title: e.source_title, similarity: Math.round((e.similarity || 0) * 100) })),
-      has_context: contextChunks.length > 0
+      has_context: contextChunks.length > 0,
+      handled_by_safety_policy: Boolean(safetyIssue)
     });
   } catch (error) {
     console.error("Erro POST /api/student-chat/message:", error);

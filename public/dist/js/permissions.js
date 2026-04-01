@@ -14,7 +14,16 @@ const DEFAULT_ROLE_PAGES = {
 window.DEFAULT_ROLE_PAGES = DEFAULT_ROLE_PAGES;
 
 function normalizeRoleKey(role) {
-  return String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const normalized = String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases = {
+    coordinator: 'coordination',
+    coordenador: 'coordination',
+    coordenacao: 'coordination',
+    professor: 'teacher',
+    docente: 'teacher',
+    diretor: 'direction'
+  };
+  return aliases[normalized] || normalized;
 }
 
 function fallbackAllowedPages(role) {
