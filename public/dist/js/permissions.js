@@ -1,13 +1,13 @@
 const DEFAULT_ROLE_PAGES = {
   superadmin: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'preferences', 'users'],
-  network_manager: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'preferences', 'users'],
-  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'knowledge-gaps', 'knowledge', 'official-content'],
+  network_manager: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'teaching-content', 'preferences', 'users'],
+  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'knowledge-gaps', 'knowledge', 'official-content', 'teaching-content'],
   public_operator: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'incidents', 'feedback', 'corrections', 'knowledge'],
   secretariat: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
-  coordination: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'reports', 'incidents', 'knowledge'],
-  treasury: ['dashboard', 'chat-manager', 'notices', 'reports', 'audit', 'knowledge'],
-  direction: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content'],
-  auditor: ['dashboard', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'network-overview'],
+  coordination: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'reports', 'incidents', 'knowledge', 'teaching-content'],
+  teacher: ['notices', 'notifications', 'teaching-content'],
+  direction: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'teaching-content'],
+  auditor: ['dashboard', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'network-overview'],
   observer: ['dashboard', 'notices', 'reports', 'knowledge']
 };
 

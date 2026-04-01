@@ -128,7 +128,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -280,7 +280,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -349,7 +349,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola B - Sandbox",
+        "school_name": "CEPI Lyceu de Goiania",
         "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -418,7 +418,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -473,7 +473,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -528,7 +528,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola B - Sandbox",
+        "school_name": "CEPI Lyceu de Goiania",
         "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -598,7 +598,7 @@
       "ai_enabled": true,
       "metadata": {
         "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
-        "school_name": "Escola B - Sandbox",
+        "school_name": "CEPI Lyceu de Goiania",
         "parent_name": "Usuario de teste",
         "agent_key": "",
         "agent_title": "Auto-roteamento",
@@ -635,7 +635,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -676,7 +676,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola B - Sandbox",
+        "school_name": "CEPI Lyceu de Goiania",
         "school_id": "b771fe3e-e95c-4db1-a6e0-962eb4ea254a",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -716,7 +716,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -771,7 +771,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -796,7 +796,7 @@
           "id": "a4896c32-0f9c-47cc-94d4-85eee8b25e2d",
           "role": "assistant",
           "source": "administration.secretariat",
-          "text": "Sem problemas! Estou te direcionando para a Assistente da Secretaria da Escola A - Sandbox. Pode fazer sua pergunta sobre Secretaria que ela segue com o atendimento.",
+          "text": "Sem problemas! Estou te direcionando para a Assistente da Secretaria da CEF 01 de Brasilia. Pode fazer sua pergunta sobre Secretaria que ela segue com o atendimento.",
           "created_at": "2026-03-27T11:34:33.209Z"
         },
         {
@@ -826,7 +826,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -851,7 +851,7 @@
           "id": "c32f9e91-a85a-4d96-8f98-2b97ec80ac7b",
           "role": "assistant",
           "source": "public.assistant",
-          "text": "Ola! Sou a Assistente Publica da Escola A - Sandbox, vinculada a Rede A - Sandbox. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Se precisar falar com a Secretaria, Tesouraria ou Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Se precisar falar com a Secretaria, Tesouraria ou Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
           "created_at": "2026-03-27T12:40:41.312Z"
         },
         {
@@ -1035,7 +1035,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -1076,7 +1076,7 @@
       "status": "AI_ACTIVE",
       "ai_enabled": true,
       "metadata": {
-        "school_name": "Escola A - Sandbox",
+        "school_name": "CEF 01 de Brasilia",
         "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
         "entrypoint": "simulador_piloto",
         "requester_profile": "simulador_chat",
@@ -1105,6 +1105,61 @@
         }
       ],
       "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:73c91599-ba1d-4d42-b681-5d289739fab9",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:73c91599-ba1d-4d42-b681-5d289739fab9",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:73c91599-ba1d-4d42-b681-5d289739fab9",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-03-29T16:32:12.176Z",
+      "updated_at": "2026-03-29T16:33:57.105Z",
+      "transcript": [
+        {
+          "id": "586ae689-0be0-4f49-bb37-1d2083ecf872",
+          "role": "user",
+          "source": "webchat",
+          "text": "bom dia",
+          "created_at": "2026-03-29T16:32:12.180Z"
+        },
+        {
+          "id": "a6476241-191e-4f7f-816d-12d1a7611a2a",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Se precisar falar com a Secretaria, Tesouraria ou Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-03-29T16:32:12.317Z"
+        },
+        {
+          "id": "b670f194-0d57-45e0-b7dd-d686d9ec6a61",
+          "role": "user",
+          "source": "webchat",
+          "text": "que dias são o recesso escolar?",
+          "created_at": "2026-03-29T16:33:55.653Z"
+        },
+        {
+          "id": "9d2fc052-f250-41da-8088-ec3df9c8a9e5",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "De acordo com as fontes institucionais disponíveis, o recesso escolar ocorre nos seguintes dias:\n\n- Início em 01/04/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n- Início em 02/04/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n- Início em 20/06/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n\nEssas datas se referem a períodos de recesso escolar, mas não especificam a duração exata de cada recesso. Para informações mais detalhadas, recomendo consultar o Calendário Escolar 2026 ou entrar em contato diretamente com a secretaria da instituição.\n\nFonte: Calendario da Rede/Secretaria (publicado).",
+          "created_at": "2026-03-29T16:33:57.105Z"
+        }
+      ],
+      "last_message": "De acordo com as fontes institucionais disponíveis, o recesso escolar ocorre nos seguintes dias:\n\n- Início em 01/04/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n- Início em 02/04/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n- Início em 20/06/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n\nEssas datas se referem a períodos de recesso escolar, mas não especificam a duração exata de cada recesso. Para informações mais detalhadas, recomendo consultar o Calendário Escolar 2026 ou entrar em contato diretamente com a secretaria da instituição.\n\nFonte: Calendario da Rede/Secretaria (publicado)."
     }
   ]
 ]

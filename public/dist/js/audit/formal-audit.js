@@ -16,6 +16,7 @@ const AUDIT_TREATMENT_DESTINATION_LABELS = {
 const AUDIT_TREATMENT_PROGRESS_LABELS = {
   OPEN: 'Aberto',
   IN_PROGRESS: 'Em andamento',
+  PENDING_APPROVAL: 'Aguardando aprovação',
   COMPLETED: 'Concluído',
   DISMISSED: 'Descartado'
 };
@@ -531,6 +532,73 @@ function renderAuditTable() {
   renderAuditDetail(rows.find((row) => row.id === selectedAuditId) || null);
 }
 
+function buildCorrectionDetailHtml(event) {
+  const d = event.details || {};
+  if (!d.proposed_correction && !d.approved_by && !d.faq_auto_applied) return '';
+
+  let html = '<div class="audit-detail-section"><div class="audit-detail-label">Correção / Aprovação</div><div class="audit-detail-box">';
+
+  if (d.proposed_correction) {
+    html += `<div class="mb-2"><strong>Correção proposta:</strong></div>`;
+    html += `<div class="p-2 mb-2" style="background:#fffde7;border:1px solid #fff59d;border-radius:4px;white-space:pre-wrap;">${escapeHtml(d.proposed_correction)}</div>`;
+    html += `<div class="mb-2 small text-muted">Tipo: ${escapeHtml(d.proposed_correction_type || '-')} • Proposta por: ${escapeHtml(d.proposed_correction_by || '-')} • Em: ${escapeHtml(formatDateTime(d.proposed_correction_at))}</div>`;
+  }
+  if (d.approved_by) {
+    html += `<div class="mb-2"><strong><i class="fas fa-check-circle text-success mr-1"></i>Aprovada por:</strong> ${escapeHtml(d.approved_by)} em ${escapeHtml(formatDateTime(d.approved_at))}</div>`;
+    if (d.approval_notes) {
+      html += `<div class="mb-2 small"><strong>Observação da aprovação:</strong> ${escapeHtml(d.approval_notes)}</div>`;
+    }
+  }
+  if (d.faq_auto_applied) {
+    html += `<div class="p-2" style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:4px;color:#065f46;"><i class="fas fa-robot mr-1"></i><strong>FAQ atualizada automaticamente</strong>`;
+    if (d.faq_auto_applied_description) {
+      html += `<br><small>${escapeHtml(d.faq_auto_applied_description)}</small>`;
+    }
+    html += `<br><small>Em: ${escapeHtml(formatDateTime(d.faq_auto_applied_at))}</small></div>`;
+  }
+  if (d.faq_auto_apply_error) {
+    html += `<div class="p-2 mt-2" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;color:#991b1b;"><i class="fas fa-exclamation-triangle mr-1"></i><strong>Erro ao aplicar FAQ:</strong> ${escapeHtml(d.faq_auto_apply_error)}</div>`;
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function buildTreatmentHistoryHtml(event) {
+  const relatedEvents = auditEvents.filter((e) => {
+    const sourceId = e.details?.source_event_id;
+    return sourceId && sourceId === event.id && e.id !== event.id;
+  });
+  if (!relatedEvents.length) return '';
+
+  const sorted = relatedEvents.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const EVENT_TYPE_ICONS = {
+    AUDIT_REVIEW_STATUS_UPDATED: 'fas fa-clipboard-check',
+    AUDIT_TREATMENT_PROGRESS_UPDATED: 'fas fa-tasks',
+    CORRECTION_PROPOSED: 'fas fa-pen',
+    CORRECTION_APPROVED_BY_DIRECTION: 'fas fa-check-double',
+    CORRECTION_RESOLVED_BY_DIRECTION: 'fas fa-check-circle',
+    INCIDENT_ASSIGNED: 'fas fa-user-plus'
+  };
+
+  const rows = sorted.map((e) => {
+    const icon = EVENT_TYPE_ICONS[e.event_type] || 'fas fa-info-circle';
+    return `<div class="d-flex align-items-start mb-2 p-2" style="background:#f8f9fa;border-radius:4px;border-left:3px solid #6c757d;">
+      <i class="${icon} mr-2 mt-1 text-muted"></i>
+      <div>
+        <div class="font-weight-bold small">${escapeHtml(e.summary || e.event_type)}</div>
+        <div class="small text-muted">${escapeHtml(e.actor_name || '-')} • ${escapeHtml(formatDateTime(e.created_at))}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="audit-detail-section">
+    <div class="audit-detail-label">Histórico de tratamento</div>
+    <div class="audit-detail-box">${rows}</div>
+  </div>`;
+}
+
 function renderAuditDetail(event) {
   const panel = document.getElementById('audit-detail-panel');
   if (!event) {
@@ -612,7 +680,8 @@ function renderAuditDetail(event) {
         <div class="mb-2"><strong>Fila operacional:</strong> ${escapeHtml(getTreatmentProgressLabel(event.treatment_progress_status))}</div>
         <div class="mb-2"><strong>Última revisão:</strong> ${escapeHtml(formatDateTime(event.reviewed_at))}</div>
         <div class="mb-2"><strong>Responsavel:</strong> ${escapeHtml(event.reviewed_by || '-')}</div>
-        <div class="mb-2"><strong>Última atualização da fila:</strong> ${escapeHtml(formatDateTime(event.treatment_last_updated_at || event.reviewed_at))}</div>
+        <div class="mb-2"><strong>Última atualização da fila:</strong> ${escapeHtml(formatDateTime(event.details?.treatment_last_updated_at || event.reviewed_at))}</div>
+        <div class="mb-2"><strong>Atualizado por:</strong> ${escapeHtml(event.details?.treatment_last_updated_by || '-')}</div>
         <div class="mb-2"><strong>Notas do auditor:</strong> ${escapeHtml(event.review_notes || '-')}</div>
         <div class="mb-3"><strong>Notas da execucao:</strong> ${escapeHtml(event.treatment_completion_notes || '-')}</div>
         <div class="form-group mb-2">
@@ -635,6 +704,9 @@ function renderAuditDetail(event) {
         <button class="btn btn-primary btn-sm" id="btn-save-audit-review" onclick="saveAuditReview('${escapeHtml(event.id)}')">Salvar tratamento</button>
       </div>
     </div>
+
+    ${buildCorrectionDetailHtml(event)}
+    ${buildTreatmentHistoryHtml(event)}
 
     <div class="audit-detail-section">
       <div class="audit-detail-label">Metadados</div>

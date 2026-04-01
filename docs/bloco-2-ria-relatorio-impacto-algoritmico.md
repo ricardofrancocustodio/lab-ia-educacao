@@ -473,7 +473,6 @@ A API do webchat define capacidades diferenciadas por papel. Em linhas gerais:
 | auditor | Sim | Sim | Sim | Nao |
 | content_curator | Sim | Sim | Sim | Nao |
 | direction | Sim | Sim | Nao | Sim |
-| treasury | Sim | Sim | Nao | Sim |
 | coordination | Nao | Nao | Nao | Sim |
 | secretariat | Nao | Nao | Nao | Sim |
 | public_operator | Nao | Nao | Nao | Sim |

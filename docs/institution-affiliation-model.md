@@ -35,8 +35,6 @@ Valores suportados:
 
 - `network_manager`: somente em `education_department`, com `department_staff`
 - `secretariat`: somente em `education_department`, com `department_staff`
-- `treasury`: somente em `education_department`, com `department_staff`
-  Observacao: perfil legado. Enquanto nao houver modulo financeiro, nao deve ser oferecido na criacao de usuarios.
 - `direction`: interno (`department_staff` ou `school_staff`)
 - `coordination`: interno (`department_staff` ou `school_staff`)
 - `public_operator`: interno (`department_staff` ou `school_staff`)
@@ -51,7 +49,7 @@ Com esse modelo:
 - uma secretaria pode existir como instituicao propria
 - uma escola pode ficar subordinada a uma secretaria
 - cada membro passa a ter vinculo institucional explicito
-- o teste entre Escola A e Escola B deixa de depender de convencao manual
+- o teste entre CEF 01 (DF) e CEPI Lyceu (GO) deixa de depender de convencao manual
 
 ## Proximo teste recomendado
 

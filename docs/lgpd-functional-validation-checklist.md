@@ -29,16 +29,16 @@ Antes de iniciar:
 
 ## Teste de Isolamento Entre Escolas
 
-Com um usuario da Escola A:
+Com um usuario do CEF 01 (DF):
 
-- abrir dashboard e confirmar que os numeros pertencem apenas a Escola A
-- abrir conteudo oficial e confirmar que nao aparecem registros da Escola B
-- abrir base de conhecimento e confirmar que nao aparecem fontes da Escola B
-- abrir auditoria e confirmar que nao aparecem eventos da Escola B
+- abrir dashboard e confirmar que os numeros pertencem apenas ao CEF 01
+- abrir conteudo oficial e confirmar que nao aparecem registros do CEPI Lyceu (GO)
+- abrir base de conhecimento e confirmar que nao aparecem fontes do CEPI Lyceu (GO)
+- abrir auditoria e confirmar que nao aparecem eventos do CEPI Lyceu (GO)
 
 Resultado esperado:
 
-- nenhum dado da Escola B deve ser visivel
+- nenhum dado do CEPI Lyceu (GO) deve ser visivel
 
 ## Teste por Perfil
 
@@ -188,7 +188,7 @@ Validar:
 
 - remover token da sessao e tentar chamar rota protegida
 - alterar `school_id` manualmente no client e repetir chamada
-- usar usuario da Escola A para tentar acessar dado conhecido da Escola B
+- usar usuario do CEF 01 (DF) para tentar acessar dado conhecido do CEPI Lyceu (GO)
 
 Resultado esperado:
 

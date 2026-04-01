@@ -571,7 +571,15 @@
             throw new Error('login_sem_sessao');
           }
 
-          window.location.href = '/dashboard';
+          const sessionInfo = typeof window.initSession === 'function'
+            ? await window.initSession()
+            : null;
+          const effectiveRole = sessionInfo?.effective_role || sessionInfo?.platform_role || sessionInfo?.role || '';
+          const nextPath = typeof window.getPostLoginRedirectPath === 'function'
+            ? window.getPostLoginRedirectPath(effectiveRole)
+            : '/comunicados';
+
+          window.location.href = nextPath;
         } catch (err) {
           console.error('Erro no login:', err);
           if (errorMsg) {

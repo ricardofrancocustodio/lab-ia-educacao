@@ -255,7 +255,7 @@ const KnowledgeGapsPage = (() => {
       }
 
       const role = sessionStorage.getItem('EFFECTIVE_ROLE') || '';
-      const allowed = ['superadmin', 'network_manager', 'content_curator', 'direction', 'secretariat'];
+      const allowed = ['superadmin', 'network_manager', 'content_curator', 'direction', 'secretariat', 'auditor'];
       if (!allowed.includes(role)) {
         document.getElementById('gaps-loading').innerHTML = '<p class="text-danger">Acesso nao autorizado.</p>';
         return;

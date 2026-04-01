@@ -7,7 +7,7 @@
     --role-service: linear-gradient(135deg, #64748b 0%, #475569 100%);
     --role-secretariat: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
     --role-coordination: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-    --role-treasury: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    --role-teacher: linear-gradient(135deg, #16a34a 0%, #166534 100%);
     --role-direction: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
     --role-auditor: linear-gradient(135deg, #334155 0%, #0f172a 100%);
     --role-observer: linear-gradient(135deg, #0ea5e9 0%, #1d4ed8 100%);
@@ -34,7 +34,7 @@
 .role-service { background: var(--role-service); }
 .role-secretariat { background: var(--role-secretariat); }
 .role-coordination { background: var(--role-coordination); }
-.role-treasury { background: var(--role-treasury); }
+.role-teacher { background: var(--role-teacher); }
 .role-direction { background: var(--role-direction); }
 .role-auditor { background: var(--role-auditor); }
 .role-observer { background: var(--role-observer); }
@@ -62,7 +62,7 @@
 .user-avatar.role-service { background: var(--role-service); }
 .user-avatar.role-secretariat { background: var(--role-secretariat); }
 .user-avatar.role-coordination { background: var(--role-coordination); }
-.user-avatar.role-treasury { background: var(--role-treasury); }
+.user-avatar.role-teacher { background: var(--role-teacher); }
 .user-avatar.role-direction { background: var(--role-direction); }
 .user-avatar.role-auditor { background: var(--role-auditor); }
 .user-avatar.role-observer { background: var(--role-observer); }

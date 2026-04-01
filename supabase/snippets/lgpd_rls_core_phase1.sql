@@ -90,7 +90,7 @@ stable
 as $$
   select public.has_school_role(
     p_school_id,
-    array['network_manager', 'direction', 'secretariat', 'coordination', 'public_operator', 'treasury']::text[]
+    array['network_manager', 'direction', 'secretariat', 'coordination', 'public_operator']::text[]
   );
 $$;
 
@@ -103,7 +103,7 @@ stable
 as $$
   select public.has_school_role(
     p_school_id,
-    array['network_manager', 'direction', 'auditor', 'content_curator', 'treasury']::text[]
+    array['network_manager', 'direction', 'auditor', 'content_curator']::text[]
   );
 $$;
 

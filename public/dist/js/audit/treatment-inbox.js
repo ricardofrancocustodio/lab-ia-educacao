@@ -1,9 +1,10 @@
 ﻿const AUDIT_TREATMENT_INBOX_PAGE_CONFIG = {
   audit: {
     title: 'Fila de Encaminhamentos',
-    subtitle: 'Direção, compliance e auditoria acompanham os casos enviados para tratamento.',
+    subtitle: 'Direção, compliance, secretaria e auditoria acompanham os casos enviados para tratamento.',
     destinationByRole: {
-      direction: 'direction_compliance'
+      direction: 'direction_compliance',
+      secretariat: 'direction_compliance'
     },
     viewAllRoles: new Set(['superadmin', 'auditor'])
   },
@@ -31,6 +32,7 @@
 const AUDIT_TREATMENT_INBOX_STATUS_LABELS = {
   OPEN: 'Aberto',
   IN_PROGRESS: 'Em andamento',
+  PENDING_APPROVAL: 'Aguardando aprovação',
   COMPLETED: 'Concluído',
   DISMISSED: 'Descartado'
 };
@@ -115,6 +117,7 @@ function getAuditTreatmentStatusLabel(value) {
 function getAuditTreatmentStatusTone(value) {
   const normalized = String(value || 'OPEN').trim().toUpperCase();
   if (normalized === 'IN_PROGRESS') return 'warning';
+  if (normalized === 'PENDING_APPROVAL') return 'info';
   if (normalized === 'COMPLETED') return 'success';
   if (normalized === 'DISMISSED') return 'secondary';
   return 'primary';
@@ -141,8 +144,10 @@ function ensureAuditTreatmentInboxStyles() {
     .audit-treatment-pill.warning { background: #fef3c7; color: #92400e; }
     .audit-treatment-pill.success { background: #dcfce7; color: #166534; }
     .audit-treatment-pill.secondary { background: #e5e7eb; color: #374151; }
+    .audit-treatment-pill.info { background: #e0f2fe; color: #0369a1; }
     .audit-treatment-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
     .audit-treatment-actions .btn { border-radius: 999px; }
+    .audit-treatment-proposed-box { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: #fef9c3; border: 1px solid #fde68a; font-size: 0.88rem; color: #78350f; }
     .audit-treatment-box-muted { font-size: 0.85rem; color: #6b7280; }
     .audit-treatment-sidebar-box { margin: 0 12px 12px; }
     .audit-treatment-sidebar-box .card-body { padding: 12px; }
@@ -258,11 +263,64 @@ function renderAuditTreatmentInbox(items, scopeMode) {
     return;
   }
 
+  const role = getAuditTreatmentEffectiveRole();
+  const isDirectionOrAbove = ['direction', 'superadmin', 'network_manager'].includes(role);
+  const isSecretariatOrCoordination = ['secretariat', 'coordination'].includes(role);
+
   list.innerHTML = items.map((item) => {
     const statusTone = getAuditTreatmentStatusTone(item.treatment_progress_status);
     const schoolLabel = item.school_name || 'Escola não identificada';
     const requesterLabel = item.requester_name || '-';
     const notes = item.treatment_completion_notes || item.review_notes || '';
+    const progressUpper = String(item.treatment_progress_status || '').toUpperCase();
+    const isIncidentAssigned = String(item.event_type || '').toUpperCase() === 'INCIDENT_ASSIGNED';
+    const proposedCorrection = item.proposed_correction || '';
+    const proposedBy = item.proposed_correction_by || '';
+
+    // Build action buttons based on role and status
+    let actionsHtml = '';
+    actionsHtml += `<button class="btn btn-outline-primary btn-sm" data-treatment-action="open" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">${escapeAuditTreatmentHtml(item.treatment_action_label || 'Abrir contexto')}</button>`;
+
+    if (progressUpper === 'PENDING_APPROVAL') {
+      // Director can approve or reject
+      if (isDirectionOrAbove) {
+        actionsHtml += `<button class="btn btn-success btn-sm" data-treatment-action="approve-correction" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}"><i class="fas fa-check mr-1"></i>Aprovar correção</button>`;
+        actionsHtml += `<button class="btn btn-outline-danger btn-sm" data-treatment-action="reject-correction" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}"><i class="fas fa-undo mr-1"></i>Devolver para revisão</button>`;
+      }
+      actionsHtml += `<button class="btn btn-outline-secondary btn-sm" data-treatment-action="status" data-next-status="DISMISSED" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Descartar</button>`;
+    } else if (progressUpper === 'COMPLETED') {
+      actionsHtml += `<button class="btn btn-link btn-sm" data-treatment-action="status" data-next-status="OPEN" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Reabrir</button>`;
+    } else if (progressUpper === 'DISMISSED') {
+      actionsHtml += `<button class="btn btn-link btn-sm" data-treatment-action="status" data-next-status="OPEN" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Reabrir</button>`;
+    } else {
+      // OPEN or IN_PROGRESS
+      if (progressUpper !== 'IN_PROGRESS') {
+        actionsHtml += `<button class="btn btn-outline-warning btn-sm" data-treatment-action="status" data-next-status="IN_PROGRESS" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Marcar em andamento</button>`;
+      }
+      if (isIncidentAssigned && isDirectionOrAbove) {
+        // Director can resolve directly (write correction + complete in one step)
+        actionsHtml += `<button class="btn btn-success btn-sm" data-treatment-action="resolve-correction" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}"><i class="fas fa-check-circle mr-1"></i>Resolver com correção</button>`;
+      }
+      if (isIncidentAssigned && isSecretariatOrCoordination) {
+        // Secretariat proposes — goes to PENDING_APPROVAL for director to approve
+        actionsHtml += `<button class="btn btn-info btn-sm" data-treatment-action="propose-correction" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}"><i class="fas fa-pen mr-1"></i>Propor correção</button>`;
+      }
+      if (isDirectionOrAbove) {
+        actionsHtml += `<button class="btn btn-outline-success btn-sm" data-treatment-action="status" data-next-status="COMPLETED" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Concluir sem correção</button>`;
+      }
+      actionsHtml += `<button class="btn btn-outline-secondary btn-sm" data-treatment-action="status" data-next-status="DISMISSED" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Descartar</button>`;
+    }
+
+    // Proposed correction box (visible when PENDING_APPROVAL)
+    const proposedBox = proposedCorrection
+      ? `<div class="audit-treatment-proposed-box"><strong><i class="fas fa-pen-square mr-1"></i>Correção proposta${proposedBy ? ' por ' + escapeAuditTreatmentHtml(proposedBy) : ''}:</strong><br>${escapeAuditTreatmentHtml(proposedCorrection)}</div>`
+      : '';
+
+    // Auto-applied to FAQ indicator
+    const autoAppliedBox = item.faq_auto_applied
+      ? `<div class="audit-treatment-proposed-box" style="background:#d1fae5;border-color:#6ee7b7;color:#065f46;"><i class="fas fa-robot mr-1"></i><strong>FAQ atualizada automaticamente</strong>${item.faq_auto_applied_description ? '<br><small>' + escapeAuditTreatmentHtml(item.faq_auto_applied_description) + '</small>' : ''}</div>`
+      : '';
+
     return `
       <article class="audit-treatment-item" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">
         <div class="audit-treatment-item-header">
@@ -282,12 +340,10 @@ function renderAuditTreatmentInbox(items, scopeMode) {
           <div><strong>Última atualização:</strong> ${escapeAuditTreatmentHtml(formatAuditTreatmentDateTime(item.treatment_last_updated_at))}</div>
         </div>
         ${notes ? `<div class="audit-treatment-box-muted mt-2"><strong>Observações:</strong> ${escapeAuditTreatmentHtml(notes)}</div>` : ''}
+        ${proposedBox}
+        ${autoAppliedBox}
         <div class="audit-treatment-actions">
-          <button class="btn btn-outline-primary btn-sm" data-treatment-action="open" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">${escapeAuditTreatmentHtml(item.treatment_action_label || 'Abrir contexto')}</button>
-          ${String(item.treatment_progress_status || '').toUpperCase() === 'IN_PROGRESS' ? '' : `<button class="btn btn-outline-warning btn-sm" data-treatment-action="status" data-next-status="IN_PROGRESS" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Marcar em andamento</button>`}
-          ${String(item.treatment_progress_status || '').toUpperCase() === 'COMPLETED' ? '' : `<button class="btn btn-outline-success btn-sm" data-treatment-action="status" data-next-status="COMPLETED" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Concluir</button>`}
-          ${String(item.treatment_progress_status || '').toUpperCase() === 'DISMISSED' ? '' : `<button class="btn btn-outline-secondary btn-sm" data-treatment-action="status" data-next-status="DISMISSED" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Descartar</button>`}
-          ${String(item.treatment_progress_status || '').toUpperCase() === 'OPEN' ? '' : `<button class="btn btn-link btn-sm" data-treatment-action="status" data-next-status="OPEN" data-treatment-id="${escapeAuditTreatmentHtml(item.id)}">Reabrir</button>`}
+          ${actionsHtml}
         </div>
       </article>
     `;
@@ -334,6 +390,7 @@ async function loadAuditTreatmentInbox() {
     renderAuditTreatmentDestinationFilter(auditTreatmentInboxState.destinations, pageConfig, role);
     renderAuditTreatmentInbox(auditTreatmentInboxState.items, body.scope_mode || 'single');
   } catch (error) {
+    console.error('[treatment-inbox] load error:', error);
     if (summary) summary.textContent = 'Não foi possível carregar a fila de tratamento.';
     if (list) list.innerHTML = `<div class="text-danger small">${escapeAuditTreatmentHtml(error.message || 'Falha ao carregar a fila.')}</div>`;
   } finally {
@@ -363,9 +420,11 @@ async function requestAuditTreatmentNotes(nextStatus) {
   return String(modal.value || '').trim();
 }
 
-async function updateAuditTreatmentStatus(itemId, nextStatus) {
-  const notes = await requestAuditTreatmentNotes(nextStatus);
-  if (notes === null) return;
+async function updateAuditTreatmentStatus(itemId, nextStatus, extraBody = {}) {
+  const skipNotes = extraBody._skipNotes === true;
+  delete extraBody._skipNotes;
+  const notes = skipNotes ? (extraBody.treatment_completion_notes || '') : await requestAuditTreatmentNotes(nextStatus);
+  if (!skipNotes && notes === null) return;
   const actorName = sessionStorage.getItem('USER_NAME') || sessionStorage.getItem('USER_EMAIL') || 'Operador institucional';
   const res = await fetch(`/api/audit/treatments/${encodeURIComponent(itemId)}/status`, {
     method: 'POST',
@@ -373,7 +432,8 @@ async function updateAuditTreatmentStatus(itemId, nextStatus) {
     body: JSON.stringify({
       treatment_progress_status: nextStatus,
       treatment_completion_notes: notes || '',
-      updated_by: actorName
+      updated_by: actorName,
+      ...extraBody
     })
   });
   const body = await res.json().catch(() => ({}));
@@ -432,6 +492,131 @@ function bindAuditTreatmentInboxActions() {
     try {
       if (action === 'open') {
         await openAuditTreatmentContext(itemId);
+
+      } else if (action === 'resolve-correction') {
+        // Director resolves directly: writes correction + completes in one step
+        if (!window.Swal) return;
+        const { value: resolveValues } = await window.Swal.fire({
+          title: 'Resolver com correção',
+          html:
+            '<label for="swal-correction-type" class="d-block text-left mb-1 font-weight-bold">Tipo de correção</label>' +
+            '<select id="swal-correction-type" class="swal2-select form-control mb-3">' +
+              '<option value="faq_update">Atualizar resposta da FAQ</option>' +
+              '<option value="content_removal">Remover conteúdo inadequado</option>' +
+              '<option value="other">Outro</option>' +
+            '</select>' +
+            '<label for="swal-correction-text" class="d-block text-left mb-1 font-weight-bold">Texto da correção</label>' +
+            '<textarea id="swal-correction-text" class="swal2-textarea form-control" rows="6" ' +
+              'placeholder="Ex: Pergunta: Qual o horário de atendimento?\nResposta: O atendimento funciona de 8h às 17h."></textarea>' +
+            '<small class="text-muted d-block text-left mt-1">Para FAQ, use o formato: Pergunta: ...\nResposta: ...</small>',
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'Resolver e aplicar',
+          cancelButtonText: 'Cancelar',
+          preConfirm: () => {
+            const text = document.getElementById('swal-correction-text')?.value?.trim();
+            if (!text) {
+              window.Swal.showValidationMessage('Informe o texto da correção.');
+              return false;
+            }
+            return {
+              proposed_correction: text,
+              correction_type: document.getElementById('swal-correction-type')?.value || 'other'
+            };
+          }
+        });
+        if (!resolveValues) return;
+        await updateAuditTreatmentStatus(itemId, 'COMPLETED', {
+          proposed_correction: resolveValues.proposed_correction,
+          correction_type: resolveValues.correction_type,
+          _skipNotes: true,
+          treatment_completion_notes: 'Correção resolvida diretamente pela direção.'
+        });
+        await window.Swal.fire('Correção aplicada', 'A correção foi registrada e a FAQ será atualizada automaticamente.', 'success');
+
+      } else if (action === 'propose-correction') {
+        if (!window.Swal) return;
+        const { value: formValues } = await window.Swal.fire({
+          title: 'Propor correção',
+          html:
+            '<label for="swal-correction-type" class="d-block text-left mb-1 font-weight-bold">Tipo de correção</label>' +
+            '<select id="swal-correction-type" class="swal2-select form-control mb-3">' +
+              '<option value="faq_update">Atualizar resposta da FAQ</option>' +
+              '<option value="content_removal">Remover conteúdo inadequado</option>' +
+              '<option value="other">Outro</option>' +
+            '</select>' +
+            '<label for="swal-correction-text" class="d-block text-left mb-1 font-weight-bold">Texto da correção proposta</label>' +
+            '<textarea id="swal-correction-text" class="swal2-textarea form-control" rows="6" ' +
+              'placeholder="Descreva a correção a ser aplicada na resposta da IA..."></textarea>',
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'Enviar para aprovação',
+          cancelButtonText: 'Cancelar',
+          preConfirm: () => {
+            const text = document.getElementById('swal-correction-text')?.value?.trim();
+            if (!text) {
+              window.Swal.showValidationMessage('Informe o texto da correção proposta.');
+              return false;
+            }
+            return {
+              proposed_correction: text,
+              correction_type: document.getElementById('swal-correction-type')?.value || 'other'
+            };
+          }
+        });
+        if (!formValues) return;
+        await updateAuditTreatmentStatus(itemId, 'PENDING_APPROVAL', {
+          proposed_correction: formValues.proposed_correction,
+          correction_type: formValues.correction_type,
+          _skipNotes: true,
+          treatment_completion_notes: ''
+        });
+        await window.Swal.fire('Correção enviada', 'A correção foi enviada para aprovação da direção.', 'success');
+
+      } else if (action === 'approve-correction') {
+        if (!window.Swal) return;
+        const item = auditTreatmentInboxState.items.find(i => i.id === itemId);
+        const proposedText = item?.proposed_correction || '(sem texto)';
+        const { isConfirmed } = await window.Swal.fire({
+          title: 'Aprovar correção?',
+          html:
+            '<p class="text-left mb-2">Correção proposta:</p>' +
+            '<div class="audit-treatment-proposed-box">' + escapeAuditTreatmentHtml(proposedText) + '</div>' +
+            '<p class="text-left mt-3 mb-1">Ao aprovar, a correção será marcada como concluída.</p>',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Aprovar',
+          cancelButtonText: 'Cancelar'
+        });
+        if (!isConfirmed) return;
+        await updateAuditTreatmentStatus(itemId, 'COMPLETED', {
+          _skipNotes: true,
+          treatment_completion_notes: 'Correção aprovada pela direção.'
+        });
+        await window.Swal.fire('Correção aprovada', 'A correção foi aprovada com sucesso.', 'success');
+
+      } else if (action === 'reject-correction') {
+        if (!window.Swal) return;
+        const { value: reason } = await window.Swal.fire({
+          title: 'Devolver para revisão',
+          input: 'textarea',
+          inputLabel: 'Motivo da devolução',
+          inputPlaceholder: 'Explique o que precisa ser ajustado na correção proposta...',
+          inputAttributes: { rows: 4 },
+          showCancelButton: true,
+          confirmButtonText: 'Devolver',
+          cancelButtonText: 'Cancelar',
+          inputValidator: (val) => {
+            if (!val?.trim()) return 'Informe o motivo da devolução.';
+          }
+        });
+        if (reason === undefined || reason === null) return;
+        await updateAuditTreatmentStatus(itemId, 'IN_PROGRESS', {
+          _skipNotes: true,
+          treatment_completion_notes: 'Devolvido: ' + reason.trim()
+        });
+        await window.Swal.fire('Devolvido', 'O item foi devolvido para revisão.', 'info');
+
       } else if (action === 'status') {
         const nextStatus = String(button.getAttribute('data-next-status') || '').trim().toUpperCase();
         await updateAuditTreatmentStatus(itemId, nextStatus);

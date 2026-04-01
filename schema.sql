@@ -33,7 +33,7 @@ create table if not exists public.school_members (
     'public_operator',
     'secretariat',
     'coordination',
-    'treasury',
+    'teacher',
     'direction',
     'auditor',
     'observer'
@@ -97,6 +97,8 @@ create table if not exists public.knowledge_source_versions (
   checksum text null,
   file_name text null,
   mime_type text null,
+  storage_bucket text null,
+  storage_path text null,
   raw_text text null,
   chunk_count integer not null default 0,
   published_at timestamptz not null default now(),
@@ -104,6 +106,12 @@ create table if not exists public.knowledge_source_versions (
   created_by uuid null references auth.users(id) on delete set null,
   unique (source_document_id, version_number)
 );
+
+alter table public.knowledge_source_versions
+  add column if not exists storage_bucket text null;
+
+alter table public.knowledge_source_versions
+  add column if not exists storage_path text null;
 
 create table if not exists public.knowledge_base (
   id uuid primary key default gen_random_uuid(),
@@ -305,7 +313,8 @@ create index if not exists idx_corrections_response on public.response_correctio
 
 create table if not exists public.correction_kb_changes (
   id uuid primary key default gen_random_uuid(),
-  correction_id uuid not null references public.response_corrections(id) on delete cascade,
+  correction_id uuid not null,
+  source_table text not null default 'response_corrections' check (source_table in ('response_corrections', 'formal_audit_events')),
   school_id uuid not null references public.schools(id) on delete cascade,
   source_document_id uuid references public.source_documents(id) on delete set null,
   version_id uuid references public.knowledge_source_versions(id) on delete set null,
@@ -349,6 +358,7 @@ insert into public.app_pages (key, label, menu_order, active) values
   ('users', 'Usuarios', 50, true),
   ('preferences', 'Preferencias', 60, true),
   ('knowledge', 'Base de Conhecimento', 70, true),
+  ('teaching-content', 'Curadoria Pedagogica', 75, true),
   ('official-content', 'Conteudo Oficial', 80, true)
 on conflict (key) do update
 set label = excluded.label,
@@ -395,21 +405,21 @@ begin
   end loop;
 
   r := 'coordination';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge'] loop
+  foreach p in array array['dashboard','chat-manager','reports','knowledge','teaching-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
-  r := 'treasury';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge','audit'] loop
+  r := 'teacher';
+  foreach p in array array['teaching-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'direction';
-  foreach p in array array['dashboard','chat-manager','reports','audit','knowledge','official-content'] loop
+  foreach p in array array['dashboard','chat-manager','reports','audit','knowledge','official-content','teaching-content'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();

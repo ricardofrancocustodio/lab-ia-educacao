@@ -4,16 +4,62 @@ const IncidentsPanelPage = (() => {
     return String(text || '').replace(/[&<>"']/g, m => map[m]);
   }
 
-  const MANAGE_ROLES = new Set(['superadmin', 'network_manager', 'auditor']);
+  const MANAGE_ROLES = new Set(['superadmin', 'network_manager', 'auditor', 'direction', 'secretariat', 'coordination']);
   const SEVERITY_LABELS = { CRITICAL: 'Critica', HIGH: 'Alta', MEDIUM: 'Media', LOW: 'Baixa' };
   const SEVERITY_BADGE = { CRITICAL: 'badge-sev-critical', HIGH: 'badge-sev-high', MEDIUM: 'badge-sev-medium', LOW: 'badge-sev-low' };
   const SEVERITY_CARD = { CRITICAL: 'incident-sev-critical', HIGH: 'incident-sev-high', MEDIUM: 'incident-sev-medium', LOW: 'incident-sev-low' };
   const STATUS_LABELS = { OPEN: 'Aberto', IN_REVIEW: 'Em Revisao', RESOLVED: 'Resolvido', DISMISSED: 'Descartado' };
   const STATUS_BADGE = { OPEN: 'badge-st-open', IN_REVIEW: 'badge-st-in_review', RESOLVED: 'badge-st-resolved', DISMISSED: 'badge-st-dismissed' };
+  const TYPE_LABELS = {
+    governance_review: 'Revisao de Governanca',
+    inappropriate_tone: 'Tom Inadequado ou Ofensivo',
+    data_exposure: 'Exposicao Indevida de Dados',
+    hallucination: 'Alucinacao (informacao inventada)',
+    outdated_content: 'Conteudo Desatualizado',
+    wrong_source: 'Fonte Errada Utilizada',
+    feedback_incorreto_auto: 'Feedback Incorreto (automatico)',
+    incorrect_answer: 'Resposta Incorreta',
+    other: 'Outro'
+  };
+  const TYPE_ICON = {
+    governance_review: 'fas fa-balance-scale',
+    inappropriate_tone: 'fas fa-exclamation-triangle',
+    data_exposure: 'fas fa-shield-alt',
+    hallucination: 'fas fa-ghost',
+    outdated_content: 'fas fa-calendar-times',
+    wrong_source: 'fas fa-unlink',
+    feedback_incorreto_auto: 'fas fa-thumbs-down',
+    incorrect_answer: 'fas fa-times-circle',
+    other: 'fas fa-flag'
+  };
+  function getTypeLabel(type) { return TYPE_LABELS[type] || type || 'Incidente'; }
+  function getTypeIcon(type) { return TYPE_ICON[type] || 'fas fa-flag'; }
 
   let allIncidents = [];
   let effectiveRole = '';
   let canManage = false;
+
+  function isAuditorRole(role) {
+    return String(role || '').trim().toLowerCase() === 'auditor';
+  }
+
+  function canCloseIncident() {
+    return canManage && !isAuditorRole(effectiveRole);
+  }
+
+  function isDirectionOrAbove() {
+    return ['direction', 'superadmin', 'network_manager'].includes(effectiveRole);
+  }
+
+  function isSecretariatOrCoordination() {
+    return ['secretariat', 'coordination'].includes(effectiveRole);
+  }
+
+  function findTreatmentEventId(auditEvents) {
+    if (!auditEvents || !auditEvents.length) return null;
+    const assigned = auditEvents.find(e => String(e.event_type || '').toUpperCase() === 'INCIDENT_ASSIGNED');
+    return assigned ? assigned.id : null;
+  }
 
   async function ensureAuthenticatedContext() {
     if (typeof window.initSession === 'function') {
@@ -38,15 +84,16 @@ const IncidentsPanelPage = (() => {
     const sevBadge = `<span class="incident-badge ${SEVERITY_BADGE[inc.severity] || SEVERITY_BADGE.LOW}">${SEVERITY_LABELS[inc.severity] || inc.severity}</span>`;
     const stBadge = `<span class="incident-badge ${STATUS_BADGE[inc.status] || STATUS_BADGE.OPEN}">${STATUS_LABELS[inc.status] || inc.status}</span>`;
     const schoolLabel = inc.school_name ? ` &middot; <i class="fas fa-school"></i> ${escapeHtml(inc.school_name)}` : '';
+    const typeFriendly = getTypeLabel(inc.incident_type);
+    const typeIcon = getTypeIcon(inc.incident_type);
     const topicLabel = inc.topic ? `<span class="incident-meta ml-2"><i class="fas fa-tag"></i> ${escapeHtml(inc.topic)}</span>` : '';
-    const typeLabel = inc.incident_type ? `<span class="incident-meta ml-2">${escapeHtml(inc.incident_type)}</span>` : '';
 
     return `<div class="incident-card ${SEVERITY_CARD[inc.severity] || SEVERITY_CARD.LOW}" data-incident-id="${inc.id}" onclick="IncidentsPanelPage.viewIncident('${inc.id}')">
       <div class="d-flex justify-content-between align-items-start flex-wrap">
         <div>
-          <span class="font-weight-bold" style="font-size:1.02rem; color:#17324d;">${escapeHtml(inc.incident_type || 'Incidente')}</span>
+          <span class="font-weight-bold" style="font-size:1.02rem; color:#17324d;"><i class="${typeIcon} mr-1" style="color:#546e7a;"></i>${escapeHtml(typeFriendly)}</span>
           ${topicLabel}
-          <div class="mt-1">${sevBadge} ${stBadge}${typeLabel ? '' : ''}</div>
+          <div class="mt-1">${sevBadge} ${stBadge}</div>
         </div>
         <div class="incident-meta text-right">
           ${formatDate(inc.opened_at)}${schoolLabel}
@@ -234,7 +281,7 @@ const IncidentsPanelPage = (() => {
         });
       }
 
-      document.getElementById('incidentDetailTitle').textContent = inc.incident_type || 'Incidente';
+      document.getElementById('incidentDetailTitle').innerHTML = '<i class="' + getTypeIcon(inc.incident_type) + ' mr-2" style="color:#546e7a;"></i>' + escapeHtml(getTypeLabel(inc.incident_type));
       document.getElementById('incidentDetailBody').innerHTML = `
         <div class="mb-3">${sevBadge} ${stBadge} ${quarantineBadge}</div>
         <p class="incident-meta"><i class="fas fa-clock mr-1"></i>Aberto em ${formatDate(inc.opened_at)}</p>
@@ -257,13 +304,30 @@ const IncidentsPanelPage = (() => {
             ? `<button class="btn btn-sm btn-outline-secondary" onclick="IncidentsPanelPage.toggleQuarantine('${inc.id}', true)"><i class="fas fa-unlock mr-1"></i>Remover Quarentena</button>`
             : `<button class="btn btn-sm" style="border-color:#6c3483;color:#6c3483;" onclick="IncidentsPanelPage.toggleQuarantine('${inc.id}', false)"><i class="fas fa-lock mr-1"></i>Quarentena</button>`)
           : '';
+        const closeActions = canCloseIncident()
+          ? `
+          <button class="btn btn-sm btn-outline-success" onclick="IncidentsPanelPage.updateStatus('${inc.id}', 'RESOLVED')"><i class="fas fa-check mr-1"></i>Resolver</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="IncidentsPanelPage.updateStatus('${inc.id}', 'DISMISSED')"><i class="fas fa-times mr-1"></i>Descartar</button>`
+          : '';
+
+        // Treatment correction buttons (direction resolves, secretariat proposes)
+        let treatmentBtns = '';
+        const treatmentEventId = findTreatmentEventId(inc.audit_events);
+        if (treatmentEventId) {
+          if (isDirectionOrAbove()) {
+            treatmentBtns = `<button class="btn btn-sm btn-success" onclick="IncidentsPanelPage.resolveWithCorrection('${treatmentEventId}')"><i class="fas fa-check-double mr-1"></i>Resolver com correcao</button>`;
+          } else if (isSecretariatOrCoordination()) {
+            treatmentBtns = `<button class="btn btn-sm btn-warning" onclick="IncidentsPanelPage.proposeCorrection('${treatmentEventId}')"><i class="fas fa-pencil-alt mr-1"></i>Propor correcao</button>`;
+          }
+        }
+
         footer.style.display = '';
         footer.innerHTML = `
           ${inc.status === 'OPEN' ? '<button class="btn btn-sm btn-outline-info" onclick="IncidentsPanelPage.updateStatus(\'' + inc.id + '\', \'IN_REVIEW\')"><i class="fas fa-search mr-1"></i>Iniciar Revisao</button>' : ''}
           ${quarantineBtn}
           <button class="btn btn-sm btn-outline-primary" onclick="IncidentsPanelPage.assignIncident('${inc.id}')"><i class="fas fa-user-plus mr-1"></i>Atribuir</button>
-          <button class="btn btn-sm btn-outline-success" onclick="IncidentsPanelPage.updateStatus('${inc.id}', 'RESOLVED')"><i class="fas fa-check mr-1"></i>Resolver</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="IncidentsPanelPage.updateStatus('${inc.id}', 'DISMISSED')"><i class="fas fa-times mr-1"></i>Descartar</button>
+          ${closeActions}
+          ${treatmentBtns}
         `;
       } else {
         footer.style.display = 'none';
@@ -417,9 +481,13 @@ const IncidentsPanelPage = (() => {
 
       const users = (data.users || []).filter(u => u.active !== false);
       const options = {};
-      users.forEach(u => { options[u.name || u.email] = `${u.name || u.email} (${u.role})`; });
+      users.forEach(u => {
+        const optionValue = u.user_id || u.email || u.name;
+        if (!optionValue) return;
+        options[optionValue] = `${u.name || u.email} (${u.role})`;
+      });
 
-      const { value: selectedName, isConfirmed } = await Swal.fire({
+      const { value: selectedAssignee, isConfirmed } = await Swal.fire({
         title: 'Atribuir incidente',
         input: 'select',
         inputOptions: { '': '-- Sem atribuicao --', ...options },
@@ -433,18 +501,123 @@ const IncidentsPanelPage = (() => {
       const assignRes = await fetch(`/api/incidents/${incidentId}/status`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ assigned_to: selectedName || '' })
+        body: JSON.stringify({ assigned_to: selectedAssignee || '' })
       });
       const assignData = await assignRes.json();
       if (!assignRes.ok || assignData.ok === false) throw new Error(assignData.error || 'Falha ao atribuir incidente.');
 
       $('#incidentDetailModal').modal('hide');
-      Swal.fire({ icon: 'success', title: selectedName ? 'Incidente atribuido' : 'Atribuicao removida', timer: 1500, showConfirmButton: false });
+      Swal.fire({ icon: 'success', title: selectedAssignee ? 'Incidente atribuido' : 'Atribuicao removida', timer: 1500, showConfirmButton: false });
       await Promise.all([loadIncidents(), loadStats()]);
     } catch (err) {
       Swal.fire('Erro', err.message, 'error');
     }
   }
 
-  return { viewIncident, updateStatus, toggleQuarantine, assignIncident };
+  async function resolveWithCorrection(treatmentEventId) {
+    const { value: resolveValues } = await Swal.fire({
+      title: 'Resolver com correcao',
+      html:
+        '<label for="swal-correction-type" class="d-block text-left mb-1 font-weight-bold">Tipo de correcao</label>' +
+        '<select id="swal-correction-type" class="swal2-select form-control mb-3">' +
+          '<option value="faq_update">Atualizar resposta da FAQ</option>' +
+          '<option value="content_removal">Remover conteudo inadequado</option>' +
+          '<option value="other">Outro</option>' +
+        '</select>' +
+        '<label for="swal-correction-text" class="d-block text-left mb-1 font-weight-bold">Texto da correcao</label>' +
+        '<textarea id="swal-correction-text" class="swal2-textarea form-control" rows="6" ' +
+          'placeholder="Ex: Pergunta: Qual o horario de atendimento?\nResposta: O atendimento funciona de 8h as 17h."></textarea>' +
+        '<small class="text-muted d-block text-left mt-1">Para FAQ, use o formato: Pergunta: ...\nResposta: ...</small>',
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Resolver e aplicar',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const text = document.getElementById('swal-correction-text')?.value?.trim();
+        if (!text) {
+          Swal.showValidationMessage('Informe o texto da correcao.');
+          return false;
+        }
+        return {
+          proposed_correction: text,
+          correction_type: document.getElementById('swal-correction-type')?.value || 'other'
+        };
+      }
+    });
+    if (!resolveValues) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/audit/treatments/${treatmentEventId}/status`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          next_status: 'COMPLETED',
+          proposed_correction: resolveValues.proposed_correction,
+          correction_type: resolveValues.correction_type,
+          treatment_completion_notes: 'Correcao resolvida diretamente pela direcao.'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao aplicar correcao.');
+      $('#incidentDetailModal').modal('hide');
+      Swal.fire('Correcao aplicada', 'A correcao foi registrada e a FAQ sera atualizada automaticamente.', 'success');
+      await Promise.all([loadIncidents(), loadStats()]);
+    } catch (err) {
+      Swal.fire('Erro', err.message, 'error');
+    }
+  }
+
+  async function proposeCorrection(treatmentEventId) {
+    const { value: formValues } = await Swal.fire({
+      title: 'Propor correcao',
+      html:
+        '<label for="swal-correction-type" class="d-block text-left mb-1 font-weight-bold">Tipo de correcao</label>' +
+        '<select id="swal-correction-type" class="swal2-select form-control mb-3">' +
+          '<option value="faq_update">Atualizar resposta da FAQ</option>' +
+          '<option value="content_removal">Remover conteudo inadequado</option>' +
+          '<option value="other">Outro</option>' +
+        '</select>' +
+        '<label for="swal-correction-text" class="d-block text-left mb-1 font-weight-bold">Texto da correcao proposta</label>' +
+        '<textarea id="swal-correction-text" class="swal2-textarea form-control" rows="6" ' +
+          'placeholder="Descreva a correcao a ser aplicada na resposta da IA..."></textarea>',
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Enviar para aprovacao',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const text = document.getElementById('swal-correction-text')?.value?.trim();
+        if (!text) {
+          Swal.showValidationMessage('Informe o texto da correcao proposta.');
+          return false;
+        }
+        return {
+          proposed_correction: text,
+          correction_type: document.getElementById('swal-correction-type')?.value || 'other'
+        };
+      }
+    });
+    if (!formValues) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/audit/treatments/${treatmentEventId}/status`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          next_status: 'PENDING_APPROVAL',
+          proposed_correction: formValues.proposed_correction,
+          correction_type: formValues.correction_type,
+          treatment_completion_notes: 'Correcao proposta pela secretaria, aguardando aprovacao da direcao.'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao enviar proposta.');
+      $('#incidentDetailModal').modal('hide');
+      Swal.fire('Proposta enviada', 'A correcao foi enviada para aprovacao da direcao.', 'success');
+      await Promise.all([loadIncidents(), loadStats()]);
+    } catch (err) {
+      Swal.fire('Erro', err.message, 'error');
+    }
+  }
+
+  return { viewIncident, updateStatus, toggleQuarantine, assignIncident, resolveWithCorrection, proposeCorrection };
 })();

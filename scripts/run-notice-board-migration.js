@@ -17,7 +17,6 @@ const NOTICE_ROLES = [
   'public_operator',
   'secretariat',
   'coordination',
-  'treasury',
   'direction',
   'observer'
 ];

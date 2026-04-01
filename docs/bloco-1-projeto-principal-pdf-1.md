@@ -9,11 +9,13 @@ Documento estruturado para diagramacao em PDF institucional de 10 a 15 paginas.
 
 ## 1. Resumo Executivo
 
-O projeto **Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica** propoe uma plataforma digital para apoiar redes publicas de educacao no atendimento institucional a familias, estudantes, servidores e gestores. A solucao combina atendimento assistido por inteligencia artificial com mecanismos explicitos de governanca, rastreabilidade, auditoria e controle de acesso, reduzindo o risco de respostas inconsistentes, opacas ou desalinhadas das normas institucionais.
+O projeto **Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica** e uma plataforma digital em operacao para apoiar redes publicas de educacao no atendimento institucional a familias, estudantes, servidores e gestores. A solucao combina atendimento assistido por inteligencia artificial com mecanismos explicitos de governanca, rastreabilidade, auditoria e controle de acesso, reduzindo o risco de respostas inconsistentes, opacas ou desalinhadas das normas institucionais.
 
 Na pratica, o projeto transforma o atendimento escolar em uma infraestrutura de conhecimento governado. Em vez de operar como um chat generico, a plataforma utiliza bases institucionais versionadas, registros formais de auditoria, trilhas de evidencia e perfis de acesso por funcao. Isso permite que a IA responda consultas com maior aderencia ao contexto da rede, preserve memoria organizacional e produza dados de gestao para melhoria continua.
 
-A arquitetura identificada no repositorio atual ja demonstra um nucleo funcional importante: backend em Node.js/Express, frontend administrativo com modulos especificos, autenticacao e base de dados em Supabase, hospedagem com Firebase Hosting e servico de execucao em Cloud Run, alem de estruturas voltadas a conhecimento institucional, conteudo oficial, auditoria formal, incidentes, feedback e indicadores de desempenho. O sistema ainda inclui configuracao de multiplos provedores de IA, o que amplia flexibilidade tecnologica e reduz dependencia de um unico fornecedor.
+A plataforma ja conta com um conjunto amplo de funcionalidades implementadas e operacionais: backend em Node.js/Express com mais de 150 endpoints, frontend administrativo com modulos especializados por area (auditoria, incidentes, tratamentos, correcoes, base de conhecimento, conteudo oficial, FAQ, relatorios, dashboard), autenticacao e base de dados em Supabase com mais de 20 tabelas estruturantes, hospedagem com Firebase Hosting e servico de execucao em Cloud Run. O sistema opera com provedor de IA Groq ativo e arquitetura preparada para multiplos provedores, o que amplia flexibilidade tecnologica e reduz dependencia de um unico fornecedor.
+
+Alem do atendimento por IA, a plataforma implementa um ciclo completo de governanca pos-resposta: cada interacao pode gerar eventos de auditoria, incidentes, correcoes propostas com fluxo de aprovacao por perfil, aplicacao automatica de ajustes na base de conhecimento, notificacoes contextualizadas e trilha de historico com timeline detalhada. O sistema opera com 10 perfis institucionais distintos, controle de acesso por pagina e funcao, e mecanismos de tratamento com roteamento por destino (curadoria de conteudo, secretaria da rede, operacao de servico, conformidade da direcao).
 
 O valor publico do projeto esta em atacar um problema recorrente das redes educacionais: grande volume de demandas repetitivas, descentralizacao da informacao, sobrecarga das equipes administrativas e dificuldade de garantir padrao, transparencia e historico nas respostas prestadas a cidadania. Ao organizar o conhecimento oficial e usar IA com governanca, a rede ganha capacidade de resposta, consistencia institucional e inteligencia de gestao.
 
@@ -51,14 +53,15 @@ Em redes publicas, esse problema e ainda mais sensivel porque envolve confianca 
 
 ## 3. Solucao Proposta
 
-A solucao proposta consiste em uma plataforma de atendimento escolar com IA auditavel, organizada em torno de quatro pilares:
+A solucao consiste em uma plataforma de atendimento escolar com IA auditavel, organizada em torno de cinco pilares:
 
 1. **Atendimento institucional assistido por IA**
 2. **Base de conhecimento e conteudo oficial versionados**
 3. **Governanca algoritmica com auditoria e evidencia**
-4. **Camada gerencial de indicadores e melhoria continua**
+4. **Ciclo de tratamento, correcao e melhoria continua**
+5. **Camada gerencial de indicadores e inteligencia operacional**
 
-Com base na implementacao atual do projeto, a plataforma foi estruturada para operar com assistentes especializados por area institucional:
+A plataforma opera com assistentes especializados por area institucional:
 
 - Assistente Publico
 - Assistente da Secretaria
@@ -67,23 +70,41 @@ Com base na implementacao atual do projeto, a plataforma foi estruturada para op
 
 Essa separacao e importante porque evita uma IA unica e indistinta para todo tipo de demanda. Em vez disso, o sistema direciona a interacao para dominios administrativos mais adequados, aproximando a resposta do contexto real da rede.
 
-Outro elemento central da solucao e a distincao entre **base de conhecimento** e **conteudo oficial**. A base de conhecimento organiza perguntas, respostas, categorias e versoes de fontes. O conteudo oficial estrutura informacoes normativas e operacionais em modulos, como calendario, matricula, FAQ e avisos, com escopo de rede ou escola. Na pratica, isso cria um mecanismo formal para que a rede publique o que e referencia oficial e mantenha historico do que foi atualizado.
+Outro elemento central da solucao e a distincao entre **base de conhecimento** e **conteudo oficial**. A base de conhecimento organiza perguntas, respostas, categorias e versoes de fontes, com suporte a importacao de documentos, versionamento automatico e suspensao de fontes. O conteudo oficial estrutura informacoes normativas e operacionais em quatro modulos — calendario, matricula, FAQ e avisos — com escopo de rede ou escola, status de publicacao (rascunho, publicado, arquivado) e historico de versoes vinculado a auditoria. Na pratica, isso cria um mecanismo formal para que a rede publique o que e referencia oficial e mantenha historico do que foi atualizado.
 
-O projeto tambem nao trata a resposta da IA como uma caixa-preta. Cada interacao pode registrar:
+O sistema tambem conta com um **modulo de FAQ estruturado**, com CRUD completo, capacidade de teste antes da publicacao, deteccao de conflitos e publicacao direta para a base de conhecimento.
 
-- conversa institucional
+O projeto nao trata a resposta da IA como uma caixa-preta. Cada interacao registra:
+
+- conversa institucional com contexto de escola e assistente
 - mensagem de entrada e saida
-- resposta emitida pelo assistente
-- fonte principal utilizada
+- resposta emitida pelo assistente com fonte principal
 - conjunto de evidencias consultadas
-- score de confianca
+- score de confianca e score de evidencia
 - nivel de risco de alucinacao
-- necessidade de revisao humana
-- evento formal de auditoria
-- feedback do operador
-- eventual incidente ou correcao posterior
+- necessidade de revisao humana e fallback recomendado
+- evento formal de auditoria com status de revisao
+- feedback do operador (util, nao util, incorreto)
+- eventual incidente com severidade, tipo e quarentena
+- correcao proposta com fluxo de aprovacao e aplicacao automatica
 
-Esse desenho caracteriza a governanca algoritmica como parte nativa do produto, e nao como etapa posterior. Ou seja, a plataforma foi concebida para que o uso da IA gere ao mesmo tempo atendimento e capacidade de supervisao.
+### 3.1 Ciclo de Governanca Pos-Resposta
+
+Um diferencial importante da plataforma e o **ciclo de tratamento e correcao** implementado como parte nativa do produto. Quando uma resposta da IA gera um evento de auditoria ou incidente, o sistema aciona um fluxo estruturado:
+
+1. **Abertura e roteamento**: O evento e classificado e direcionado para um dos quatro destinos de tratamento — curadoria de conteudo, secretaria da rede, operacao de servico ou conformidade da direcao — conforme a natureza do problema.
+
+2. **Tratamento por perfil**: A fila de tratamentos (`treatment-inbox`) exibe apenas os itens pertinentes ao perfil do usuario logado. Secretarias veem itens de operacao; direcao ve itens de conformidade; auditores veem o panorama completo.
+
+3. **Proposta de correcao**: Perfis autorizados podem propor correcoes formais, incluindo texto corrigido, analise de causa-raiz (entre 7 categorias), acao recomendada (criar fonte, atualizar fonte, ajustar prompt, entre outras) e registro de antes/depois na base de conhecimento.
+
+4. **Aprovacao hierarquica**: Correcoes propostas entram em status `PENDING_APPROVAL`. A aprovacao e feita por perfil de direcao ou gestao, que valida o conteudo antes da aplicacao.
+
+5. **Aplicacao automatica na base**: Apos aprovacao, o sistema pode aplicar automaticamente a correcao na base de conhecimento ou FAQ, com registro de snapshot antes/depois e vinculo ao evento de auditoria original.
+
+6. **Trilha de historico**: Cada etapa do ciclo gera eventos-filhos vinculados ao evento original (`source_event_id`), formando uma timeline detalhada visivel no painel de auditoria.
+
+Esse desenho caracteriza a governanca algoritmica como parte nativa do produto, e nao como etapa posterior. A plataforma foi concebida para que o uso da IA gere ao mesmo tempo atendimento e capacidade de supervisao, correcao e melhoria continua.
 
 ---
 
@@ -91,11 +112,11 @@ Esse desenho caracteriza a governanca algoritmica como parte nativa do produto, 
 
 ### 4.1 Visao Geral
 
-O repositorio atual evidencia uma arquitetura modular composta por:
+A plataforma opera com uma arquitetura modular composta por:
 
 - **Frontend administrativo e paginas do atendimento** em `public/dist`
-- **Backend de orquestracao e APIs** em `server.js`
-- **Camada de autenticacao, banco e armazenamento logico** via Supabase
+- **Backend de orquestracao e APIs** em `server.js` com mais de 150 endpoints
+- **Camada de autenticacao, banco e armazenamento logico** via Supabase (PostgreSQL)
 - **Hospedagem do frontend** via Firebase Hosting
 - **Execucao do backend** via servico configurado no Firebase para Cloud Run (`serviceId: lab-ia`)
 - **Servicos internos de IA, chat e auditoria** sob o diretorio `.qodo`
@@ -104,73 +125,87 @@ Essa arquitetura permite separar experiencia do usuario, logica de negocio, pers
 
 ### 4.2 Camada de Apresentacao
 
-O frontend e composto por paginas HTML administrativas e modulos JavaScript especificos. Entre as telas ja identificadas no projeto estao:
+O frontend e composto por paginas HTML administrativas e modulos JavaScript especificos. As telas implementadas no projeto incluem:
 
-- dashboard
-- atendimento
-- auditoria
-- base de conhecimento
-- conteudo oficial
-- relatorios
-- usuarios
-- preferencias de IA
+- dashboard com indicadores operacionais e de governanca
+- atendimento via webchat institucional
+- auditoria formal com painel de detalhes e timeline de historico
+- fila de tratamentos com roteamento por perfil
+- painel de incidentes com severidade, quarentena e vinculo a respostas
+- painel de correcoes com fluxo de proposta, aprovacao e aplicacao
+- base de conhecimento com versionamento e importacao de fontes
+- conteudo oficial em quatro modulos (calendario, matricula, FAQ, avisos)
+- modulo de FAQ com teste, conflito e publicacao
+- relatorios com analise por periodo, assistente e lacunas de conhecimento
+- gerenciamento de usuarios com perfis, convites e permissoes por pagina
+- preferencias de provedor de IA
+- quadro de avisos
+- fila de handoff humano
 
-Esse desenho e adequado para o piloto porque permite entregar fluxos administrativos claros para diferentes perfis da rede sem depender de uma reescrita completa de interface.
+Esse desenho e adequado para o piloto porque permite entregar fluxos administrativos claros para diferentes perfis da rede com controle granular de acesso.
 
 ### 4.3 Camada de Aplicacao
 
 O backend em Node.js/Express centraliza:
 
-- autenticacao e resolucao de contexto institucional
-- validacao de papel de acesso
-- APIs para base de conhecimento
-- APIs para conteudo oficial
+- autenticacao e resolucao de contexto institucional por escola e papel
+- validacao de papel de acesso com 10 perfis institucionais e 2 perfis de plataforma
+- APIs para base de conhecimento com versionamento e importacao de fontes
+- APIs para conteudo oficial com escopo de rede e escola
+- APIs para FAQ com teste, deteccao de conflito e publicacao
+- APIs de tratamento com maquina de estados (OPEN → IN_PROGRESS → PENDING_APPROVAL → COMPLETED)
+- APIs de incidentes com severidade, quarentena e atribuicao
+- APIs de correcoes com proposta, aprovacao e aplicacao automatica na base
 - APIs de configuracao de provedores de IA
-- APIs de dashboard e relatorios
-- integracao com o webchat
-- registro de eventos formais de auditoria
+- APIs de dashboard, relatorios e lacunas de conhecimento
+- APIs de notificacoes com topicos e deep-links
+- integracao com o webchat e fila de handoff humano
+- registro de eventos formais de auditoria com timeline de historico
 
-Ha tambem uma evolucao relevante no codigo: o backend ja contem uma camada de validacao do contexto autenticado para derivar escola e papel do usuario a partir da sessao, o que e essencial para o modelo multiunidade e para o endurecimento LGPD.
+O backend implementa validacao do contexto autenticado para derivar escola e papel do usuario a partir da sessao, essencial para o modelo multiunidade e para a conformidade LGPD.
 
 ### 4.4 Camada de Dados
 
-O schema principal e os snippets SQL mostram uma modelagem alinhada ao objetivo do produto. Entre as tabelas estruturantes, destacam-se:
+O schema principal e os snippets SQL configuram uma modelagem robusta alinhada ao objetivo do produto. As tabelas estruturantes incluem:
 
-- `schools`
-- `platform_members`
-- `school_members`
-- `role_page_permissions`
-- `user_page_permissions`
-- `source_documents`
-- `knowledge_source_versions`
-- `knowledge_base`
-- `institutional_consultations`
-- `consultation_messages`
-- `assistant_responses`
-- `formal_audit_events`
-- `interaction_feedback`
-- `interaction_source_evidence`
-- `incident_reports`
-- `official_content_records`
-- `ai_provider_settings`
-- `intelligence_snapshots`
+- `schools` e `networks` (hierarquia institucional)
+- `platform_members` e `school_members` (afiliacao e perfis)
+- `role_page_permissions` e `user_page_permissions` (controle de acesso granular)
+- `source_documents` e `knowledge_source_versions` (fontes com versionamento)
+- `knowledge_base` (base de conhecimento com categorias)
+- `institutional_consultations` e `consultation_messages` (conversas)
+- `assistant_responses` (respostas com scores e evidencia)
+- `formal_audit_events` (trilha formal com status de revisao e tratamento)
+- `interaction_feedback` (feedback por tipo)
+- `interaction_source_evidence` (evidencias vinculadas a respostas)
+- `incident_reports` (incidentes com severidade, tipo e quarentena)
+- `incident_assignments` (atribuicoes com notificacao)
+- `official_content_records` (conteudo oficial com versoes)
+- `ai_provider_settings` (configuracao de provedores)
+- `intelligence_snapshots` (snapshots de inteligencia operacional)
+- `notification_queue` (notificacoes com topicos e deep-links)
+- `faq_entries` (FAQ estruturado com escopo)
+- `handoff_queue` (fila de encaminhamento humano)
 
-Em termos de arquitetura informacional, isso mostra que o projeto nao se limita a armazenar chats. Ele foi modelado para registrar o ciclo completo entre conhecimento institucional, resposta da IA, governanca e inteligencia gerencial.
+Em termos de arquitetura informacional, o projeto registra o ciclo completo entre conhecimento institucional, resposta da IA, governanca pos-resposta e inteligencia gerencial.
 
 ### 4.5 Camada de Governanca e Seguranca
 
-Um diferencial importante da arquitetura e a presenca de mecanismos de governanca distribuidos na aplicacao:
+Um diferencial importante da arquitetura e a presenca de mecanismos de governanca nativos e operacionais:
 
-- controle por perfis institucionais
-- separacao entre perfil operacional e perfil de governanca
-- trilha formal de auditoria
-- registros de evidencia por resposta
-- abertura de incidentes
-- feedback estruturado sobre respostas
-- roadmap de RLS e segregacao entre escolas
-- plano tecnico de adequacao LGPD
+- controle por 9 perfis institucionais (direcao, secretaria, coordenacao, professor, auxiliar, auditor, curadoria, operacao, portaria) mais 2 perfis de plataforma (superadmin, auditor de plataforma)
+- separacao entre perfil operacional e perfil de governanca com permissoes por pagina
+- trilha formal de auditoria com status de revisao (PENDING_REVIEW, REVIEWED, KNOWLEDGE_CREATED, etc.)
+- fluxo de tratamento com maquina de estados e roteamento por destino
+- correcoes formais com proposta, aprovacao hierarquica e aplicacao automatica
+- registros de evidencia por resposta com score de confianca e risco
+- abertura de incidentes com severidade, tipo, quarentena e atribuicao
+- feedback estruturado sobre respostas (util, nao util, incorreto)
+- notificacoes contextualizadas com deep-links para eventos relevantes
+- sistema de convites com tokens e status de usuario (rascunho, pendente, convidado, ativo, desativado)
+- plano tecnico de adequacao LGPD com minimizacao de dados e segregacao por escola
 
-O projeto ainda esta em amadurecimento nessa frente, especialmente no endurecimento de isolamento por escola e minimizacao de dados, mas a base arquitetural ja existe e favorece uma implantacao segura por fases.
+A base arquitetural implementada favorece uma implantacao segura por fases, com amadurecimento progressivo de isolamento por escola e protecao de dados.
 
 ### 4.6 Diagrama Sugerido para o PDF
 
@@ -195,25 +230,29 @@ A IA nao aparece no projeto como um recurso ornamental. Ela e o motor de triagem
 
 ### 5.2 Provedores e Flexibilidade Tecnologica
 
-O codigo mostra suporte configuravel, mas está pré-definido e ativo apenas:
+O sistema opera com arquitetura de provedores configuravel. No momento, esta ativo:
 
-- Groq
+- **Groq** (modelos open-source de alta performance)
 
-Essa opcao e relevante para o setor publico por tres motivos:
+A arquitetura suporta adicao de outros provedores (OpenAI, Gemini, entre outros) sem alteracao estrutural. Essa opcao e relevante para o setor publico por tres motivos:
 
-- reduz dependencia tecnologica
-- permite calibracao de custo e desempenho
+- reduz dependencia tecnologica de um unico fornecedor
+- permite calibracao de custo e desempenho por cenario de uso
 - facilita adaptacao a requisitos futuros de contratacao ou politica institucional
+- favorece o uso de modelos open-source, alinhado a diretrizes de soberania digital
 
 ### 5.3 IA com Evidencia e Mitigacao de Alucinacao
 
-O nucleo mais importante da governanca algoritmica esta no tratamento da evidencia. Ha regras no codigo que calculam score de evidencia, score de confianca, nivel de risco e necessidade de revisao. Quando a base institucional nao e suficiente, o sistema pode:
+O nucleo mais importante da governanca algoritmica esta no tratamento da evidencia. O sistema implementa regras que calculam score de evidencia, score de confianca, nivel de risco e necessidade de revisao. Quando a base institucional nao e suficiente, o sistema pode:
 
 - abster-se de responder plenamente
 - classificar o caso como de alto risco
 - marcar revisao requerida
 - sinalizar fallback humano
 - registrar evento formal relacionado a mitigacao de alucinacao
+- encaminhar para fila de handoff humano
+
+Apos a resposta, o ciclo de governanca continua ativo: o sistema permite que auditores, gestores e operadores abram incidentes com diferentes severidades, proponham correcoes formais com analise de causa-raiz e apliquem automaticamente ajustes na base de conhecimento ou FAQ, fechando o ciclo entre deteccao de problema e correcao efetiva.
 
 Isso e particularmente importante em contexto escolar, onde respostas imprecisas sobre matricula, frequencia, documentos, pagamentos ou procedimentos internos podem gerar retrabalho, desinformacao ou conflito com familias.
 
@@ -227,17 +266,22 @@ O projeto registra atributos que tornam a resposta explicavel dentro do contexto
 - quais evidencias sustentaram a resposta
 - qual foi o score de confianca
 - se houve recomendacao de revisao humana
-- se houve incidente, correcao ou feedback posterior
+- o status de revisao do evento de auditoria (pendente, revisado, conhecimento criado, etc.)
+- se houve incidente, com severidade e tipo
+- se houve correcao proposta, quem propôs, quem aprovou e se foi aplicada na base
+- se houve feedback do operador e qual tipo
+- a timeline completa de eventos-filhos vinculados ao evento original
 
-Em termos de maturidade institucional, isso significa sair do paradigma de "IA responde" para o paradigma de "IA responde com rastreabilidade".
+Em termos de maturidade institucional, isso significa sair do paradigma de "IA responde" para o paradigma de "IA responde com rastreabilidade e ciclo de melhoria".
 
 ### 5.5 Limites e Cuidados
 
-Para o documento institucional, e importante explicitar que a IA nao substitui decisao administrativa formal, ato normativo ou analise humana em situacoes sensiveis. O proprio repositorio ja aponta essa direcao ao prever:
+Para o documento institucional, e importante explicitar que a IA nao substitui decisao administrativa formal, ato normativo ou analise humana em situacoes sensiveis. O projeto implementa essa direcao ativamente:
 
-- revisao humana em fluxos de maior risco
-- abertura de incidentes
-- trilha de auditoria
+- revisao humana obrigatoria em fluxos de maior risco
+- abertura de incidentes com severidade e quarentena de respostas
+- trilha de auditoria com timeline de historico
+- correcoes formais com aprovacao hierarquica antes da aplicacao
 - plano LGPD com minimizacao de dados e segregacao por escola
 
 Assim, o uso de IA no projeto deve ser apresentado como **apoio governado ao atendimento**, e nao como automacao irrestrita.
@@ -358,10 +402,14 @@ Analise dos indicadores, comparacao com linha de base operacional, registro de a
 
 ### 8.4 Entregas Minimas do Piloto
 
-- base inicial de conhecimento institucional publicada
-- modulos de conteudo oficial ativados
-- atendimento webchat operante
-- painel de auditoria funcional
+- base inicial de conhecimento institucional publicada e versionada
+- modulos de conteudo oficial ativados (calendario, matricula, FAQ, avisos)
+- atendimento webchat operante com assistentes por area
+- painel de auditoria funcional com detalhes, timeline e tratamento
+- fila de tratamentos com roteamento por perfil
+- painel de incidentes com severidade, quarentena e atribuicao
+- fluxo de correcoes com proposta, aprovacao e aplicacao automatica
+- dashboard de indicadores operacionais e de governanca
 - relatorio consolidado de indicadores do piloto
 - plano de melhorias para proxima rodada
 
@@ -404,10 +452,14 @@ As metricas de impacto devem combinar eficiencia operacional, qualidade da respo
 ### 9.3 Metricas de Governanca
 
 - numero de eventos formais de auditoria registrados
-- numero de incidentes abertos por periodo
+- numero de incidentes abertos por periodo e por severidade
 - tempo medio de resolucao de incidentes
+- numero de correcoes propostas, aprovadas e aplicadas
+- percentual de correcoes com aplicacao automatica na base
 - percentual de respostas corrigidas apos revisao
 - taxa de consultas com rastreabilidade completa
+- numero de tratamentos por destino (curadoria, secretaria, operacao, conformidade)
+- tempo medio de transicao entre estados de tratamento
 
 ### 9.4 Metricas de Valor Publico
 
@@ -432,13 +484,13 @@ Sem essa comparacao, o piloto corre o risco de mostrar apenas atividade, e nao i
 
 ## 10. Conclusao
 
-O projeto **Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica** apresenta uma proposta aderente a uma necessidade concreta do setor publico educacional: modernizar o atendimento sem abrir mao de controle, memoria institucional e responsabilidade administrativa.
+O projeto **Assistente Inteligente de Atendimento Escolar com Governanca Algoritmica** apresenta uma proposta madura e aderente a uma necessidade concreta do setor publico educacional: modernizar o atendimento sem abrir mao de controle, memoria institucional e responsabilidade administrativa.
 
-O diferencial estrategico do projeto nao esta apenas no uso de IA, mas na forma como esse uso foi estruturado. Ao combinar conhecimento versionado, assistentes por area, trilha de auditoria, evidencia por resposta, perfis de acesso, relatorios e plano de adequacao LGPD, a solucao se posiciona como uma infraestrutura de atendimento governado, e nao como um chatbot generico.
+O diferencial estrategico do projeto nao esta apenas no uso de IA, mas na forma como esse uso foi estruturado. Ao combinar conhecimento versionado, assistentes por area, trilha de auditoria, evidencia por resposta, ciclo de tratamento e correcao com aprovacao hierarquica, perfis de acesso granulares, aplicacao automatica de ajustes na base, relatorios e plano de adequacao LGPD, a solucao se posiciona como uma infraestrutura de atendimento governado, e nao como um chatbot generico.
 
-O repositorio atual mostra que essa proposta ja possui base tecnica significativa para um piloto realista. Ha arquitetura definida, entidades de dados coerentes com o objetivo institucional, modulos de conhecimento e conteudo oficial, mecanismos de auditoria e indicadores iniciais de inteligencia operacional. Ao mesmo tempo, tambem esta claro que a consolidacao do piloto deve caminhar junto com o endurecimento de seguranca, segregacao por escola e protecao de dados.
+O estado atual do projeto demonstra base tecnica solida e funcionalidades operacionais para um piloto realista. Ha arquitetura definida, mais de 20 entidades de dados coerentes com o objetivo institucional, modulos de conhecimento e conteudo oficial com versionamento, mecanismos de auditoria com timeline de historico, ciclo completo de tratamento e correcao, gestao de incidentes com quarentena, notificacoes contextualizadas e indicadores de inteligencia operacional. A consolidacao do piloto segue acompanhada de amadurecimento em seguranca, segregacao por escola e protecao de dados.
 
-Para redes publicas de educacao, o projeto oferece uma oportunidade concreta de transformar atendimento em capacidade institucional: responder melhor, aprender com o uso, reduzir sobrecarga e criar transparencia sobre o comportamento da IA. Se bem conduzido, o piloto pode se tornar referencia de como aplicar inteligencia artificial em servicos educacionais com foco em confianca, responsabilidade e impacto publico.
+Para redes publicas de educacao, o projeto oferece uma oportunidade concreta de transformar atendimento em capacidade institucional: responder melhor, aprender com o uso, corrigir proativamente, reduzir sobrecarga e criar transparencia sobre o comportamento da IA. Se bem conduzido, o piloto pode se tornar referencia de como aplicar inteligencia artificial em servicos educacionais com foco em confianca, responsabilidade e impacto publico.
 
 ---
 

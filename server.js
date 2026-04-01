@@ -6,11 +6,12 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const { createClient } = require("@supabase/supabase-js");
+const { PDFParse } = require("pdf-parse");
 
 const webhookRoutes = require("./.qodo/web/webhook.js");
 const webchatRoutes = require("./.qodo/api/webchat.js");
 const faqController = require("./.qodo/api/faqController.js");
-const { loadRuntimeSettings, invalidateAIProviderCache } = require("./.qodo/services/ai");
+const { askAI, loadRuntimeSettings, invalidateAIProviderCache } = require("./.qodo/services/ai");
 
 const app = express();
 const PORT = Number(process.env.PORT || 8084);
@@ -28,15 +29,19 @@ const supabase =
     : null;
 
 const PRIVILEGED_ROLES = new Set(["superadmin", "network_manager"]);
-const CHAT_MANAGER_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "public_operator", "secretariat", "coordination", "treasury", "direction"]);
+const CHAT_MANAGER_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "public_operator", "secretariat", "coordination", "direction"]);
 const OFFICIAL_CONTENT_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat", "direction", "coordination"]);
-const NOTICES_READ_ROLES = new Set(["superadmin", "network_manager", "content_curator", "public_operator", "secretariat", "coordination", "treasury", "direction", "observer"]);
+const TEACHING_CONTENT_ALLOWED_ROLES = new Set(["superadmin", "network_manager", "content_curator", "coordination", "teacher", "direction"]);
+const TEACHING_CONTENT_WRITE_ROLES = new Set(["superadmin", "network_manager", "content_curator", "coordination", "teacher", "direction"]);
+const TEACHING_CONTENT_APPROVAL_ROLES = new Set(["superadmin", "network_manager", "content_curator", "coordination", "direction"]);
+const TEACHING_CONTENT_PDF_BUCKET = "teaching-material-pdfs";
+const NOTICES_READ_ROLES = new Set(["superadmin", "network_manager", "content_curator", "public_operator", "secretariat", "coordination", "teacher", "direction", "observer"]);
 const NOTICES_WRITE_ROLES = new Set(["superadmin", "network_manager", "secretariat", "coordination", "direction"]);
 const NOTICES_REVIEW_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
 const INCIDENTS_READ_ROLES = new Set(["superadmin", "network_manager", "auditor", "direction", "content_curator", "coordination", "public_operator"]);
-const INCIDENTS_MANAGE_ROLES = new Set(["superadmin", "network_manager", "auditor"]);
+const INCIDENTS_MANAGE_ROLES = new Set(["superadmin", "network_manager", "auditor", "direction", "secretariat", "coordination"]);
 const FEEDBACK_READ_ROLES = new Set(["superadmin", "network_manager", "content_curator", "auditor", "direction", "public_operator"]);
-const FEEDBACK_ACT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
+const FEEDBACK_ACT_ROLES = new Set(["superadmin", "network_manager", "content_curator", "secretariat"]);
 const CORRECTION_TRANSITIONS = {
   review:  { from: ["SUBMITTED"], to: "IN_REVIEW", event: "CORRECTION_IN_REVIEW", severity: "MEDIUM", summary: "Correcao em revisao." },
   approve: { from: ["IN_REVIEW"], to: "APPROVED", event: "CORRECTION_APPROVED", severity: "HIGH", summary: "Correcao aprovada." },
@@ -52,7 +57,7 @@ const INCIDENT_VALID_TRANSITIONS = {
 };
 const NOTIFICATIONS_ADMIN_ROLES = new Set(["superadmin", "network_manager", "direction", "secretariat", "coordination"]);
 const NOTIFICATIONS_SEND_ROLES = new Set(["superadmin", "network_manager", "direction", "secretariat"]);
-const KNOWLEDGE_GAPS_ROLES = new Set(["superadmin", "network_manager", "content_curator", "direction", "secretariat"]);
+const KNOWLEDGE_GAPS_ROLES = new Set(["superadmin", "network_manager", "content_curator", "direction", "secretariat", "auditor"]);
 const HANDOFF_QUEUE_ROLES = new Set(["superadmin", "network_manager", "public_operator", "secretariat", "coordination", "direction"]);
 const NETWORK_OVERVIEW_ROLES = new Set(["superadmin", "network_manager", "auditor", "direction"]);
 const OFFICIAL_CONTENT_NETWORK_EDIT_ROLES = new Set(["superadmin", "network_manager", "content_curator"]);
@@ -84,12 +89,13 @@ const AUDIT_TREATMENT_DESTINATIONS = {
     page_key: "audit",
     page_path: "/audit",
     action_label: "Abrir Auditoria",
-    roles: new Set(["superadmin", "auditor", "direction"])
+    roles: new Set(["superadmin", "auditor", "direction", "secretariat"])
   }
 };
 const AUDIT_TREATMENT_PROGRESS = {
   OPEN: "Aberto",
   IN_PROGRESS: "Em andamento",
+  PENDING_APPROVAL: "Aguardando aprovacao",
   COMPLETED: "Concluido",
   DISMISSED: "Descartado"
 };
@@ -113,7 +119,7 @@ const ASSISTANT_AREAS = {
   }
 };
 
-app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.json({ limit: "30mb" }));
 app.use("/js", express.static(path.join(__dirname, "public", "dist", "js")));
 app.use("/css", express.static(path.join(__dirname, "public", "dist", "css")));
 app.use("/components", express.static(path.join(__dirname, "public", "dist", "components")));
@@ -142,6 +148,7 @@ const distPages = new Set([
   "accept-invite",
   "verify-session",
   "dashboard-preferencias",
+  "teaching-content",
   "official-content",
   "notice-board",
   "incidents",
@@ -151,7 +158,9 @@ const distPages = new Set([
   "knowledge-gaps",
   "handoff-queue",
   "improvement-cycle",
-  "network-overview"
+  "network-overview",
+  "student-chat",
+  "calendario-escolar"
 ]);
 
 app.get("/", (_req, res) => serveDistPage(res, "index.html"));
@@ -172,6 +181,7 @@ app.get("/conhecimento", (_req, res) => serveDistPage(res, "knowledge-base.html"
 app.get("/relatorios", (_req, res) => serveDistPage(res, "reports.html"));
 app.get("/usuarios", (_req, res) => serveDistPage(res, "users.html"));
 app.get("/preferencias", (_req, res) => serveDistPage(res, "dashboard-preferencias.html"));
+app.get("/curadoria-conteudo", (_req, res) => serveDistPage(res, "teaching-content.html"));
 app.get("/conteudo-oficial", (_req, res) => serveDistPage(res, "official-content.html"));
 app.get("/comunicados", (_req, res) => serveDistPage(res, "notice-board.html"));
 app.get("/incidentes", (_req, res) => serveDistPage(res, "incidents.html"));
@@ -183,6 +193,7 @@ app.get("/visao-rede", (_req, res) => serveDistPage(res, "network-overview.html"
 app.get("/notificacoes", (_req, res) => serveDistPage(res, "notifications.html"));
 app.get("/lacunas", (_req, res) => serveDistPage(res, "knowledge-gaps.html"));
 app.get("/calendario-escolar", (_req, res) => serveDistPage(res, "calendario-escolar.html"));
+app.get("/chat-aluno", (_req, res) => serveDistPage(res, "student-chat.html"));
 app.get("/esqueci-senha", (_req, res) => serveDistPage(res, "forgot-password.html"));
 app.get("/redefinir-senha", (_req, res) => serveDistPage(res, "reset-password.html"));
 app.get("/ativar-conta", (_req, res) => serveDistPage(res, "accept-invite.html"));
@@ -511,6 +522,94 @@ function getDefaultTreatmentProgressForReviewStatus(reviewStatus, existingProgre
   return "OPEN";
 }
 
+function getIncidentAssignmentDestinationForRole(role) {
+  const normalizedRole = normalizeRoleKey(role);
+  if (normalizedRole === "direction") return "direction_compliance";
+  if (normalizedRole === "content_curator") return "content_curation";
+  if (normalizedRole === "public_operator" || normalizedRole === "coordination") return "service_operation";
+  if (normalizedRole === "secretariat" || normalizedRole === "network_manager") return "network_secretariat";
+  return "";
+}
+
+async function resolveIncidentAssignmentTarget({ rawAssignedTo, schoolIds = [] }) {
+  const normalizedValue = String(rawAssignedTo || "").trim();
+  if (!normalizedValue || !schoolIds.length) return null;
+
+  const { data: members, error } = await supabase
+    .from("school_members")
+    .select("id, user_id, school_id, role, name, email, active")
+    .in("school_id", schoolIds)
+    .eq("active", true);
+  if (error) throw error;
+
+  const loweredValue = normalizedValue.toLowerCase();
+  const target = (members || []).find((member) => {
+    const memberId = String(member.id || "").trim();
+    const userId = String(member.user_id || "").trim();
+    const email = String(member.email || "").trim().toLowerCase();
+    const name = String(member.name || "").trim().toLowerCase();
+    return memberId === normalizedValue || userId === normalizedValue || email === loweredValue || name === loweredValue;
+  });
+
+  if (!target) return null;
+
+  return {
+    memberId: target.id || null,
+    userId: target.user_id || null,
+    schoolId: target.school_id || null,
+    role: normalizeRoleKey(target.role),
+    email: target.email || null,
+    displayName: target.name || target.email || normalizedValue,
+    treatmentDestination: getIncidentAssignmentDestinationForRole(target.role)
+  };
+}
+
+async function createIncidentAssignmentNotification({ schoolId, incidentId, actorName, assignmentTarget }) {
+  if (!assignmentTarget?.userId) return;
+  const notifMsgAssign = `O incidente #${incidentId.slice(0, 8)} foi atribuido a voce por ${actorName}.`;
+  await supabase.from("notification_queue").insert({
+    school_id: schoolId,
+    user_id: assignmentTarget.userId,
+    topic: "incident_assigned",
+    message: notifMsgAssign,
+    details: {
+      incident_id: incidentId,
+      assigned_to: assignmentTarget.displayName,
+      assigned_to_user_id: assignmentTarget.userId,
+      assigned_to_role: assignmentTarget.role || null,
+      assigned_by: actorName
+    },
+    sent: false,
+    dispatch_date: new Date().toISOString().slice(0, 10)
+  });
+}
+
+async function createIncidentAssignmentAuditEvent({ existing, incidentId, actorName, assignmentTarget }) {
+  const treatmentDestination = assignmentTarget?.treatmentDestination || "";
+  const nowIso = new Date().toISOString();
+  await supabase.from("formal_audit_events").insert({
+    school_id: existing.school_id,
+    consultation_id: existing.consultation_id || null,
+    event_type: "INCIDENT_ASSIGNED",
+    severity: "LOW",
+    actor_type: "HUMAN",
+    actor_name: actorName,
+    summary: assignmentTarget ? `Incidente atribuido a ${assignmentTarget.displayName}.` : "Atribuicao do incidente removida.",
+    details: {
+      incident_id: incidentId,
+      response_id: existing.response_id,
+      assigned_to: assignmentTarget?.displayName || null,
+      assigned_to_user_id: assignmentTarget?.userId || null,
+      assigned_to_role: assignmentTarget?.role || null,
+      treatment_destination: treatmentDestination || null,
+      treatment_progress_status: treatmentDestination ? "OPEN" : null,
+      treatment_last_updated_at: treatmentDestination ? nowIso : null,
+      treatment_last_updated_by: treatmentDestination ? actorName : null,
+      review_status: treatmentDestination ? "PENDING_REVIEW" : "NOT_REQUIRED"
+    }
+  });
+}
+
 async function buildAuditTreatmentQueue({ accessContext, includeCompleted = false, includeAllDestinations = false, destinationFilter = "" }) {
   const scope = await resolveManagedSchoolScope(accessContext);
   const schoolIds = scope.managedSchoolIds || [];
@@ -548,11 +647,23 @@ async function buildAuditTreatmentQueue({ accessContext, includeCompleted = fals
       return includeCompleted || !["COMPLETED", "DISMISSED"].includes(progress);
     });
 
-  if (!candidateRows.length) {
+  const dedupedCandidateRows = [];
+  const seenKeys = new Set();
+  for (const row of candidateRows) {
+    const incidentId = String(row.details?.incident_id || "").trim();
+    const dedupeKey = String(row.event_type || "").toUpperCase() === "INCIDENT_ASSIGNED" && incidentId
+      ? `INCIDENT_ASSIGNED:${incidentId}`
+      : row.id;
+    if (seenKeys.has(dedupeKey)) continue;
+    seenKeys.add(dedupeKey);
+    dedupedCandidateRows.push(row);
+  }
+
+  if (!dedupedCandidateRows.length) {
     return { scopeMode: scope.scopeMode, items: [], destinations: allowedDestinations };
   }
 
-  const consultationIds = [...new Set(candidateRows.map((row) => row.consultation_id).filter(Boolean))];
+  const consultationIds = [...new Set(dedupedCandidateRows.map((row) => row.consultation_id).filter(Boolean))];
   const schoolNameById = new Map((scope.managedSchools || []).map((item) => [item.id, item.name || ""]));
   const consultationsById = new Map();
   const responsesByConsultationId = new Map();
@@ -586,7 +697,7 @@ async function buildAuditTreatmentQueue({ accessContext, includeCompleted = fals
     });
   }
 
-  const items = candidateRows.map((row) => {
+  const items = dedupedCandidateRows.map((row) => {
     const details = row.details || {};
     const consultation = row.consultation_id ? consultationsById.get(row.consultation_id) || null : null;
     const response = row.consultation_id ? responsesByConsultationId.get(row.consultation_id) || null : null;
@@ -622,7 +733,16 @@ async function buildAuditTreatmentQueue({ accessContext, includeCompleted = fals
       treatment_action_label: destinationMeta?.action_label || "Abrir contexto",
       treatment_last_updated_at: details.treatment_last_updated_at || details.reviewed_at || row.created_at,
       treatment_last_updated_by: details.treatment_last_updated_by || details.reviewed_by || "",
-      treatment_completion_notes: details.treatment_completion_notes || ""
+      treatment_completion_notes: details.treatment_completion_notes || "",
+      proposed_correction: details.proposed_correction || "",
+      proposed_correction_by: details.proposed_correction_by || "",
+      proposed_correction_at: details.proposed_correction_at || null,
+      proposed_correction_type: details.proposed_correction_type || "",
+      approved_by: details.approved_by || "",
+      approved_at: details.approved_at || null,
+      faq_auto_applied: Boolean(details.faq_auto_applied),
+      faq_auto_applied_at: details.faq_auto_applied_at || null,
+      faq_auto_applied_description: details.faq_auto_applied_description || ""
     };
   }).sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime());
 
@@ -1027,6 +1147,186 @@ function normalizeText(text) {
     .trim();
 }
 
+function slugifyToken(value = "") {
+  const normalized = normalizeText(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || "item";
+}
+
+function stripTeachingMetadataTag(description = "") {
+  return String(description || "")
+    .replace(/\n?\[TCMETA:[A-Za-z0-9+/=]+\]\s*$/m, "")
+    .trim();
+}
+
+function parseTeachingMetadata(description = "") {
+  const match = String(description || "").match(/\[TCMETA:([A-Za-z0-9+/=]+)\]\s*$/m);
+  if (!match) return {};
+  try {
+    const decoded = Buffer.from(match[1], "base64").toString("utf8");
+    const parsed = JSON.parse(decoded);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function sanitizeTeachingMetadata(input = {}) {
+  const sanitize = (value) => String(value || "").trim();
+  const splitLines = (value) => String(value || "")
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const status = sanitize(input.status || "draft").toLowerCase();
+  const approvalStatus = sanitize(input.approval_status || "none").toLowerCase();
+  return {
+    segment: sanitize(input.segment),
+    module_name: sanitize(input.module_name),
+    subject: sanitize(input.subject),
+    turma: sanitize(input.turma),
+    topic: sanitize(input.topic),
+    official_link: sanitize(input.official_link),
+    calendar_reference: sanitize(input.calendar_reference),
+    support_links: splitLines(input.support_links),
+    status: ["draft", "published", "pending_approval", "archived"].includes(status) ? status : "draft",
+    approval_status: ["none", "pending", "approved", "rejected"].includes(approvalStatus) ? approvalStatus : "none",
+    approval_note: sanitize(input.approval_note),
+    approval_by: sanitize(input.approval_by),
+    approval_at: input.approval_at || null
+  };
+}
+
+function buildTeachingDescription(summary = "", metadata = {}) {
+  const cleanSummary = String(summary || "").trim();
+  const encodedMetadata = Buffer.from(JSON.stringify(metadata || {}), "utf8").toString("base64");
+  return cleanSummary ? `${cleanSummary}\n\n[TCMETA:${encodedMetadata}]` : `[TCMETA:${encodedMetadata}]`;
+}
+
+function buildTeachingCanonicalReference(metadata = {}) {
+  return [
+    "teaching-content",
+    metadata.segment,
+    metadata.module_name,
+    metadata.subject,
+    metadata.turma,
+    metadata.topic
+  ].map(slugifyToken).join(":");
+}
+
+async function ensureTeachingPdfBucket() {
+  if (!supabase?.storage) throw new Error("Storage do Supabase indisponivel.");
+
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if (listError) throw listError;
+
+  const existingBucket = (buckets || []).find((bucket) => bucket?.name === TEACHING_CONTENT_PDF_BUCKET || bucket?.id === TEACHING_CONTENT_PDF_BUCKET);
+  if (existingBucket) return existingBucket;
+
+  const { data: createdBucket, error: createError } = await supabase.storage.createBucket(TEACHING_CONTENT_PDF_BUCKET, {
+    public: false,
+    fileSizeLimit: 20 * 1024 * 1024,
+    allowedMimeTypes: ["application/pdf"]
+  });
+
+  if (createError && !String(createError.message || "").toLowerCase().includes("already")) {
+    throw createError;
+  }
+
+  return createdBucket || { name: TEACHING_CONTENT_PDF_BUCKET };
+}
+
+function buildTeachingPdfStoragePath({ schoolId, sourceDocumentId, versionNumber, fileName }) {
+  const safeFileName = String(fileName || "material.pdf").trim().replace(/[^a-zA-Z0-9._-]+/g, "-") || "material.pdf";
+  return [
+    "schools",
+    slugifyToken(schoolId || "school"),
+    "teaching-content",
+    slugifyToken(sourceDocumentId || "material"),
+    `v${Number(versionNumber || 1)}`,
+    safeFileName
+  ].join("/");
+}
+
+async function uploadTeachingPdfAsset({ schoolId, sourceDocumentId, versionNumber, fileName, mimeType, base64Content }) {
+  const normalizedMimeType = String(mimeType || "application/pdf").trim() || "application/pdf";
+  const normalizedFileName = String(fileName || "material.pdf").trim() || "material.pdf";
+  const cleanedBase64 = String(base64Content || "").trim();
+  if (!cleanedBase64) return { storageBucket: null, storagePath: null };
+
+  await ensureTeachingPdfBucket();
+
+  const storagePath = buildTeachingPdfStoragePath({ schoolId, sourceDocumentId, versionNumber, fileName: normalizedFileName });
+  const pdfBuffer = Buffer.from(cleanedBase64, "base64");
+  if (!pdfBuffer.length) throw new Error("Conteudo do PDF invalido para armazenamento.");
+
+  const { error: uploadError } = await supabase.storage
+    .from(TEACHING_CONTENT_PDF_BUCKET)
+    .upload(storagePath, pdfBuffer, {
+      upsert: true,
+      contentType: normalizedMimeType,
+      cacheControl: "3600"
+    });
+
+  if (uploadError) throw uploadError;
+
+  return {
+    storageBucket: TEACHING_CONTENT_PDF_BUCKET,
+    storagePath,
+    fileName: normalizedFileName,
+    mimeType: normalizedMimeType
+  };
+}
+
+async function listTeachingContentRecords(schoolId) {
+  const { data: docs, error: docsError } = await supabase
+    .from("source_documents")
+    .select("id, school_id, title, document_type, canonical_reference, description, created_at, updated_at")
+    .eq("school_id", schoolId)
+    .eq("document_type", "teaching_material")
+    .order("updated_at", { ascending: false });
+  if (docsError) throw docsError;
+
+  const documentIds = (docs || []).map((item) => item.id);
+  if (!documentIds.length) return [];
+
+  const { data: versions, error: versionsError } = await supabase
+    .from("knowledge_source_versions")
+    .select("id, source_document_id, version_label, version_number, file_name, mime_type, storage_bucket, storage_path, published_at, is_current, chunk_count")
+    .in("source_document_id", documentIds)
+    .order("version_number", { ascending: false });
+  if (versionsError) throw versionsError;
+
+  const versionsByDocument = new Map();
+  (versions || []).forEach((version) => {
+    if (!versionsByDocument.has(version.source_document_id)) {
+      versionsByDocument.set(version.source_document_id, []);
+    }
+    versionsByDocument.get(version.source_document_id).push(version);
+  });
+
+  return (docs || []).map((doc) => {
+    const metadata = parseTeachingMetadata(doc.description);
+    const currentVersions = versionsByDocument.get(doc.id) || [];
+    const currentVersion = currentVersions.find((item) => item.is_current) || currentVersions[0] || null;
+    return {
+      id: doc.id,
+      title: doc.title,
+      summary: stripTeachingMetadataTag(doc.description),
+      canonical_reference: doc.canonical_reference,
+      metadata,
+      status: metadata.status || "draft",
+      current_version: currentVersion,
+      version_count: currentVersions.length,
+      created_at: doc.created_at,
+      updated_at: doc.updated_at
+    };
+  });
+}
+
 function extractKeywords(text) {
   const stopwords = new Set([
     "a", "o", "e", "de", "da", "do", "das", "dos", "em", "para", "com", "como", "que", "se",
@@ -1103,6 +1403,68 @@ function chunkText(text, maxLength = 900) {
   return chunks.filter(Boolean);
 }
 
+// --- HuggingFace Embedding (multilingual-e5-large, open-source, 1024 dims) ---
+const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY || "";
+const EMBEDDING_MODEL = "intfloat/multilingual-e5-large";
+const EMBEDDING_DIMENSION = 1024;
+
+async function generateEmbedding(text) {
+  if (!HUGGINGFACE_API_KEY) throw new Error("HUGGINGFACE_API_KEY ausente no .env");
+  const trimmed = String(text || "").trim().slice(0, 8000);
+  if (!trimmed) return null;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const response = await fetch(
+      `https://router.huggingface.co/hf-inference/models/${EMBEDDING_MODEL}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
+          "Content-Type": "application/json",
+          "X-Wait-For-Model": "true"
+        },
+        body: JSON.stringify({ inputs: trimmed }),
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`HuggingFace API ${response.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const embedding = await response.json();
+    if (!Array.isArray(embedding) || embedding.length !== EMBEDDING_DIMENSION) {
+      throw new Error(`Embedding inesperado: esperado array[${EMBEDDING_DIMENSION}], recebido ${typeof embedding} (len=${Array.isArray(embedding) ? embedding.length : "?"})`);
+    }
+    return embedding;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function generateEmbeddingsForRows(rows) {
+  const results = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const textForEmbedding = `${row.question}\n${row.answer}`;
+      const embedding = await generateEmbedding(textForEmbedding);
+      results.push({ ...row, embedding });
+    } catch (error) {
+      console.error(`Erro ao gerar embedding chunk ${i + 1}/${rows.length}:`, error.message);
+      results.push({ ...row, embedding: null });
+    }
+    if ((i + 1) % 10 === 0) {
+      console.log(`  Embeddings: ${i + 1}/${rows.length} concluidos`);
+    }
+  }
+  return results;
+}
+
 function buildKnowledgeRows({ schoolId, sourceDocument, version, content }) {
   const assistantArea = ensureAssistantArea(sourceDocument.owning_area);
   const areaConfig = ASSISTANT_AREAS[assistantArea] || ASSISTANT_AREAS["public.assistant"];
@@ -1123,7 +1485,7 @@ function buildKnowledgeRows({ schoolId, sourceDocument, version, content }) {
   }));
 }
 
-async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, content, fileName, mimeType, userId }) {
+async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, content, fileName, mimeType, userId, originalAsset = null }) {
   const normalizedContent = normalizeText(content);
   if (!normalizedContent) {
     throw new Error("Conteudo vazio para publicacao da fonte.");
@@ -1140,6 +1502,16 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
 
   const nextVersionNumber = ((existingVersions || [])[0]?.version_number || 0) + 1;
   const checksum = crypto.createHash("sha256").update(normalizedContent, "utf8").digest("hex");
+  const storedAsset = originalAsset?.file_base64
+    ? await uploadTeachingPdfAsset({
+        schoolId,
+        sourceDocumentId: sourceDocument.id,
+        versionNumber: nextVersionNumber,
+        fileName: originalAsset.file_name,
+        mimeType: originalAsset.mime_type,
+        base64Content: originalAsset.file_base64
+      })
+    : { storageBucket: null, storagePath: null, fileName: null, mimeType: null };
 
   const { error: resetCurrentError } = await supabase
     .from("knowledge_source_versions")
@@ -1158,8 +1530,10 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
       version_label: String(versionLabel || `v${nextVersionNumber}`).trim(),
       version_number: nextVersionNumber,
       checksum,
-      file_name: fileName || null,
-      mime_type: mimeType || null,
+      file_name: storedAsset.fileName || fileName || null,
+      mime_type: storedAsset.mimeType || mimeType || null,
+      storage_bucket: storedAsset.storageBucket || null,
+      storage_path: storedAsset.storagePath || null,
       raw_text: normalizedContent,
       chunk_count: 0,
       published_at: new Date().toISOString(),
@@ -1181,10 +1555,22 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
 
   const knowledgeRows = buildKnowledgeRows({ schoolId, sourceDocument, version, content: normalizedContent });
 
-  if (knowledgeRows.length) {
+  let rowsWithEmbeddings = knowledgeRows;
+  if (knowledgeRows.length && HUGGINGFACE_API_KEY) {
+    try {
+      console.log(`Gerando embeddings BGE-M3 para ${knowledgeRows.length} chunks de "${sourceDocument.title}"...`);
+      rowsWithEmbeddings = await generateEmbeddingsForRows(knowledgeRows);
+      const withEmbed = rowsWithEmbeddings.filter((r) => r.embedding).length;
+      console.log(`  Embeddings concluidos: ${withEmbed}/${knowledgeRows.length} com vetor.`);
+    } catch (error) {
+      console.error("Erro ao gerar embeddings (prosseguindo sem vetores):", error.message);
+    }
+  }
+
+  if (rowsWithEmbeddings.length) {
     const { error: kbError } = await supabase
       .from("knowledge_base")
-      .insert(knowledgeRows);
+      .insert(rowsWithEmbeddings);
 
     if (kbError) throw kbError;
   }
@@ -1218,7 +1604,9 @@ async function publishSourceVersion({ schoolId, sourceDocument, versionLabel, co
       owning_area: sourceDocument.owning_area,
       version_label: version.version_label,
       version_number: version.version_number,
-      chunk_count: knowledgeRows.length
+      chunk_count: knowledgeRows.length,
+      storage_bucket: version.storage_bucket || null,
+      storage_path: version.storage_path || null
     }
   });
 
@@ -1586,6 +1974,433 @@ app.post("/api/knowledge/sources/:id/versions", async (req, res) => {
   }
 });
 
+app.get("/api/teaching-content", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+    const items = await listTeachingContentRecords(access.context.schoolId);
+    const role = access.context.effectiveRole;
+    const isTeacher = role === 'teacher';
+    const visibleItems = isTeacher ? items : items.filter((item) => item.status !== 'draft');
+    return res.json({ ok: true, items: visibleItems });
+  } catch (error) {
+    console.error("Erro /api/teaching-content:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar a curadoria pedagogica." });
+  }
+});
+
+app.get("/api/teaching-content/:id/versions", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.params.id || "").trim();
+    if (!sourceDocumentId) return res.status(400).json({ ok: false, error: "Material invalido." });
+
+    const { data: sourceDocument, error: sourceError } = await supabase
+      .from("source_documents")
+      .select("id, title, description, canonical_reference, updated_at")
+      .eq("school_id", schoolId)
+      .eq("id", sourceDocumentId)
+      .eq("document_type", "teaching_material")
+      .maybeSingle();
+    if (sourceError) throw sourceError;
+    if (!sourceDocument?.id) return res.status(404).json({ ok: false, error: "Material nao encontrado." });
+
+    const { data: versions, error: versionsError } = await supabase
+      .from("knowledge_source_versions")
+      .select("id, version_label, version_number, file_name, mime_type, storage_bucket, storage_path, raw_text, published_at, is_current, chunk_count")
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId)
+      .order("version_number", { ascending: false });
+    if (versionsError) throw versionsError;
+
+    return res.json({
+      ok: true,
+      item: {
+        id: sourceDocument.id,
+        title: sourceDocument.title,
+        summary: stripTeachingMetadataTag(sourceDocument.description),
+        metadata: parseTeachingMetadata(sourceDocument.description),
+        canonical_reference: sourceDocument.canonical_reference,
+        updated_at: sourceDocument.updated_at
+      },
+      versions: versions || []
+    });
+  } catch (error) {
+    console.error("Erro /api/teaching-content/:id/versions:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar o historico do material." });
+  }
+});
+
+app.get("/api/teaching-content/:id/versions/:versionId", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.params.id || "").trim();
+    const versionId = String(req.params.versionId || "").trim();
+    if (!sourceDocumentId || !versionId) return res.status(400).json({ ok: false, error: "Versao invalida." });
+
+    const { data: version, error: versionError } = await supabase
+      .from("knowledge_source_versions")
+      .select("id, source_document_id, version_label, version_number, file_name, mime_type, storage_bucket, storage_path, raw_text, published_at, is_current, chunk_count")
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId)
+      .eq("id", versionId)
+      .maybeSingle();
+
+    if (versionError) throw versionError;
+    if (!version?.id) return res.status(404).json({ ok: false, error: "Versao nao encontrada." });
+
+    return res.json({ ok: true, version });
+  } catch (error) {
+    console.error("Erro /api/teaching-content/:id/versions/:versionId:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar a versao do material." });
+  }
+});
+
+app.post("/api/teaching-content/extract-pdf", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  let parser = null;
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const fileName = String(req.body?.file_name || "material.pdf").trim();
+    const base64Content = String(req.body?.file_base64 || "").trim();
+    if (!base64Content) {
+      return res.status(400).json({ ok: false, error: "Arquivo PDF nao informado." });
+    }
+
+    const pdfBuffer = Buffer.from(base64Content, "base64");
+    if (!pdfBuffer.length) {
+      return res.status(400).json({ ok: false, error: "Conteudo do PDF invalido." });
+    }
+
+    parser = new PDFParse({ data: pdfBuffer });
+    const [textResult, infoResult] = await Promise.all([
+      parser.getText(),
+      parser.getInfo().catch(() => null)
+    ]);
+    const extractedText = normalizeText(textResult?.text || "");
+
+    return res.json({
+      ok: true,
+      file_name: fileName,
+      page_count: Number(textResult?.total || infoResult?.total || 0),
+      info: infoResult?.info || null,
+      text: extractedText,
+      extraction_quality: extractedText ? "text_found" : "no_text_detected"
+    });
+  } catch (error) {
+    console.error("Erro /api/teaching-content/extract-pdf:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao extrair o texto do PDF." });
+  } finally {
+    if (parser) {
+      try {
+        await parser.destroy();
+      } catch (_error) {
+      }
+    }
+  }
+});
+
+app.post("/api/teaching-content", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_WRITE_ROLES] });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.body?.source_document_id || "").trim() || null;
+    const title = String(req.body?.title || "").trim();
+    const summary = String(req.body?.summary || "").trim();
+    const rawTextInput = normalizeText(req.body?.raw_text || "");
+    const metadata = sanitizeTeachingMetadata(req.body?.metadata || {});
+    const canonicalReference = buildTeachingCanonicalReference(metadata);
+    const description = buildTeachingDescription(summary, metadata);
+    const updatedBy = String(req.body?.updated_by || access.context.user.email || access.context.user.id || "Professor").trim();
+    const fileName = String(req.body?.file_name || `${slugifyToken(title || metadata.topic || metadata.subject)}.txt`).trim();
+    const originalPdf = req.body?.source_pdf && typeof req.body.source_pdf === "object"
+      ? {
+          file_name: String(req.body.source_pdf.file_name || "material.pdf").trim() || "material.pdf",
+          mime_type: String(req.body.source_pdf.mime_type || "application/pdf").trim() || "application/pdf",
+          file_base64: String(req.body.source_pdf.file_base64 || "").trim()
+        }
+      : null;
+
+    if (!title) return res.status(400).json({ ok: false, error: "Informe o titulo do material." });
+    if (!metadata.subject) return res.status(400).json({ ok: false, error: "Informe a disciplina." });
+
+    let sourceDocument = null;
+    let rawText = rawTextInput;
+
+    if (sourceDocumentId) {
+      const { data: existingSource, error: existingSourceError } = await supabase
+        .from("source_documents")
+        .select("id, school_id")
+        .eq("school_id", schoolId)
+        .eq("id", sourceDocumentId)
+        .eq("document_type", "teaching_material")
+        .maybeSingle();
+      if (existingSourceError) throw existingSourceError;
+      if (!existingSource?.id) {
+        return res.status(404).json({ ok: false, error: "Material nao encontrado para atualizacao." });
+      }
+
+      if (!rawText) {
+        const { data: currentVersion, error: currentVersionError } = await supabase
+          .from("knowledge_source_versions")
+          .select("raw_text")
+          .eq("school_id", schoolId)
+          .eq("source_document_id", sourceDocumentId)
+          .eq("is_current", true)
+          .maybeSingle();
+        if (currentVersionError) throw currentVersionError;
+        rawText = normalizeText(currentVersion?.raw_text || "");
+      }
+
+      const { data: updatedSource, error: updatedSourceError } = await supabase
+        .from("source_documents")
+        .update({
+          title,
+          canonical_reference: canonicalReference,
+          description,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", sourceDocumentId)
+        .select("*")
+        .single();
+      if (updatedSourceError) throw updatedSourceError;
+      sourceDocument = updatedSource;
+    } else {
+      if (!rawText) {
+        return res.status(400).json({ ok: false, error: "Cole o texto base do material ou importe um arquivo de texto." });
+      }
+
+      const { data: createdSource, error: createdSourceError } = await supabase
+        .from("source_documents")
+        .insert({
+          school_id: schoolId,
+          title,
+          document_type: "teaching_material",
+          owning_area: "public.assistant",
+          canonical_reference: canonicalReference,
+          description
+        })
+        .select("*")
+        .single();
+      if (createdSourceError) throw createdSourceError;
+      sourceDocument = createdSource;
+    }
+
+    if (!rawText) {
+      return res.status(400).json({ ok: false, error: "O material precisa manter um texto-base versionado." });
+    }
+
+    const sourceVersion = await publishSourceVersion({
+      schoolId,
+      sourceDocument,
+      versionLabel: String(req.body?.version_label || `${slugifyToken(metadata.subject)}-${new Date().toISOString().slice(0, 10)}`),
+      content: rawText,
+      fileName,
+      mimeType: "text/plain",
+      userId: access.context.user.id,
+      originalAsset: originalPdf?.file_base64 ? originalPdf : null
+    });
+
+    await supabase.from("formal_audit_events").insert({
+      school_id: schoolId,
+      event_type: sourceDocumentId ? "TEACHING_CONTENT_UPDATED" : "TEACHING_CONTENT_CREATED",
+      severity: "INFO",
+      actor_type: "HUMAN",
+      actor_name: updatedBy,
+      consultation_id: null,
+      summary: sourceDocumentId
+        ? `Material pedagogico atualizado: ${title}.`
+        : `Material pedagogico criado: ${title}.`,
+      details: {
+        source_document_id: sourceDocument.id,
+        source_version_id: sourceVersion.id,
+        title,
+        metadata,
+        summary
+      }
+    });
+
+    const items = await listTeachingContentRecords(schoolId);
+    const item = items.find((entry) => entry.id === sourceDocument.id) || null;
+    return res.json({ ok: true, item, source_version: sourceVersion });
+  } catch (error) {
+    console.error("Erro /api/teaching-content:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao salvar o material pedagogico." });
+  }
+});
+
+app.put("/api/teaching-content/:id/approval", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const action = String(req.body?.action || "").toLowerCase();
+    const note = String(req.body?.note || "").trim();
+
+    if (!action || !["pending", "approved", "rejected"].includes(action)) {
+      return res.status(400).json({ ok: false, error: "Acao invalida. Use 'pending', 'approved' ou 'rejected'." });
+    }
+
+    const isCoordinatorAction = ["approved", "rejected"].includes(action);
+    const allowedRoles = isCoordinatorAction ? [...TEACHING_CONTENT_APPROVAL_ROLES] : [...TEACHING_CONTENT_WRITE_ROLES];
+    const access = await requireRequestContext(req, res, { allowedRoles });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.params.id || "").trim();
+    if (!sourceDocumentId) return res.status(400).json({ ok: false, error: "Material invalido." });
+
+    const { data: doc, error: docError } = await supabase
+      .from("source_documents")
+      .select("id, title, description")
+      .eq("school_id", schoolId)
+      .eq("id", sourceDocumentId)
+      .eq("document_type", "teaching_material")
+      .maybeSingle();
+    if (docError) throw docError;
+    if (!doc?.id) return res.status(404).json({ ok: false, error: "Material nao encontrado." });
+
+    const existingMetadata = parseTeachingMetadata(doc.description);
+    const summary = stripTeachingMetadataTag(doc.description);
+
+    if (action === "pending") {
+      existingMetadata.status = "pending_approval";
+      existingMetadata.approval_status = "pending";
+      existingMetadata.approval_note = "";
+      existingMetadata.approval_by = "";
+      existingMetadata.approval_at = null;
+    } else if (action === "approved") {
+      existingMetadata.status = "published";
+      existingMetadata.approval_status = "approved";
+      existingMetadata.approval_note = note;
+      existingMetadata.approval_by = access.context.user.email || access.context.user.id || "";
+      existingMetadata.approval_at = new Date().toISOString();
+    } else if (action === "rejected") {
+      existingMetadata.status = "draft";
+      existingMetadata.approval_status = "rejected";
+      existingMetadata.approval_note = note;
+      existingMetadata.approval_by = access.context.user.email || access.context.user.id || "";
+      existingMetadata.approval_at = new Date().toISOString();
+    }
+
+    const description = buildTeachingDescription(summary, existingMetadata);
+    const { error: updateError } = await supabase
+      .from("source_documents")
+      .update({ description, updated_at: new Date().toISOString() })
+      .eq("id", sourceDocumentId);
+    if (updateError) throw updateError;
+
+    const eventType = action === "pending" ? "TEACHING_CONTENT_SUBMITTED" : action === "approved" ? "TEACHING_CONTENT_APPROVED" : "TEACHING_CONTENT_REJECTED";
+    const eventLabel = action === "pending" ? "enviado para aprovacao" : action === "approved" ? "aprovado" : "reprovado";
+    await supabase.from("formal_audit_events").insert({
+      school_id: schoolId,
+      event_type: eventType,
+      severity: "INFO",
+      actor_type: "HUMAN",
+      actor_name: access.context.user.email || access.context.user.id || "",
+      consultation_id: null,
+      summary: `Material pedagogico ${eventLabel}: ${doc.title || doc.id}.${note ? ` Nota: ${note}` : ""}`,
+      details: { source_document_id: doc.id, action, note }
+    });
+
+    // When approved, ensure embeddings are generated for all knowledge_base rows
+    if (action === "approved" && HUGGINGFACE_API_KEY) {
+      try {
+        const { data: rows, error: kbError } = await supabase
+          .from("knowledge_base")
+          .select("id, question, answer, embedding")
+          .eq("school_id", schoolId)
+          .eq("source_document_id", sourceDocumentId);
+        if (kbError) throw kbError;
+
+        const rowsWithoutEmbedding = (rows || []).filter((r) => !r.embedding);
+        if (rowsWithoutEmbedding.length) {
+          console.log(`Aprovacao: gerando embeddings para ${rowsWithoutEmbedding.length} chunks de "${doc.title}"...`);
+          for (const row of rowsWithoutEmbedding) {
+            try {
+              const embedding = await generateEmbedding(`${row.question}\n${row.answer}`);
+              if (embedding) {
+                await supabase.from("knowledge_base").update({ embedding }).eq("id", row.id);
+              }
+            } catch (embError) {
+              console.error(`Erro embedding chunk ${row.id}:`, embError.message);
+            }
+          }
+          console.log(`  Embeddings de aprovacao concluidos para "${doc.title}".`);
+        }
+      } catch (embPipelineError) {
+        console.error("Erro no pipeline de embeddings pos-aprovacao:", embPipelineError.message);
+      }
+    }
+
+    const items = await listTeachingContentRecords(schoolId);
+    const item = items.find((entry) => entry.id === sourceDocumentId) || null;
+    return res.json({ ok: true, item });
+  } catch (error) {
+    console.error("Erro /api/teaching-content/:id/approval:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao atualizar aprovacao do material." });
+  }
+});
+
+app.get("/api/teaching-content/:id/source-pdf", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHING_CONTENT_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+
+    const schoolId = access.context.schoolId;
+    const sourceDocumentId = String(req.params.id || "").trim();
+    const versionId = String(req.query.version_id || "").trim() || null;
+    if (!sourceDocumentId) return res.status(400).json({ ok: false, error: "Material invalido." });
+
+    let query = supabase
+      .from("knowledge_source_versions")
+      .select("id, file_name, mime_type, storage_bucket, storage_path, is_current")
+      .eq("school_id", schoolId)
+      .eq("source_document_id", sourceDocumentId);
+
+    query = versionId ? query.eq("id", versionId) : query.eq("is_current", true);
+
+    const { data: version, error: versionError } = await query.maybeSingle();
+    if (versionError) throw versionError;
+    if (!version?.storage_bucket || !version?.storage_path) {
+      return res.status(404).json({ ok: false, error: "Este material nao possui PDF original armazenado." });
+    }
+
+    const { data: downloadData, error: downloadError } = await supabase.storage
+      .from(version.storage_bucket)
+      .download(version.storage_path);
+    if (downloadError) throw downloadError;
+
+    const fileBuffer = Buffer.from(await downloadData.arrayBuffer());
+    res.setHeader("Content-Type", version.mime_type || "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${String(version.file_name || "material.pdf").replace(/"/g, "")}"`);
+    return res.send(fileBuffer);
+  } catch (error) {
+    console.error("Erro /api/teaching-content/:id/source-pdf:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao recuperar o PDF original." });
+  }
+});
+
 app.put("/api/knowledge/sources/:id/suspend", async (req, res) => {
   if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
 
@@ -1635,6 +2450,178 @@ app.put("/api/knowledge/sources/:id/suspend", async (req, res) => {
     return res.status(500).json({ ok: false, error: "Falha ao alterar status da fonte." });
   }
 });
+
+// ── Auto-apply approved correction to FAQ knowledge base ──────────────
+async function applyApprovedCorrectionToFaq({ schoolId, eventRow, nextDetails, actorName, sourceTable = "formal_audit_events" }) {
+  const correctionType = String(nextDetails.proposed_correction_type || "other").trim();
+  const correctionText = String(nextDetails.proposed_correction || "").trim();
+  if (!correctionText) return { applied: false, reason: "no_correction_text" };
+
+  // Only faq_update type auto-applies content; others are logged for traceability
+  const shouldAutoApplyContent = correctionType === "faq_update";
+
+  // 1. Load existing FAQ record for this school
+  const { data: faqRecord } = await supabase
+    .from("official_content_records")
+    .select("*")
+    .eq("school_id", schoolId)
+    .eq("module_key", "faq")
+    .eq("scope_key", "school")
+    .maybeSingle();
+
+  const existingPayload = faqRecord?.content_payload || { items: [] };
+  const existingItems = Array.isArray(existingPayload.items) ? existingPayload.items : [];
+
+  // 2. Build the new FAQ item from the proposed correction
+  //    Try to extract Q/A structure from the correction text
+  let newQuestion = "";
+  let newAnswer = correctionText;
+  const qaMatch = correctionText.match(/^(?:pergunta|p)\s*[:]\s*(.+?)[\n\r]+(?:resposta|r)\s*[:]\s*([\s\S]+)$/im);
+  if (qaMatch) {
+    newQuestion = qaMatch[1].trim();
+    newAnswer = qaMatch[2].trim();
+  }
+
+  // Try to get context from the incident
+  const incidentId = eventRow.details?.incident_id || null;
+  let incidentContext = null;
+  if (incidentId) {
+    const { data: incident } = await supabase
+      .from("incident_reports")
+      .select("user_question, ai_response, details")
+      .eq("id", incidentId)
+      .maybeSingle();
+    incidentContext = incident || null;
+    if (!newQuestion && incident?.user_question) {
+      newQuestion = incident.user_question;
+    }
+  }
+
+  if (!newQuestion) {
+    newQuestion = "Correcao aplicada automaticamente";
+  }
+
+  let kbChangeDescription = "";
+
+  if (shouldAutoApplyContent) {
+    // 3. Append the new item to the FAQ
+    const newItem = {
+      question: newQuestion,
+      answer: newAnswer,
+      category: "Correcao",
+      source: `Correcao aprovada por ${actorName} em ${new Date().toISOString().slice(0, 10)}`,
+      version: new Date().toISOString()
+    };
+    const updatedItems = [...existingItems, newItem];
+    const updatedPayload = { ...existingPayload, items: updatedItems };
+
+    // 4. Re-publish: create/update source document + version + knowledge_base rows
+    const faqTitle = faqRecord?.title || "FAQ Oficial";
+    const faqSummary = faqRecord?.summary || "Perguntas e respostas curtas, validadas e rastreaveis.";
+
+    const sourceDocument = await ensureOfficialContentSourceDocument({
+      schoolId,
+      moduleKey: "faq",
+      scopeKey: "school",
+      title: faqTitle,
+      summary: faqSummary,
+      existingSourceDocumentId: faqRecord?.source_document_id || null
+    });
+
+    const technicalContent = formatOfficialContentForKnowledge("faq", "school", faqTitle, faqSummary, updatedPayload);
+    const version = await publishSourceVersion({
+      schoolId,
+      sourceDocument,
+      versionLabel: "faq-school-correcao-" + new Date().toISOString().slice(0, 10),
+      content: technicalContent,
+      fileName: "faq-school.txt",
+      mimeType: "text/plain",
+      userId: null
+    });
+
+    // 5. Upsert the official_content_records row
+    await supabase.from("official_content_records").upsert({
+      school_id: schoolId,
+      module_key: "faq",
+      scope_key: "school",
+      title: faqTitle,
+      summary: faqSummary,
+      content_payload: updatedPayload,
+      status: "published",
+      source_document_id: sourceDocument.id,
+      source_version_id: version.id,
+      updated_by: actorName,
+      updated_at: new Date().toISOString()
+    }, { onConflict: "school_id,module_key,scope_key" });
+
+    kbChangeDescription = `FAQ atualizado automaticamente: pergunta "${newQuestion.substring(0, 80)}" adicionada com ${version.chunk_count} chunks. Versao ${version.version_label}.`;
+
+    // 6. Record traceability in correction_kb_changes (use event id as correction_id reference)
+    await supabase.from("correction_kb_changes").insert({
+      correction_id: eventRow.id,
+      source_table: sourceTable,
+      school_id: schoolId,
+      source_document_id: sourceDocument.id,
+      version_id: version.id,
+      change_type: "faq_updated",
+      change_description: kbChangeDescription,
+      before_snapshot: existingItems.length > 0 ? JSON.stringify(existingItems.slice(-3)).substring(0, 5000) : null,
+      after_snapshot: JSON.stringify(updatedItems.slice(-3)).substring(0, 5000),
+      applied_by: actorName,
+      applied_by_user_id: null,
+      applied_at: new Date().toISOString()
+    });
+  } else {
+    // content_removal or other — just record that it was handled
+    kbChangeDescription = `Correcao do tipo "${correctionType}" registrada. Texto: "${correctionText.substring(0, 200)}". Nenhuma alteracao automatica na FAQ.`;
+  }
+
+  // 7. Audit event for the KB change
+  await supabase.from("formal_audit_events").insert({
+    school_id: schoolId,
+    consultation_id: eventRow.consultation_id || null,
+    event_type: shouldAutoApplyContent ? "FAQ_AUTO_UPDATED_BY_CORRECTION" : "CORRECTION_APPLIED_NO_FAQ_CHANGE",
+    severity: shouldAutoApplyContent ? "HIGH" : "INFO",
+    actor_type: "SYSTEM",
+    actor_name: "Auto-aplicacao de correcao",
+    summary: kbChangeDescription,
+    details: {
+      source_event_id: eventRow.id,
+      correction_type: correctionType,
+      proposed_by: nextDetails.proposed_correction_by || null,
+      approved_by: actorName,
+      incident_id: incidentId,
+      auto_applied: shouldAutoApplyContent
+    }
+  });
+
+  // 8. Notify network-level stakeholders (network_manager, auditor)
+  if (shouldAutoApplyContent) {
+    const { data: networkSchool } = await supabase
+      .from("schools")
+      .select("parent_school_id")
+      .eq("id", schoolId)
+      .maybeSingle();
+    const parentId = networkSchool?.parent_school_id || schoolId;
+    const { data: stakeholders } = await supabase
+      .from("school_members")
+      .select("user_id, role")
+      .in("school_id", [schoolId, parentId])
+      .in("role", ["network_manager", "auditor", "content_curator"]);
+    for (const s of (stakeholders || [])) {
+      if (s.user_id) {
+        await supabase.from("notification_queue").insert({
+          user_id: s.user_id,
+          topic: "faq_auto_updated",
+          message: `A FAQ da escola foi atualizada automaticamente apos aprovacao de correcao por ${actorName}.`,
+          details: { event_id: eventRow.id, school_id: schoolId, approved_by: actorName, correction_type: correctionType }
+        });
+      }
+    }
+  }
+
+  return { applied: shouldAutoApplyContent, description: kbChangeDescription };
+}
 
 function formatOfficialContentForKnowledge(moduleKey, scopeKey, title, summary, contentPayload = {}) {
   const lines = [];
@@ -1997,7 +2984,7 @@ app.get("/api/users/managed", async (req, res) => {
       });
     }
 
-    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES] });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "auditor", "direction"] });
     if (!access.ok) return access.response;
 
     const scope = await resolveManagedSchoolScope(access.context);
@@ -2012,6 +2999,42 @@ app.get("/api/users/managed", async (req, res) => {
       .order("name", { ascending: true });
     if (memberError) {
       throw Object.assign(new Error("Falha ao carregar os usuarios gerenciados."), { statusCode: 500, cause: memberError });
+    }
+
+    const memberUserIds = [...new Set((memberRows || []).map((item) => item.user_id).filter(Boolean))];
+    const memberEmails = [...new Set((memberRows || []).map((item) => String(item.email || "").trim().toLowerCase()).filter(Boolean))];
+    const platformRoleByUserId = new Map();
+    const platformRoleByEmail = new Map();
+
+    if (memberUserIds.length || memberEmails.length) {
+      let platformQuery = supabase
+        .from("platform_members")
+        .select("user_id, email, role, active")
+        .eq("active", true);
+
+      if (memberUserIds.length && memberEmails.length) {
+        const filters = memberUserIds.map((id) => `user_id.eq.${id}`).concat(memberEmails.map((email) => `email.eq.${email}`));
+        platformQuery = platformQuery.or(filters.join(","));
+      } else if (memberUserIds.length) {
+        platformQuery = platformQuery.in("user_id", memberUserIds);
+      } else {
+        platformQuery = platformQuery.in("email", memberEmails);
+      }
+
+      const { data: platformRows, error: platformError } = await platformQuery;
+      if (platformError) {
+        throw Object.assign(new Error("Falha ao carregar os perfis globais da plataforma."), { statusCode: 500, cause: platformError });
+      }
+
+      for (const item of (platformRows || [])) {
+        const normalizedEmail = String(item.email || "").trim().toLowerCase();
+        if (item.user_id && !platformRoleByUserId.has(item.user_id)) {
+          platformRoleByUserId.set(item.user_id, normalizeRoleKey(item.role));
+        }
+        if (normalizedEmail && !platformRoleByEmail.has(normalizedEmail)) {
+          platformRoleByEmail.set(normalizedEmail, normalizeRoleKey(item.role));
+        }
+      }
     }
 
     const parentIds = [...new Set((scope.managedSchools || []).map((item) => item.parent_school_id).filter(Boolean))];
@@ -2037,9 +3060,13 @@ app.get("/api/users/managed", async (req, res) => {
     const users = (memberRows || []).map((item) => {
       const school = schoolsById.get(item.school_id) || null;
       const parent = school?.parent_school_id ? schoolsById.get(school.parent_school_id) || null : null;
+      const normalizedEmail = String(item.email || "").trim().toLowerCase();
+      const platformRole = platformRoleByUserId.get(item.user_id) || platformRoleByEmail.get(normalizedEmail) || null;
       return {
         ...item,
         source_table: "school_members",
+        platform_role: platformRole,
+        display_role: platformRole || normalizeRoleKey(item.role),
         school_name: school?.name || "",
         school_institution_type: school?.institution_type || "",
         parent_school_name: parent?.name || school?.parent_name || ""
@@ -2550,7 +3577,7 @@ app.get("/api/intelligence/dashboard", async (req, res) => {
   if (!supabase) return res.status(200).json(fallbackDashboard(periodConfig));
 
   try {
-    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "secretariat", "observer"] });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "public_operator", "secretariat", "observer"] });
     if (!access.ok) return access.response;
     const scope = await resolveManagedSchoolScope(access.context);
     const schoolIds = scope.managedSchoolIds || [];
@@ -2796,7 +3823,7 @@ app.get("/api/reports/operational-summary", async (req, res) => {
   }
 
   try {
-    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "observer"] });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "public_operator", "observer"] });
     if (!access.ok) return access.response;
     const scope = await resolveManagedSchoolScope(access.context);
     const schoolIds = scope.managedSchoolIds || [];
@@ -3200,7 +4227,7 @@ app.post("/api/audit/events/:id/review", async (req, res) => {
   if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
 
   try {
-    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "secretariat"] });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "public_operator", "secretariat"] });
     if (!access.ok) return access.response;
     const scope = await resolveManagedSchoolScope(access.context);
     const schoolIds = scope.managedSchoolIds || [];
@@ -3334,7 +4361,7 @@ app.post("/api/audit/treatments/:id/status", async (req, res) => {
     if (!eventId) {
       return res.status(400).json({ ok: false, error: "Item de tratamento invalido." });
     }
-    if (!["OPEN", "IN_PROGRESS", "COMPLETED", "DISMISSED"].includes(nextStatus)) {
+    if (!["OPEN", "IN_PROGRESS", "PENDING_APPROVAL", "COMPLETED", "DISMISSED"].includes(nextStatus)) {
       return res.status(400).json({ ok: false, error: "Status do tratamento invalido." });
     }
     if (!schoolIds.length) {
@@ -3361,6 +4388,26 @@ app.post("/api/audit/treatments/:id/status", async (req, res) => {
       return res.status(403).json({ ok: false, error: "Seu perfil nao pode atualizar este destino de tratamento." });
     }
 
+    // Role-based transition rules for PENDING_APPROVAL
+    const currentProgress = String(eventRow.details?.treatment_progress_status || "OPEN").toUpperCase();
+    const role = normalizeRoleKey(access.context.effectiveRole);
+
+    if (nextStatus === "PENDING_APPROVAL") {
+      // Only secretariat/coordination can propose (not direction — direction approves)
+      if (!req.body?.proposed_correction) {
+        return res.status(400).json({ ok: false, error: "Para enviar para aprovacao, informe a correcao proposta (proposed_correction)." });
+      }
+    }
+    if (currentProgress === "PENDING_APPROVAL" && nextStatus === "COMPLETED") {
+      // Only direction/superadmin can approve a pending correction
+      if (!["direction", "superadmin", "network_manager"].includes(role)) {
+        return res.status(403).json({ ok: false, error: "Somente a direcao pode aprovar a correcao proposta." });
+      }
+    }
+
+    const proposedCorrection = req.body?.proposed_correction ? String(req.body.proposed_correction).trim() : null;
+    const correctionType = req.body?.correction_type ? String(req.body.correction_type).trim() : null;
+
     const nextDetails = {
       ...(eventRow.details || {}),
       treatment_progress_status: nextStatus,
@@ -3368,6 +4415,32 @@ app.post("/api/audit/treatments/:id/status", async (req, res) => {
       treatment_last_updated_by: actorName || "Operador institucional",
       treatment_completion_notes: notes || null
     };
+
+    // Store proposed correction when submitting for approval
+    if (nextStatus === "PENDING_APPROVAL" && proposedCorrection) {
+      nextDetails.proposed_correction = proposedCorrection;
+      nextDetails.proposed_correction_type = correctionType || "other";
+      nextDetails.proposed_correction_by = actorName;
+      nextDetails.proposed_correction_at = new Date().toISOString();
+    }
+
+    // Store correction when director resolves directly (OPEN/IN_PROGRESS → COMPLETED with correction)
+    if (nextStatus === "COMPLETED" && currentProgress !== "PENDING_APPROVAL" && proposedCorrection) {
+      nextDetails.proposed_correction = proposedCorrection;
+      nextDetails.proposed_correction_type = correctionType || "other";
+      nextDetails.proposed_correction_by = actorName;
+      nextDetails.proposed_correction_at = new Date().toISOString();
+      nextDetails.approved_by = actorName;
+      nextDetails.approved_at = new Date().toISOString();
+      nextDetails.approval_notes = "Resolvido diretamente pela direcao.";
+    }
+
+    // Store approval metadata when approving from PENDING_APPROVAL
+    if (currentProgress === "PENDING_APPROVAL" && nextStatus === "COMPLETED") {
+      nextDetails.approved_by = actorName;
+      nextDetails.approved_at = new Date().toISOString();
+      nextDetails.approval_notes = notes || null;
+    }
 
     const { data: updatedEvent, error: updateError } = await supabase
       .from("formal_audit_events")
@@ -3377,14 +4450,57 @@ app.post("/api/audit/treatments/:id/status", async (req, res) => {
       .single();
     if (updateError) throw updateError;
 
+    // ── Auto-apply correction to FAQ when completing with proposed_correction ──
+    // Triggers for: (1) director approving a secretariat's proposal (PENDING_APPROVAL→COMPLETED)
+    //               (2) director resolving directly with correction (OPEN/IN_PROGRESS→COMPLETED)
+    let autoApplyResult = null;
+    if (nextStatus === "COMPLETED" && nextDetails.proposed_correction) {
+      try {
+        autoApplyResult = await applyApprovedCorrectionToFaq({
+          schoolId: eventRow.school_id,
+          eventRow,
+          nextDetails,
+          actorName
+        });
+        if (autoApplyResult?.applied) {
+          nextDetails.faq_auto_applied = true;
+          nextDetails.faq_auto_applied_at = new Date().toISOString();
+          nextDetails.faq_auto_applied_description = autoApplyResult.description || "";
+          // Persist the auto-apply metadata back to the event
+          await supabase.from("formal_audit_events")
+            .update({ details: nextDetails })
+            .eq("id", eventId);
+        }
+      } catch (autoApplyErr) {
+        console.error("Erro ao auto-aplicar correcao na FAQ:", autoApplyErr);
+        // Don't block the approval — just log the failure
+        nextDetails.faq_auto_apply_error = String(autoApplyErr.message || "Falha ao aplicar correcao").substring(0, 500);
+        await supabase.from("formal_audit_events")
+          .update({ details: nextDetails })
+          .eq("id", eventId);
+      }
+    }
+
+    const isDirectResolve = nextStatus === "COMPLETED" && currentProgress !== "PENDING_APPROVAL" && nextDetails.proposed_correction;
+    const eventSummary = nextStatus === "PENDING_APPROVAL"
+      ? "Correcao proposta e enviada para aprovacao da direcao."
+      : nextStatus === "COMPLETED" && currentProgress === "PENDING_APPROVAL"
+        ? "Correcao aprovada pela direcao."
+        : isDirectResolve
+          ? "Correcao resolvida diretamente pela direcao."
+          : `Tratamento atualizado para ${AUDIT_TREATMENT_PROGRESS[nextStatus] || nextStatus}.`;
+
     await supabase.from("formal_audit_events").insert({
       school_id: eventRow.school_id,
       consultation_id: eventRow.consultation_id,
-      event_type: "AUDIT_TREATMENT_PROGRESS_UPDATED",
-      severity: "INFO",
+      event_type: nextStatus === "PENDING_APPROVAL" ? "CORRECTION_PROPOSED"
+        : currentProgress === "PENDING_APPROVAL" && nextStatus === "COMPLETED" ? "CORRECTION_APPROVED_BY_DIRECTION"
+        : isDirectResolve ? "CORRECTION_RESOLVED_BY_DIRECTION"
+        : "AUDIT_TREATMENT_PROGRESS_UPDATED",
+      severity: nextStatus === "PENDING_APPROVAL" || nextStatus === "COMPLETED" && (currentProgress === "PENDING_APPROVAL" || isDirectResolve) ? "HIGH" : "INFO",
       actor_type: "HUMAN",
       actor_name: actorName || "Operador institucional",
-      summary: `Tratamento atualizado para ${AUDIT_TREATMENT_PROGRESS[nextStatus] || nextStatus}.`,
+      summary: eventSummary,
       details: {
         source_event_id: eventRow.id,
         source_event_type: eventRow.event_type,
@@ -3392,9 +4508,52 @@ app.post("/api/audit/treatments/:id/status", async (req, res) => {
         treatment_progress_status: nextStatus,
         treatment_last_updated_at: nextDetails.treatment_last_updated_at,
         treatment_last_updated_by: actorName || "Operador institucional",
-        treatment_completion_notes: notes || null
+        treatment_completion_notes: notes || null,
+        proposed_correction: nextStatus === "PENDING_APPROVAL" ? proposedCorrection : (nextDetails.proposed_correction || null)
       }
     });
+
+    // Notify direction when correction is proposed for approval
+    if (nextStatus === "PENDING_APPROVAL" && eventRow.school_id) {
+      const { data: directors } = await supabase
+        .from("school_members")
+        .select("user_id, role")
+        .eq("school_id", eventRow.school_id)
+        .eq("role", "direction");
+      for (const dir of (directors || [])) {
+        if (dir.user_id) {
+          await supabase.from("notification_queue").insert({
+            user_id: dir.user_id,
+            topic: "correction_pending_approval",
+            message: `Uma correcao foi proposta e aguarda sua aprovacao. Proposta por ${actorName}.`,
+            details: { event_id: eventRow.id, school_id: eventRow.school_id, proposed_by: actorName }
+          });
+        }
+      }
+    }
+
+    // Notify secretariat when correction is approved
+    if (currentProgress === "PENDING_APPROVAL" && nextStatus === "COMPLETED" && eventRow.school_id) {
+      const proposedBy = nextDetails.proposed_correction_by;
+      if (proposedBy) {
+        // Try to find the user who proposed
+        const { data: proposers } = await supabase
+          .from("school_members")
+          .select("user_id, role")
+          .eq("school_id", eventRow.school_id)
+          .in("role", ["secretariat", "coordination"]);
+        for (const p of (proposers || [])) {
+          if (p.user_id) {
+            await supabase.from("notification_queue").insert({
+              user_id: p.user_id,
+              topic: "correction_approved",
+              message: `Sua correcao foi aprovada pela direcao. Aprovado por ${actorName}.`,
+              details: { event_id: eventRow.id, school_id: eventRow.school_id, approved_by: actorName }
+            });
+          }
+        }
+      }
+    }
 
     return res.status(200).json({ ok: true, event: updatedEvent });
   } catch (error) {
@@ -3407,7 +4566,7 @@ app.get("/api/audit/events", async (req, res) => {
   if (!supabase) return res.status(200).json({ ok: true, events: [] });
 
   try {
-    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "treasury", "public_operator", "secretariat", "observer"] });
+    const access = await requireRequestContext(req, res, { allowedRoles: [...PRIVILEGED_ROLES, "direction", "auditor", "content_curator", "coordination", "public_operator", "secretariat", "observer"] });
     if (!access.ok) return access.response;
     const scope = await resolveManagedSchoolScope(access.context);
     const schoolIds = scope.managedSchoolIds || [];
@@ -4198,6 +5357,7 @@ app.put("/api/incidents/:id/status", async (req, res) => {
     const resolutionNotes = String(req.body.resolution_notes || "").trim();
     const assignedTo = req.body.assigned_to != null ? String(req.body.assigned_to).trim() : null;
     const actorName = String(access.context.memberName || access.context.memberEmail || "Operador").trim();
+    const actorRole = String(access.context.effectiveRole || access.context.memberRole || access.context.platformRole || "").trim().toLowerCase();
 
     if (!incidentId) {
       return res.status(400).json({ ok: false, error: "ID do incidente invalido." });
@@ -4206,6 +5366,10 @@ app.put("/api/incidents/:id/status", async (req, res) => {
     const validStatuses = ["OPEN", "IN_REVIEW", "RESOLVED", "DISMISSED", "CONFIRMED"];
     if (nextStatus && !validStatuses.includes(nextStatus)) {
       return res.status(400).json({ ok: false, error: "Status invalido. Valores aceitos: " + validStatuses.join(", ") });
+    }
+
+    if (actorRole === "auditor" && (nextStatus === "RESOLVED" || nextStatus === "DISMISSED")) {
+      return res.status(403).json({ ok: false, error: "O perfil de auditor pode revisar e atribuir incidentes, mas nao pode resolve-los ou descarta-los." });
     }
 
     const validSeverities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
@@ -4233,12 +5397,20 @@ app.put("/api/incidents/:id/status", async (req, res) => {
       }
     }
 
+    let assignmentTarget = null;
+    if (assignedTo) {
+      assignmentTarget = await resolveIncidentAssignmentTarget({ rawAssignedTo: assignedTo, schoolIds: scope.managedSchoolIds });
+      if (!assignmentTarget) {
+        return res.status(400).json({ ok: false, error: "Responsavel selecionado nao encontrado no escopo gerenciado." });
+      }
+    }
+
     const updateData = {};
     if (nextStatus) updateData.status = nextStatus;
     if (nextSeverity) updateData.severity = nextSeverity;
     if (resolutionNotes) updateData.resolution_notes = resolutionNotes;
     if (assignedTo !== null) {
-      updateData.assigned_to = assignedTo || null;
+      updateData.assigned_to = assignmentTarget?.displayName || null;
       updateData.assigned_at = assignedTo ? new Date().toISOString() : null;
     }
     if (nextStatus === "RESOLVED" || nextStatus === "DISMISSED") {
@@ -4272,7 +5444,7 @@ app.put("/api/incidents/:id/status", async (req, res) => {
         actor_type: "HUMAN",
         actor_name: actorName,
         summary: `Incidente atualizado de ${existing.status} para ${nextStatus}.`,
-        details: { incident_id: incidentId, response_id: existing.response_id, from_status: existing.status, to_status: nextStatus, resolution_notes: resolutionNotes || null, assigned_to: assignedTo || null }
+        details: { incident_id: incidentId, response_id: existing.response_id, from_status: existing.status, to_status: nextStatus, resolution_notes: resolutionNotes || null, assigned_to: assignmentTarget?.displayName || null, assigned_to_user_id: assignmentTarget?.userId || null }
       });
 
       // L11 — Notificar reportador quando incidente e resolvido/descartado
@@ -4291,17 +5463,41 @@ app.put("/api/incidents/:id/status", async (req, res) => {
           dispatch_date: new Date().toISOString().slice(0, 10)
         });
       }
-    } else if (assignedTo !== null) {
-      await supabase.from("formal_audit_events").insert({
-        school_id: existing.school_id,
-        consultation_id: existing.consultation_id || null,
-        event_type: "INCIDENT_ASSIGNED",
-        severity: "LOW",
-        actor_type: "HUMAN",
-        actor_name: actorName,
-        summary: assignedTo ? `Incidente atribuido a ${assignedTo}.` : "Atribuicao do incidente removida.",
-        details: { incident_id: incidentId, response_id: existing.response_id, assigned_to: assignedTo || null }
+
+      // L12 — Notificar reportador quando incidente entra em revisao
+      if (nextStatus === "IN_REVIEW") {
+        const notifMsgReview = `O incidente #${incidentId.slice(0,8)} esta sendo revisado por ${actorName}.`;
+        const openedByVal = updated.opened_by || null;
+        const isUuidReview = openedByVal && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(openedByVal);
+        await supabase.from("notification_queue").insert({
+          school_id: existing.school_id,
+          user_id: isUuidReview ? openedByVal : null,
+          topic: "incident_in_review",
+          message: notifMsgReview,
+          details: { incident_id: incidentId, status: nextStatus, reviewer: actorName, opened_by: openedByVal },
+          sent: false,
+          dispatch_date: new Date().toISOString().slice(0, 10)
+        });
+      }
+
+    }
+
+    if (assignedTo !== null) {
+      await createIncidentAssignmentAuditEvent({
+        existing,
+        incidentId,
+        actorName,
+        assignmentTarget
       });
+
+      if (assignmentTarget?.userId) {
+        await createIncidentAssignmentNotification({
+          schoolId: existing.school_id,
+          incidentId,
+          actorName,
+          assignmentTarget
+        });
+      }
     }
 
     return res.json({ ok: true, incident: updated });
@@ -4863,6 +6059,63 @@ app.put("/api/corrections/:id/transition", async (req, res) => {
         }));
       if (kbRows.length) {
         await supabase.from("correction_kb_changes").insert(kbRows);
+      }
+    }
+
+    // Auto-apply correction to FAQ when "apply" action is used and correction has corrected_answer
+    if (action === "apply" && corr.corrected_answer) {
+      try {
+        // Build a synthetic event to reuse applyApprovedCorrectionToFaq
+        const syntheticEventRow = {
+          id: corr.id,
+          school_id: corr.school_id,
+          consultation_id: corr.consultation_id || null,
+          details: { incident_id: null }
+        };
+
+        // Try to get the original question from the response/feedback chain
+        let originalQuestion = "";
+        if (corr.response_id) {
+          const { data: origResp } = await supabase
+            .from("assistant_responses")
+            .select("id, consultation_id")
+            .eq("id", corr.response_id)
+            .maybeSingle();
+          if (origResp?.consultation_id) {
+            const { data: origMsg } = await supabase
+              .from("consultation_messages")
+              .select("content")
+              .eq("consultation_id", origResp.consultation_id)
+              .eq("role", "user")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (origMsg?.content) originalQuestion = origMsg.content;
+          }
+        }
+
+        const correctionText = originalQuestion
+          ? `Pergunta: ${originalQuestion}\nResposta: ${corr.corrected_answer}`
+          : corr.corrected_answer;
+
+        const corrType = corr.recommended_action === "update_source" ? "faq_update"
+          : corr.recommended_action === "remove_content" ? "content_removal"
+          : "faq_update";
+
+        await applyApprovedCorrectionToFaq({
+          schoolId: corr.school_id,
+          eventRow: syntheticEventRow,
+          nextDetails: {
+            proposed_correction: correctionText,
+            proposed_correction_type: corrType,
+            proposed_correction_by: corr.submitted_by || actorName
+          },
+          actorName,
+          sourceTable: "response_corrections"
+        });
+      } catch (autoErr) {
+        console.error("Erro ao auto-aplicar correcao do painel de correcoes na FAQ:", autoErr);
+        // Don't block — the correction status was already updated
       }
     }
 
@@ -5670,6 +6923,127 @@ app.get("/api/notifications/stats/summary", async (req, res) => {
   }
 });
 
+/* ───────── NOTIFICACOES DO USUARIO (Jira-style) ───────── */
+
+// GET /api/notifications/my — Notificacoes do usuario logado (sem restricao de role)
+app.get("/api/notifications/my", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, {});
+    if (!access.ok) return access.response;
+
+    const userId = access.context.user?.id;
+    if (!userId) return res.status(401).json({ ok: false, error: "Usuario nao autenticado." });
+
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+    const topicFilter = req.query.topic ? String(req.query.topic).trim() : null;
+    const readFilter = req.query.read; // "true", "false", or omitted
+
+    let query = supabase
+      .from("notification_queue")
+      .select("id, school_id, topic, message, details, sent, read_at, created_at, dispatch_date")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (topicFilter) query = query.eq("topic", topicFilter);
+    if (readFilter === "true") query = query.not("read_at", "is", null);
+    else if (readFilter === "false") query = query.is("read_at", null);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Enriquecer com nome da escola
+    const schoolIds = [...new Set((data || []).map(n => n.school_id))];
+    let schoolMap = {};
+    if (schoolIds.length) {
+      const { data: schools } = await supabase.from("schools").select("id, name").in("id", schoolIds);
+      (schools || []).forEach(s => { schoolMap[s.id] = s.name; });
+    }
+
+    const notifications = (data || []).map(n => ({ ...n, school_name: schoolMap[n.school_id] || null }));
+    return res.json({ ok: true, notifications });
+  } catch (error) {
+    console.error("Erro GET /api/notifications/my:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar notificacoes." });
+  }
+});
+
+// GET /api/notifications/my/unread-count — Contagem de nao-lidas
+app.get("/api/notifications/my/unread-count", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, {});
+    if (!access.ok) return access.response;
+
+    const userId = access.context.user?.id;
+    if (!userId) return res.status(401).json({ ok: false, error: "Usuario nao autenticado." });
+
+    const { count, error } = await supabase
+      .from("notification_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("read_at", null);
+    if (error) throw error;
+
+    return res.json({ ok: true, unread: count || 0 });
+  } catch (error) {
+    console.error("Erro GET /api/notifications/my/unread-count:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao carregar contagem." });
+  }
+});
+
+// PUT /api/notifications/read-all — Marcar todas as notificacoes do usuario como lidas
+app.put("/api/notifications/read-all", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, {});
+    if (!access.ok) return access.response;
+
+    const userId = access.context.user?.id;
+    if (!userId) return res.status(401).json({ ok: false, error: "Usuario nao autenticado." });
+
+    const { error } = await supabase
+      .from("notification_queue")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("read_at", null);
+    if (error) throw error;
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erro PUT /api/notifications/read-all:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao marcar todas como lidas." });
+  }
+});
+
+// PUT /api/notifications/:id/read — Marcar uma notificacao como lida
+app.put("/api/notifications/:id/read", async (req, res) => {
+  try {
+    const access = await requireRequestContext(req, res, {});
+    if (!access.ok) return access.response;
+
+    const userId = access.context.user?.id;
+    if (!userId) return res.status(401).json({ ok: false, error: "Usuario nao autenticado." });
+
+    const notifId = String(req.params.id || "").trim();
+    if (!notifId) return res.status(400).json({ ok: false, error: "ID da notificacao invalido." });
+
+    const { data, error } = await supabase
+      .from("notification_queue")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", notifId)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ ok: false, error: "Notificacao nao encontrada." });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erro PUT /api/notifications/:id/read:", error);
+    return res.status(error?.statusCode || 500).json({ ok: false, error: error?.message || "Falha ao marcar como lida." });
+  }
+});
+
 /* ───────── KNOWLEDGE GAPS (Lacunas de Conhecimento) ───────── */
 
 async function loadKnowledgeGapRows(supabase, schoolIds, periodConfig) {
@@ -5855,6 +7229,381 @@ app.get("/api/knowledge-gaps/by-assistant", async (req, res) => {
   } catch (error) {
     console.error("Erro GET /api/knowledge-gaps/by-assistant:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar lacunas por assistente." });
+  }
+});
+
+// ===================== STUDENT CHAT (RAG) =====================
+
+const STUDENT_CHAT_ALLOWED_ROLES = new Set([
+  "superadmin", "network_manager", "content_curator", "coordination",
+  "teacher", "direction", "observer", "student"
+]);
+
+const STUDENT_CHAT_SYSTEM_PROMPT_TEMPLATE = `Voce e um assistente educacional de apoio pedagogico para alunos da Educacao de Jovens e Adultos (EJA).
+Seu papel e ajudar o aluno a entender o conteudo didatico da disciplina, explicando de forma clara, acessivel e acolhedora.
+
+REGRAS OBRIGATORIAS:
+- Responda EXCLUSIVAMENTE com base no conteudo fornecido abaixo (material didatico curado pela escola).
+- Se a pergunta nao puder ser respondida com o conteudo disponivel, diga: "Nao encontrei essa informacao no material da disciplina. Voce pode clicar em 'Falar com Professor' para tirar essa duvida."
+- NUNCA invente informacoes, datas, formulas ou fatos que nao estejam no material.
+- Use linguagem simples, frases curtas e exemplos praticos quando possivel.
+- Trate o aluno com respeito e incentive a aprendizagem.
+- Nao faca julgamentos sobre o nivel de conhecimento do aluno.
+- Quando citar trechos do material, indique a fonte brevemente.
+
+DISCIPLINA: {{DISCIPLINE}}
+
+MATERIAL DIDATICO DISPONIVEL:
+{{CONTEXT}}`;
+
+app.get("/api/student-chat/disciplines", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const schoolId = String(req.headers["x-school-id"] || req.query.school_id || process.env.SCHOOL_ID || "").trim();
+    if (!schoolId) return res.status(400).json({ ok: false, error: "school_id obrigatorio." });
+
+    const items = await listTeachingContentRecords(schoolId);
+    const publishedItems = items.filter((item) => item.status === "published");
+
+    const disciplineMap = new Map();
+    for (const item of publishedItems) {
+      const subject = (item.metadata?.subject || "").trim();
+      if (!subject) continue;
+      if (!disciplineMap.has(subject)) {
+        disciplineMap.set(subject, { subject, materials: [], source_document_ids: [] });
+      }
+      const entry = disciplineMap.get(subject);
+      entry.materials.push({ id: item.id, title: item.title, segment: item.metadata?.segment || "", module_name: item.metadata?.module_name || "" });
+      entry.source_document_ids.push(item.id);
+    }
+
+    const disciplines = [...disciplineMap.values()].sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR"));
+    return res.json({ ok: true, disciplines });
+  } catch (error) {
+    console.error("Erro GET /api/student-chat/disciplines:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar disciplinas." });
+  }
+});
+
+app.post("/api/student-chat/session", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const schoolId = String(req.body?.school_id || req.headers["x-school-id"] || process.env.SCHOOL_ID || "").trim();
+    const discipline = String(req.body?.discipline || "").trim();
+    const studentName = String(req.body?.student_name || "Aluno EJA").trim().slice(0, 100);
+
+    if (!schoolId) return res.status(400).json({ ok: false, error: "school_id obrigatorio." });
+    if (!discipline) return res.status(400).json({ ok: false, error: "Disciplina obrigatoria." });
+
+    const { data: consultation, error } = await supabase
+      .from("institutional_consultations")
+      .insert({
+        school_id: schoolId,
+        channel: "student_chat",
+        requester_name: studentName,
+        primary_topic: `Chat EJA - ${discipline}`,
+        status: "OPEN",
+        assigned_assistant_key: "public.assistant",
+        metadata: { discipline, student_name: studentName, chat_type: "student_eja" }
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    return res.json({ ok: true, session_id: consultation.id, discipline });
+  } catch (error) {
+    console.error("Erro POST /api/student-chat/session:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao criar sessao de chat." });
+  }
+});
+
+app.post("/api/student-chat/message", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const schoolId = String(req.body?.school_id || req.headers["x-school-id"] || process.env.SCHOOL_ID || "").trim();
+    const sessionId = String(req.body?.session_id || "").trim();
+    const userMessage = String(req.body?.message || "").trim().slice(0, 2000);
+    const discipline = String(req.body?.discipline || "").trim();
+    const sourceDocumentIds = req.body?.source_document_ids || [];
+
+    if (!schoolId) return res.status(400).json({ ok: false, error: "school_id obrigatorio." });
+    if (!sessionId) return res.status(400).json({ ok: false, error: "session_id obrigatorio." });
+    if (!userMessage) return res.status(400).json({ ok: false, error: "Mensagem vazia." });
+    if (!discipline) return res.status(400).json({ ok: false, error: "Disciplina obrigatoria." });
+
+    // 1. Save inbound message
+    const { data: inboundMsg, error: inboundError } = await supabase
+      .from("consultation_messages")
+      .insert({
+        school_id: schoolId,
+        consultation_id: sessionId,
+        direction: "INBOUND",
+        actor_type: "CITIZEN",
+        actor_name: "Aluno",
+        message_text: userMessage
+      })
+      .select("id")
+      .single();
+    if (inboundError) throw inboundError;
+
+    // 2. RAG: generate embedding and search knowledge_base
+    let contextChunks = [];
+    let evidenceRows = [];
+
+    if (HUGGINGFACE_API_KEY) {
+      try {
+        const queryEmbedding = await generateEmbedding(userMessage);
+        if (queryEmbedding) {
+          const rpcParams = {
+            query_embedding: queryEmbedding,
+            match_threshold: 0.3,
+            match_count: 5,
+            p_school_id: schoolId
+          };
+
+          let rpcResult;
+          if (Array.isArray(sourceDocumentIds) && sourceDocumentIds.length) {
+            rpcParams.p_source_document_ids = sourceDocumentIds;
+            rpcResult = await supabase.rpc("match_teaching_knowledge", rpcParams);
+          } else {
+            rpcResult = await supabase.rpc("match_knowledge", rpcParams);
+          }
+
+          if (rpcResult.error) {
+            console.error("Erro match_knowledge RPC:", rpcResult.error.message);
+          } else {
+            contextChunks = (rpcResult.data || []).map((row) => ({
+              question: row.question || "",
+              answer: row.answer || "",
+              source_title: row.source_title || "",
+              similarity: row.similarity || 0,
+              source_document_id: row.source_document_id,
+              source_version_id: row.source_version_id
+            }));
+            evidenceRows = contextChunks;
+          }
+        }
+      } catch (embError) {
+        console.error("Erro ao gerar embedding para busca RAG:", embError.message);
+      }
+    }
+
+    // 3. Build context string from retrieved chunks
+    let contextText = "";
+    if (contextChunks.length) {
+      contextText = contextChunks
+        .map((chunk, index) => `[Trecho ${index + 1} — ${chunk.source_title}]\n${chunk.answer}`)
+        .join("\n\n---\n\n");
+    } else {
+      contextText = "(Nenhum conteudo relevante encontrado no material didatico para esta pergunta.)";
+    }
+
+    // 4. Build system prompt
+    const systemPrompt = STUDENT_CHAT_SYSTEM_PROMPT_TEMPLATE
+      .replace("{{DISCIPLINE}}", discipline)
+      .replace("{{CONTEXT}}", contextText);
+
+    // 5. Load conversation history for context
+    const { data: historyRows } = await supabase
+      .from("consultation_messages")
+      .select("direction, message_text")
+      .eq("consultation_id", sessionId)
+      .order("created_at", { ascending: true })
+      .limit(20);
+
+    const chatHistory = (historyRows || [])
+      .slice(0, -1) // exclude the message we just inserted
+      .map((row) => ({
+        role: row.direction === "INBOUND" ? "user" : "assistant",
+        content: row.message_text || ""
+      }));
+
+    // 6. Call LLM via askAI
+    const aiResponse = await askAI(systemPrompt, userMessage, chatHistory);
+
+    // 7. Save outbound message
+    const { data: outboundMsg, error: outboundError } = await supabase
+      .from("consultation_messages")
+      .insert({
+        school_id: schoolId,
+        consultation_id: sessionId,
+        direction: "OUTBOUND",
+        actor_type: "ASSISTANT",
+        actor_name: "Assistente Pedagogico EJA",
+        message_text: aiResponse
+      })
+      .select("id")
+      .single();
+    if (outboundError) throw outboundError;
+
+    // 8. Save assistant_response record
+    const topSource = evidenceRows[0] || null;
+    const { data: responseRecord, error: responseError } = await supabase
+      .from("assistant_responses")
+      .insert({
+        school_id: schoolId,
+        consultation_id: sessionId,
+        assistant_key: "public.assistant",
+        response_text: aiResponse,
+        source_version_id: topSource?.source_version_id || null,
+        confidence_score: topSource ? topSource.similarity : null,
+        response_mode: "AUTOMATIC",
+        consulted_sources: evidenceRows.map((e) => ({ title: e.source_title, similarity: e.similarity })),
+        supporting_source_title: topSource?.source_title || null,
+        supporting_source_excerpt: topSource?.answer?.slice(0, 300) || null,
+        origin_message_id: inboundMsg.id,
+        response_message_id: outboundMsg.id,
+        fallback_to_human: contextChunks.length === 0
+      })
+      .select("id")
+      .single();
+    if (responseError) throw responseError;
+
+    // 9. Save evidence rows
+    if (evidenceRows.length && responseRecord?.id) {
+      const evidenceInserts = evidenceRows.map((e, index) => ({
+        school_id: schoolId,
+        consultation_id: sessionId,
+        response_id: responseRecord.id,
+        source_document_id: e.source_document_id || null,
+        source_version_id: e.source_version_id || null,
+        source_title: e.source_title || null,
+        source_excerpt: (e.answer || "").slice(0, 500),
+        relevance_score: e.similarity || null,
+        evidence_type: "retrieval",
+        retrieval_method: "vector_cosine_bge_m3",
+        used_as_primary: index === 0
+      }));
+
+      const { error: evidenceError } = await supabase
+        .from("interaction_source_evidence")
+        .insert(evidenceInserts);
+      if (evidenceError) console.error("Erro ao salvar evidencias:", evidenceError.message);
+    }
+
+    return res.json({
+      ok: true,
+      response: aiResponse,
+      response_id: responseRecord?.id || null,
+      sources: evidenceRows.map((e) => ({ title: e.source_title, similarity: Math.round((e.similarity || 0) * 100) })),
+      has_context: contextChunks.length > 0
+    });
+  } catch (error) {
+    console.error("Erro POST /api/student-chat/message:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao processar mensagem." });
+  }
+});
+
+app.get("/api/student-chat/history/:sessionId", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const sessionId = String(req.params.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ ok: false, error: "session_id obrigatorio." });
+
+    const { data: messages, error } = await supabase
+      .from("consultation_messages")
+      .select("id, direction, actor_type, actor_name, message_text, created_at")
+      .eq("consultation_id", sessionId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+
+    return res.json({
+      ok: true,
+      messages: (messages || []).map((m) => ({
+        id: m.id,
+        role: m.direction === "INBOUND" ? "user" : "assistant",
+        text: m.message_text || "",
+        actor: m.actor_name || "",
+        created_at: m.created_at
+      }))
+    });
+  } catch (error) {
+    console.error("Erro GET /api/student-chat/history:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar historico." });
+  }
+});
+
+app.post("/api/student-chat/feedback", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const schoolId = String(req.body?.school_id || req.headers["x-school-id"] || process.env.SCHOOL_ID || "").trim();
+    const sessionId = String(req.body?.session_id || "").trim();
+    const responseId = String(req.body?.response_id || "").trim();
+    const feedbackType = String(req.body?.feedback_type || "").trim();
+    const comment = String(req.body?.comment || "").trim().slice(0, 500);
+
+    if (!schoolId || !sessionId || !responseId) return res.status(400).json({ ok: false, error: "Dados incompletos." });
+    if (!["helpful", "not_helpful", "incorrect"].includes(feedbackType)) {
+      return res.status(400).json({ ok: false, error: "Tipo de feedback invalido." });
+    }
+
+    const { error } = await supabase
+      .from("interaction_feedback")
+      .upsert({
+        school_id: schoolId,
+        consultation_id: sessionId,
+        response_id: responseId,
+        feedback_type: feedbackType,
+        comment: comment || null,
+        created_by: "student"
+      }, { onConflict: "response_id,feedback_type,created_by" });
+    if (error) throw error;
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erro POST /api/student-chat/feedback:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao registrar feedback." });
+  }
+});
+
+app.post("/api/student-chat/escalate", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+
+  try {
+    const schoolId = String(req.body?.school_id || req.headers["x-school-id"] || process.env.SCHOOL_ID || "").trim();
+    const sessionId = String(req.body?.session_id || "").trim();
+    const responseId = String(req.body?.response_id || "").trim();
+    const discipline = String(req.body?.discipline || "").trim();
+    const studentMessage = String(req.body?.student_message || "").trim().slice(0, 1000);
+
+    if (!schoolId || !sessionId) return res.status(400).json({ ok: false, error: "Dados incompletos." });
+
+    // Create incident report for professor review
+    const { error } = await supabase
+      .from("incident_reports")
+      .insert({
+        school_id: schoolId,
+        consultation_id: sessionId,
+        response_id: responseId || null,
+        incident_type: "STUDENT_ESCALATION",
+        severity: "LOW",
+        status: "OPEN",
+        topic: `Aluno solicitou ajuda do professor - ${discipline}`,
+        details: {
+          discipline,
+          student_message: studentMessage,
+          escalation_reason: "Aluno clicou em 'Falar com Professor'",
+          chat_type: "student_eja"
+        },
+        opened_by: "student"
+      });
+    if (error) throw error;
+
+    // Update consultation status
+    await supabase
+      .from("institutional_consultations")
+      .update({ status: "WAITING_HUMAN" })
+      .eq("id", sessionId);
+
+    return res.json({ ok: true, message: "Solicitacao enviada ao professor. Ele sera notificado." });
+  } catch (error) {
+    console.error("Erro POST /api/student-chat/escalate:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao escalar para professor." });
   }
 });
 

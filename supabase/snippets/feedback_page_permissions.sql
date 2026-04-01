@@ -13,7 +13,7 @@ set label = excluded.label,
 
 -- 2. Inserir permissoes de "feedback" para cada escola existente
 -- Perfis com acesso: superadmin, network_manager, content_curator, auditor, direction, public_operator
--- Perfis SEM acesso: secretariat, coordination, treasury, observer
+-- Perfis SEM acesso: secretariat, coordination, observer
 
 insert into public.role_page_permissions (school_id, role, page_key, allowed)
 select s.id, r.role, 'feedback', true
@@ -67,13 +67,6 @@ begin
 
   r := 'coordination';
   foreach p in array array['dashboard','chat-manager','reports','incidents','knowledge','notices'] loop
-    insert into public.role_page_permissions (school_id, role, page_key, allowed)
-    values (p_school_id, r, p, true)
-    on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
-  end loop;
-
-  r := 'treasury';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge','audit','notices'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();

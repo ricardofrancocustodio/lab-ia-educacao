@@ -12,6 +12,7 @@ const fallbackPageLabels = {
     users: 'Usuários',
     preferences: 'Preferências',
     knowledge: 'Base de Conhecimento',
+    'teaching-content': 'Curadoria Pedagógica',
     'official-content': 'Conteúdo Oficial'
 };
 const SANDBOX_DEFAULT_PASSWORD = '123456789';
@@ -22,7 +23,7 @@ const roleLabelMap = {
     public_operator: 'Atendimento Público',
     secretariat: 'Secretaria',
     coordination: 'Coordenação',
-    treasury: 'Tesouraria',
+    teacher: 'Professor',
     direction: 'Direção',
     auditor: 'Auditoria e Compliance',
     observer: 'Observador Externo'
@@ -34,7 +35,7 @@ const roleVisualMap = {
     public_operator: { label: 'Atendimento Público', class: 'role-service', icon: 'fa-comments' },
     secretariat: { label: 'Secretaria', class: 'role-secretariat', icon: 'fa-folder-open' },
     coordination: { label: 'Coordenação', class: 'role-coordination', icon: 'fa-project-diagram' },
-    treasury: { label: 'Tesouraria', class: 'role-treasury', icon: 'fa-wallet' },
+    teacher: { label: 'Professor', class: 'role-teacher', icon: 'fa-chalkboard-teacher' },
     direction: { label: 'Direção', class: 'role-direction', icon: 'fa-user-tie' },
     auditor: { label: 'Auditoria e Compliance', class: 'role-auditor', icon: 'fa-clipboard-check' },
     observer: { label: 'Observador Externo', class: 'role-observer', icon: 'fa-eye' }
@@ -78,8 +79,8 @@ const BULK_ROLE_INPUT_MAP = {
     secretaria: 'secretariat',
     coordination: 'coordination',
     coordenacao: 'coordination',
-    treasury: 'treasury',
-    tesouraria: 'treasury',
+    teacher: 'teacher',
+    professor: 'teacher',
     direction: 'direction',
     direcao: 'direction',
     auditor: 'auditor',
@@ -274,8 +275,8 @@ function abrirModalImportacaoUsuarios() {
 function baixarTemplateImportacaoUsuarios() {
     const lines = [
         BULK_USER_TEMPLATE_HEADERS.join(','),
-        'Maria da Secretaria,secretaria.escola-a@lab-ia.gov.br,(61) 99999-1111,Secretaria',
-        'Joao da Coordenacao,coordenacao.escola-a@lab-ia.gov.br,(61) 99999-2222,Coordenacao'
+        'Maria da Secretaria,secretaria.cef01@lab-ia.gov.br,(61) 99999-1111,Secretaria',
+        'Joao da Coordenacao,coordenacao.cef01@lab-ia.gov.br,(61) 99999-2222,Coordenacao'
     ];
     const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -491,7 +492,6 @@ async function initPage() {
 
     const schoolId = sessionStorage.getItem('SCHOOL_ID');
     await loadCurrentInstitutionContext(schoolId);
-    pruneDeprecatedRoleOptions();
     syncUserRoleOptions();
     carregarUsuarios(schoolId);
     initRolePermissionsTab();
@@ -622,19 +622,9 @@ async function fetchManagedUsersFromServer(schoolId) {
 
 function getAssignableRolesForCurrentInstitution() {
     if (currentInstitutionContext.type === 'school_unit') {
-        return ['content_curator', 'public_operator', 'coordination', 'direction', 'auditor', 'observer'];
+        return ['content_curator', 'public_operator', 'secretariat', 'coordination', 'teacher', 'direction', 'auditor', 'observer'];
     }
     return getManageableRoles();
-}
-
-function pruneDeprecatedRoleOptions() {
-    const select = document.getElementById('userRole');
-    if (!select) return;
-    Array.from(select.querySelectorAll('option')).forEach(option => {
-        if (String(option.value || '').toLowerCase() === 'treasury') {
-            option.remove();
-        }
-    });
 }
 function syncUserRoleOptions() {
     const select = document.getElementById('userRole');
@@ -649,7 +639,6 @@ function syncUserRoleOptions() {
     if (allowedRoles.includes(currentValue)) {
         select.value = currentValue;
     }
-    pruneDeprecatedRoleOptions();
 }
 
 function buildAffiliationLabel(user = {}) {
@@ -969,6 +958,7 @@ function buscarUsuarios(termo = '') {
         const nome = String(u?.name || '').toLowerCase();
         const email = String(u?.email || '').toLowerCase();
         const role = String(u?.role || '').toLowerCase();
+        const displayRole = String(u?.display_role || '').toLowerCase();
         const status = String(u?.status || '').toLowerCase();
         const memberScope = String(u?.member_scope || '').toLowerCase();
         const schoolName = String(u?.school_name || '').toLowerCase();
@@ -976,6 +966,7 @@ function buscarUsuarios(termo = '') {
         return nome.includes(q)
             || email.includes(q)
             || role.includes(q)
+            || displayRole.includes(q)
             || status.includes(q)
             || memberScope.includes(q)
             || schoolName.includes(q)
@@ -997,7 +988,8 @@ function renderizarTabela(usuarios) {
     }
 
     const rowsHtml = usuarios.map(user => {
-        const config = getUserRoleVisual(user.role);
+        const visibleRole = String(user.display_role || user.role || '').toLowerCase();
+        const config = getUserRoleVisual(visibleRole);
         const isMe = user.user_id === myId;
         const displayName = userNormalizeDisplayName(user.name, user.email);
         const displayEmail = userEscapeHtml(user.email || '-');
@@ -1057,7 +1049,6 @@ function renderizarTabela(usuarios) {
 
 // Funções do Modal
 function abrirModalUsuario() {
-    pruneDeprecatedRoleOptions();
     syncUserRoleOptions();
     editingUserContext = null;
     document.getElementById('userId').value = '';
@@ -1080,7 +1071,6 @@ async function editarUsuario(id, sourceTable = '') {
     }
 
     editingUserContext = user;
-    pruneDeprecatedRoleOptions();
     syncUserRoleOptions();
 
     document.getElementById('userId').value = user.id;
@@ -1166,7 +1156,7 @@ async function getAppPages(schoolId) {
 }
 
 function getManageableRoles() {
-    return ['network_manager', 'content_curator', 'public_operator', 'secretariat', 'coordination', 'direction', 'auditor', 'observer'];
+    return ['network_manager', 'content_curator', 'public_operator', 'secretariat', 'coordination', 'teacher', 'direction', 'auditor', 'observer'];
 }
 
 function populateRolePermissionsRoleSelect() {
@@ -1932,7 +1922,6 @@ window.carregarSegmentosParaCheckboxes = carregarSegmentosParaCheckboxes;
 window.buscarUsuarios = buscarUsuarios;
 
 document.addEventListener('DOMContentLoaded', () => {
-    pruneDeprecatedRoleOptions();
     const userPhoneInput = document.getElementById('userPhone');
     if (userPhoneInput && userPhoneInput.dataset.maskBound !== '1') {
         userPhoneInput.dataset.maskBound = '1';

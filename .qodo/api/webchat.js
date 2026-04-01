@@ -18,7 +18,6 @@ const CHAT_MANAGER_ROLE_CAPABILITIES = {
   auditor: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: false },
   content_curator: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: true, resolveConversation: false },
   direction: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: false, resolveConversation: true },
-  treasury: { detailedEvidence: true, governanceDetails: true, formalEvents: true, export: true, feedbackActions: false, resolveConversation: true },
   coordination: { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: true },
   secretariat: { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: true },
   public_operator: { detailedEvidence: false, governanceDetails: false, formalEvents: false, export: false, feedbackActions: false, resolveConversation: true }

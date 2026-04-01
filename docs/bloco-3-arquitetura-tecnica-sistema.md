@@ -328,7 +328,6 @@ Entre os papeis identificados no sistema estao:
 - `public_operator`
 - `secretariat`
 - `coordination`
-- `treasury`
 - `direction`
 - `auditor`
 - `observer`

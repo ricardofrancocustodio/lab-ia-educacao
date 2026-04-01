@@ -575,8 +575,9 @@ async function registrarFeedbackAuditoria(tipo) {
 }
 
 async function registrarIncidenteAuditoria() {
-    if (!(chatManagerCapabilities || getChatManagerCapabilities()).feedbackActions) {
-        Swal.fire('Acesso restrito', 'Seu perfil nao pode abrir incidentes a partir desta tela.', 'info');
+    const caps = chatManagerCapabilities || getChatManagerCapabilities();
+    if (!caps.feedbackActions || !caps.governanceDetails) {
+        Swal.fire('Acesso restrito', 'A abertura manual de incidentes esta disponivel apenas para perfis de governanca (gestor de rede, auditor, curador).', 'info');
         return;
     }
     const audit = getSelectedAudit(conversaAtiva);
@@ -585,20 +586,61 @@ async function registrarIncidenteAuditoria() {
         return;
     }
 
+    const questionText = audit.original_question || 'Pergunta nao registrada';
+    const responseText = audit.response_text || 'Resposta nao registrada';
+    const truncate = (text, max) => text.length > max ? text.substring(0, max) + '...' : text;
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const incidentHtml =
+      '<div style="text-align:left;font-size:0.9rem">' +
+        '<p class="text-muted mb-2" style="font-size:0.82rem">Reporte problemas na resposta da IA que precisam de investigacao formal.</p>' +
+        '<div style="background:#eef2f7;border-radius:6px;padding:10px 12px;margin-bottom:10px">' +
+          '<div style="font-weight:600;font-size:0.82rem;color:#495057;margin-bottom:4px"><i class="fas fa-user mr-1"></i> Pergunta do solicitante</div>' +
+          '<div style="font-size:0.88rem;color:#333;max-height:80px;overflow-y:auto;white-space:pre-wrap;word-break:break-word">' + esc(truncate(questionText, 500)) + '</div>' +
+        '</div>' +
+        '<div style="background:#fff8e1;border-radius:6px;padding:10px 12px;margin-bottom:14px;border-left:3px solid #ffc107">' +
+          '<div style="font-weight:600;font-size:0.82rem;color:#495057;margin-bottom:4px"><i class="fas fa-robot mr-1"></i> Resposta da IA</div>' +
+          '<div style="font-size:0.88rem;color:#333;max-height:120px;overflow-y:auto;white-space:pre-wrap;word-break:break-word">' + esc(truncate(responseText, 800)) + '</div>' +
+        '</div>' +
+        '<label for="incident-type" class="font-weight-bold d-block mb-1">Tipo do incidente</label>' +
+        '<select id="incident-type" class="swal2-input" style="width:100%;padding:8px;border:1px solid #d9d9d9;border-radius:4px;margin-bottom:12px;display:block">' +
+          '<option value="governance_review">Revisao de governanca</option>' +
+          '<option value="inappropriate_tone">Tom inadequado ou ofensivo</option>' +
+          '<option value="data_exposure">Exposicao indevida de dados</option>' +
+          '<option value="hallucination">Alucinacao (informacao inventada)</option>' +
+          '<option value="outdated_content">Conteudo desatualizado</option>' +
+          '<option value="wrong_source">Fonte errada utilizada</option>' +
+          '<option value="other">Outro</option>' +
+        '</select>' +
+        '<label for="incident-severity" class="font-weight-bold d-block mb-1">Severidade</label>' +
+        '<select id="incident-severity" class="swal2-input" style="width:100%;padding:8px;border:1px solid #d9d9d9;border-radius:4px;margin-bottom:12px;display:block">' +
+          '<option value="LOW">Baixa — sem impacto imediato</option>' +
+          '<option value="MEDIUM" selected>Media — requer atencao em breve</option>' +
+          '<option value="HIGH">Alta — impacto significativo, tratar com prioridade</option>' +
+          '<option value="CRITICAL">Critica — risco grave, acao imediata necessaria</option>' +
+        '</select>' +
+        '<label for="incident-description" class="font-weight-bold d-block mb-1">O que esta errado nesta resposta?</label>' +
+        '<textarea id="incident-description" class="swal2-textarea" style="width:100%;min-height:80px;margin:0" placeholder="Ex.: A IA nao consolidou as datas de recesso e a resposta ficou atravessada."></textarea>' +
+      '</div>';
+
     const result = await Swal.fire({
-        title: 'Registrar incidente',
-        html: '<input id="incident-type" class="swal2-input" placeholder="Tipo do incidente" value="governance_review">' +
-            '<input id="incident-severity" class="swal2-input" placeholder="Severidade: LOW, MEDIUM, HIGH, CRITICAL" value="MEDIUM">' +
-            '<textarea id="incident-description" class="swal2-textarea" placeholder="Descricao do incidente"></textarea>',
+        title: 'Registrar incidente de governanca',
+        html: incidentHtml,
+        width: 620,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: 'Registrar',
+        confirmButtonText: '<i class="fas fa-flag mr-1"></i> Registrar incidente',
         cancelButtonText: 'Cancelar',
-        preConfirm: () => ({
-            incident_type: document.getElementById('incident-type').value,
-            severity: document.getElementById('incident-severity').value,
-            description: document.getElementById('incident-description').value
-        })
+        confirmButtonColor: '#dc3545',
+        preConfirm: () => {
+            const desc = (document.getElementById('incident-description').value || '').trim();
+            if (!desc) { Swal.showValidationMessage('Descreva o problema encontrado para registrar o incidente.'); return false; }
+            return {
+                incident_type: document.getElementById('incident-type').value,
+                severity: document.getElementById('incident-severity').value,
+                description: desc
+            };
+        }
     });
 
     if (!result.isConfirmed) return;

@@ -24,9 +24,9 @@ set role = case lower(trim(role))
   when 'admin' then 'network_manager'
   when 'secretary' then 'secretariat'
   when 'coordinator' then 'coordination'
-  when 'finance' then 'treasury'
+  when 'finance' then 'secretariat'
   when 'it' then 'content_curator'
-  when 'teacher' then 'observer'
+  when 'teacher' then 'teacher'
   when 'support' then 'public_operator'
   else role
 end;
@@ -45,7 +45,7 @@ alter table public.school_members
     'public_operator',
     'secretariat',
     'coordination',
-    'treasury',
+    'teacher',
     'direction',
     'auditor',
     'observer'
@@ -97,8 +97,8 @@ begin
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
-  r := 'treasury';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge','audit'] loop
+  r := 'teacher';
+  foreach p in array array['notices','notifications'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();

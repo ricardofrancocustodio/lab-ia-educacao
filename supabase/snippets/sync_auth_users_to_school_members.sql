@@ -12,7 +12,7 @@ as $$
 declare
   v_rows integer := 0;
 begin
-  if p_default_role not in ('network_manager', 'content_curator', 'public_operator', 'secretariat', 'coordination', 'treasury', 'direction', 'auditor', 'observer') then
+  if p_default_role not in ('network_manager', 'content_curator', 'public_operator', 'secretariat', 'coordination', 'teacher', 'direction', 'auditor', 'observer') then
     raise exception 'p_default_role invalido: %', p_default_role;
   end if;
 

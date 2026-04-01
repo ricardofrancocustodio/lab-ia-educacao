@@ -456,7 +456,7 @@ Objetivo:
 - reduzir risco de alteracao indevida de evidencia
 ## Bloco 2 - Isolamento Entre Secretarias e Escolas
 
-Para validar isolamento real entre Escola A e Escola B, o sistema precisa suportar multi-instituicao de forma explicita.
+Para validar isolamento real entre CEF 01 (DF) e CEPI Lyceu (GO), o sistema precisa suportar multi-instituicao de forma explicita.
 
 Diretriz tecnica:
 

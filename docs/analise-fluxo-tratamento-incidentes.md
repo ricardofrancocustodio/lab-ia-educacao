@@ -541,4 +541,46 @@ As estatísticas atuais (`GET /api/incidents/stats/summary`) são básicas:
 | `.qodo/api/webchat.js` | 617-710 | POST incident (criação manual) |
 | `scripts/chat-manager-network-scope.js` | 576-660 | registrarIncidenteAuditoria() (UI) |
 | `public/dist/js/incidents/incidents-panel.js` | todo | Frontend da página de incidentes |
-| `schema.sql` | 165-167 | Colunas corrected_from/at/by (nunca escritas) |
+| `schema.sql` | 165-167 | Colunas corrected_from/at/by (nunca escritas) |      
+
+---
+
+## Roadmap — Funcionalidades de Escala (não implementadas)
+
+> **Contexto (29/03/2026):** As funcionalidades abaixo são necessárias para operação em redes grandes (ex: Secretaria de Educação de MG com ~12.000 escolas), mas **não são bloqueantes para o piloto**. O fluxo ponta-a-ponta (auditor atribui → escola corrige → diretor aprova → FAQ atualizada) funciona para demonstrar o conceito em escala piloto.
+
+### R1 — Seleção e atribuição em lote
+- **Problema:** Auditor precisa clicar 1 a 1 para atribuir centenas de incidentes iguais
+- **Solução:** Checkbox multi-select no painel de incidentes + botão "Atribuir selecionados" com destino escolhido
+- **Prioridade:** Alta (produção)
+- **Dependência:** Painel de incidentes (incidents-panel.js)
+
+### R2 — Agrupamento de incidentes por similaridade
+- **Problema:** A IA comete o mesmo erro em 300 escolas → aparecem 300 linhas separadas sem relação entre si
+- **Solução:** Agrupar incidentes por fingerprint (hash de: topic + incident_type + trecho da descrição ou response_id) e exibir como cluster com contador ("Mesmo erro em 312 escolas")
+- **Prioridade:** Alta (produção)
+- **Dependência:** R1, campo de fingerprint na tabela incident_reports
+
+### R3 — Correção centralizada com resolução em massa
+- **Problema:** Corrigir escola por escola é inviável e fragmenta a base de conhecimento
+- **Solução:** Ao corrigir um cluster, a correção é aplicada na FAQ/base de conhecimento global e todos os incidentes do cluster são marcados como RESOLVED com referência à correção aplicada
+- **Prioridade:** Alta (produção)
+- **Dependência:** R2, fluxo de response_corrections
+
+### R4 — Relatórios automáticos/agendados
+- **Problema:** Auditor externo precisa receber relatórios periódicos sem acessar o painel
+- **Solução:** Job agendado (cron/scheduler) que gera relatório semanal/mensal de incidentes e envia por e-mail ou disponibiliza em PDF
+- **Prioridade:** Média
+- **Dependência:** Template de relatório, integração de e-mail
+
+### R5 — Exportação de incidentes (CSV/XLS)
+- **Problema:** Painel de auditoria exporta CSV/XLS/PDF, mas o de incidentes não
+- **Solução:** Replicar lógica de exportação de formal-audit.js para incidents-panel.js
+- **Prioridade:** Média
+- **Dependência:** incidents-panel.js
+
+### R6 — Filtros avançados no painel de incidentes
+- **Problema:** Só filtra por status e severidade; falta escola, tipo, data, tópico
+- **Solução:** Adicionar filtros de escola (select), tipo de incidente, período (date range), tópico
+- **Prioridade:** Média
+- **Dependência:** incidents-panel.js, endpoint GET /api/incidents

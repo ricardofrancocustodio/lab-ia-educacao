@@ -1,6 +1,19 @@
 ﻿// session.js
 let _initSessionPromise = null;
 
+const ROLE_LANDING_PAGE = {
+  superadmin: '/dashboard',
+  network_manager: '/dashboard',
+  content_curator: '/dashboard',
+  public_operator: '/atendimento',
+  secretariat: '/comunicados',
+  coordination: '/dashboard',
+  teacher: '/curadoria-conteudo',
+  direction: '/dashboard',
+  auditor: '/dashboard',
+  observer: '/comunicados'
+};
+
 async function initSession() {
   // Prevent concurrent/duplicate calls from racing each other
   if (_initSessionPromise) return _initSessionPromise;
@@ -156,7 +169,14 @@ async function signInWithEmail(email, password) {
   return data;
 }
 
+function getPostLoginRedirectPath(role) {
+  const normalizedRole = String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return ROLE_LANDING_PAGE[normalizedRole] || '/comunicados';
+}
+
 window.confirmLogout = confirmLogout;
 window.signInWithEmail = signInWithEmail;
+window.initSession = initSession;
+window.getPostLoginRedirectPath = getPostLoginRedirectPath;
 
 

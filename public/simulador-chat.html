@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulador de Conversa com IA</title>
+  <title>Hub de Atendimento com IA</title>
     <style>
     :root {
       --gov-blue-10: #071d41;
@@ -599,6 +599,140 @@
         padding-right: 16px;
       }
     }
+
+    /* ── Hub / Agent Selector ── */
+    .hub-section {
+      margin-top: 18px;
+      display: none;
+    }
+    .hub-section.is-visible {
+      display: block;
+    }
+    .hub-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .hub-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border: 2px solid var(--gov-border);
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .hub-card:hover {
+      border-color: var(--gov-blue-40);
+      box-shadow: 0 6px 16px rgba(19, 81, 180, 0.10);
+    }
+    .hub-card.is-active {
+      border-color: var(--gov-blue-30);
+      background: #f0f5ff;
+      box-shadow: 0 8px 22px rgba(19, 81, 180, 0.16);
+    }
+    .hub-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .hub-label {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--gov-blue-10);
+    }
+    .hub-desc {
+      font-size: 0.78rem;
+      color: var(--gov-muted);
+      line-height: 1.35;
+    }
+    .hub-back-btn {
+      display: none;
+      margin-top: 12px;
+      padding: 8px 14px;
+      border: 1px solid var(--gov-border-strong);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--gov-muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .hub-back-btn:hover {
+      border-color: var(--gov-blue-30);
+      color: var(--gov-blue-30);
+    }
+
+    /* ── Feedback buttons on assistant messages ── */
+    .msg-feedback {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .msg-feedback-btn {
+      border: 1px solid var(--gov-border);
+      background: #fff;
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 0.76rem;
+      color: var(--gov-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .msg-feedback-btn:hover {
+      border-color: var(--gov-blue-40);
+      color: var(--gov-blue-30);
+    }
+    .msg-feedback-btn.is-active {
+      background: var(--gov-blue-50);
+      border-color: var(--gov-blue-30);
+      color: var(--gov-blue-30);
+    }
+
+    /* ── Source pills on assistant messages ── */
+    .msg-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .msg-source-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 3px 10px;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      font-size: 0.74rem;
+      color: #166534;
+      font-weight: 600;
+    }
+
+    /* ── Escalation bar ── */
+    .escalation-bar {
+      display: none;
+      gap: 8px;
+      padding: 10px 22px;
+      border-top: 1px solid var(--gov-border);
+      background: #fffef5;
+    }
+    .escalation-bar.is-visible {
+      display: flex;
+    }
+    .escalation-bar .btn {
+      font-size: 0.84rem;
+      padding: 8px 14px;
+    }
   </style>
 </head>
 
@@ -607,8 +741,8 @@
     <div class="container">
       <section class="headline-block">
         <div class="kicker">Simulador Institucional</div>
-        <h1>Simulador de Conversa com IA</h1>
-        <p>Ambiente de homologacao para validar respostas da IA com base no contexto ativo da escola e da respectiva rede.</p>
+        <h1>Hub de Atendimento com IA</h1>
+        <p>Escolha a escola e o assistente desejado. O aluno pode fazer perguntas sobre a escola ou sobre o conteudo das disciplinas.</p>
       </section>
 
       <section class="meta-row">
@@ -632,31 +766,42 @@
             </div>
             <div>
               <label for="school-name">Escola em teste</label>
-              <input id="school-name" type="text" value="Selecione Escola A ou Escola B" readonly />
+              <input id="school-name" type="text" value="Selecione CEF 01 (DF) ou CEPI Lyceu (GO)" readonly />
             </div>
             <div>
               <label for="school-id">School ID da escola</label>
               <input id="school-id" type="text" placeholder="Escolha a escola pelos botoes abaixo" readonly />
               <div class="preset-row">
-                <button class="preset-btn" id="preset-school-a" type="button">Usar Escola A</button>
-                <button class="preset-btn" id="preset-school-b" type="button">Usar Escola B</button>
+                <button class="preset-btn" id="preset-school-a" type="button">CEF 01 de Brasilia (DF)</button>
+                <button class="preset-btn" id="preset-school-b" type="button">CEPI Lyceu de Goiania (GO)</button>
               </div>
-              <div id="school-required-note" class="subtle is-warning">Escolha a Escola A ou Escola B para habilitar o chat.</div>
+              <div id="school-required-note" class="subtle is-warning">Escolha o CEF 01 (DF) ou CEPI Lyceu (GO) para habilitar o chat.</div>
             </div>
             <div>
               <label for="entrypoint">Entrypoint</label>
-              <input id="entrypoint" type="text" value="simulador_piloto" />
-            </div>
-            <div>
-              <label for="agent-key">Assistente preferencial</label>
-              <select id="agent-key">
+              <input id="entrypoint" type="text" value="simulador_piloto" style="display:none;" />
+              <select id="agent-key" style="display:none;">
                 <option value="">Auto-roteamento</option>
                 <option value="public.assistant">Assistente Publico</option>
-                <option value="administration.secretariat">Assistente da Secretaria</option>
-                <option value="administration.treasury">Assistente da Tesouraria</option>
-                <option value="administration.direction">Assistente da Direcao</option>
               </select>
             </div>
+          </div>
+
+          <!-- Agent Hub -->
+          <div class="hub-section" id="agent-hub">
+            <div class="panel-kicker">Escolha o Assistente</div>
+            <p class="subtle">Com qual agente voce quer conversar?</p>
+            <div class="hub-grid" id="hub-grid">
+              <div class="hub-card" data-hub-mode="webchat" data-hub-agent="">
+                <div class="hub-icon" style="background:var(--gov-blue-30);">&#x1F3EB;</div>
+                <div>
+                  <div class="hub-label">Assistente Escolar</div>
+                  <div class="hub-desc">Matricula, documentos, calendario, secretaria e informacoes gerais da escola.</div>
+                </div>
+              </div>
+              <!-- Discipline cards injected by JS -->
+            </div>
+            <button class="hub-back-btn" id="hub-back-btn" type="button">&#x2190; Trocar assistente</button>
           </div>
 
           <div class="button-row">
@@ -703,6 +848,11 @@
 
           <div id="messages" class="messages"></div>
 
+          <div class="escalation-bar" id="escalation-bar">
+            <button id="btn-escalate" class="btn btn-secondary" type="button" style="border-color:#eab308;color:#92400e;">&#9995; Falar com Professor</button>
+            <button id="btn-new-discipline-session" class="btn btn-secondary" type="button">&#x21BB; Nova conversa</button>
+          </div>
+
           <div class="composer">
             <form id="chat-form">
               <textarea id="message-input" placeholder="Escreva uma pergunta de teste, como: Quais documentos preciso para matricula?" required></textarea>
@@ -728,7 +878,16 @@
       loadingSession: false,
       publicCalendarSchools: [],
       publicCalendarBySchoolId: new Map(),
-      activePresetSlug: ''
+      activePresetSlug: '',
+      // Hub / dual-mode state
+      chatMode: '',           // 'webchat' | 'student-chat'
+      disciplines: [],
+      selectedDiscipline: null,
+      studentSessionId: null,
+      sourceDocumentIds: [],
+      studentMessages: [],
+      lastResponseId: null,
+      studentSending: false
     };
 
     const elements = {
@@ -754,7 +913,14 @@
       resolvedSchool: document.getElementById('resolved-school'),
       resolvedSchoolId: document.getElementById('resolved-school-id'),
       schoolRequiredNote: document.getElementById('school-required-note'),
-      chatContextIndicator: document.getElementById('chat-context-indicator')
+      chatContextIndicator: document.getElementById('chat-context-indicator'),
+      // Hub elements
+      agentHub: document.getElementById('agent-hub'),
+      hubGrid: document.getElementById('hub-grid'),
+      hubBackBtn: document.getElementById('hub-back-btn'),
+      escalationBar: document.getElementById('escalation-bar'),
+      btnEscalate: document.getElementById('btn-escalate'),
+      btnNewDisciplineSession: document.getElementById('btn-new-discipline-session')
     };
 
     function escapeHtml(value) {
@@ -844,8 +1010,8 @@
       const activeSlug = getCurrentSchoolRecord()?.school_slug || '';
       state.activePresetSlug = activeSlug;
       [
-        [elements.presetSchoolA, 'escola-a-sandbox'],
-        [elements.presetSchoolB, 'escola-b-sandbox']
+        [elements.presetSchoolA, 'cef01-brasilia'],
+        [elements.presetSchoolB, 'cepi-lyceu-goiania']
       ].forEach(([button, slug]) => {
         const isActive = slug === activeSlug;
         button.classList.toggle('is-active', isActive);
@@ -860,7 +1026,7 @@
       elements.chatTitle.textContent = hasExplicitSchool ? 'Conversa de teste | ' + context.schoolName : 'Conversa de teste';
       elements.chatSubtitle.textContent = hasExplicitSchool
         ? 'Contexto preparado para ' + context.schoolName + ' | ' + context.networkName + '. Ao trocar de escola, o simulador encerra a conversa atual e inicia outra limpa.'
-        : 'Selecione Escola A ou Escola B para iniciar o teste com o contexto institucional correto.';
+        : 'Selecione CEF 01 (DF) ou CEPI Lyceu (GO) para iniciar o teste com o contexto institucional correto.';
     }
 
     function updateInteractionAvailability() {
@@ -869,13 +1035,16 @@
       elements.send.disabled = !hasSchool || state.loadingSession;
       elements.input.disabled = !hasSchool;
       elements.input.placeholder = hasSchool
-        ? 'Escreva uma pergunta de teste, como: Quais documentos preciso para matricula?'
-        : 'Escolha a Escola A ou Escola B para habilitar o chat.';
+        ? 'Escreva sua pergunta aqui...'
+        : 'Escolha o CEF 01 (DF) ou CEPI Lyceu (GO) para habilitar o chat.';
       elements.schoolRequiredNote.style.display = hasSchool ? 'none' : 'block';
       const context = getResolvedContext();
       elements.chatContextIndicator.textContent = hasSchool
         ? context.schoolName + ' | ' + context.networkName
         : 'Escolha a escola para habilitar';
+
+      // Show/hide hub
+      if (hasSchool) { showHub(); } else { hideHub(); }
     }
 
     function renderResolvedContext() {
@@ -890,7 +1059,7 @@
 
     function syncSchoolNameFromContext() {
       const resolved = getCurrentSchoolRecord();
-      elements.schoolName.value = resolved?.school_name || 'Selecione Escola A ou Escola B';
+      elements.schoolName.value = resolved?.school_name || 'Selecione CEF 01 (DF) ou CEPI Lyceu (GO)';
       renderResolvedContext();
     }
 
@@ -926,7 +1095,7 @@
       const schoolChanged = Boolean(targetSchoolId) && targetSchoolId !== currentSchoolId;
 
       elements.schoolId.value = targetSchoolId;
-      elements.schoolName.value = target.school_name || 'Selecione Escola A ou Escola B';
+      elements.schoolName.value = target.school_name || 'Selecione CEF 01 (DF) ou CEPI Lyceu (GO)';
       renderResolvedContext();
       showError('');
 
@@ -1083,9 +1252,320 @@
       });
     }
 
+    /* ── Hub / Agent selector logic ── */
+
+    const DISCIPLINE_HUB_COLORS = {
+      'Geografia': '#10b981', 'Portugues': '#3b82f6', 'Português': '#3b82f6',
+      'Matematica': '#f59e0b', 'Matemática': '#f59e0b',
+      'Historia': '#8b5cf6', 'História': '#8b5cf6',
+      'Ciencias': '#06b6d4', 'Ciências': '#06b6d4',
+      'Ingles': '#ec4899', 'Inglês': '#ec4899',
+      'Arte': '#f97316', 'Educacao Fisica': '#84cc16', 'Educação Física': '#84cc16'
+    };
+    const DISCIPLINE_HUB_ICONS = {
+      'Geografia': '&#x1F30D;', 'Portugues': '&#x1F4D6;', 'Português': '&#x1F4D6;',
+      'Matematica': '&#x1F4D0;', 'Matemática': '&#x1F4D0;',
+      'Historia': '&#x1F3DB;', 'História': '&#x1F3DB;',
+      'Ciencias': '&#x1F52C;', 'Ciências': '&#x1F52C;',
+      'Ingles': '&#x1F310;', 'Inglês': '&#x1F310;',
+      'Arte': '&#x1F3A8;', 'Educacao Fisica': '&#x1F3C3;', 'Educação Física': '&#x1F3C3;'
+    };
+
+    async function loadHubDisciplines() {
+      try {
+        const schoolId = String(elements.schoolId.value || '').trim();
+        if (!schoolId) return;
+        const response = await fetch('/api/student-chat/disciplines', {
+          headers: { 'x-school-id': schoolId }
+        });
+        const body = await response.json().catch(() => ({}));
+        state.disciplines = Array.isArray(body.disciplines) ? body.disciplines : [];
+      } catch (error) {
+        console.warn('Nao foi possivel carregar disciplinas do hub:', error?.message);
+        state.disciplines = [];
+      }
+      renderHubCards();
+    }
+
+    function renderHubCards() {
+      const hubGrid = elements.hubGrid;
+      if (!hubGrid) return;
+
+      // Keep the school assistant card (first child), remove the rest
+      const schoolCard = hubGrid.querySelector('[data-hub-mode="webchat"]');
+      hubGrid.innerHTML = '';
+      if (schoolCard) hubGrid.appendChild(schoolCard);
+
+      // Add discipline cards
+      state.disciplines.forEach(function (d) {
+        const color = DISCIPLINE_HUB_COLORS[d.subject] || '#64748b';
+        const icon = DISCIPLINE_HUB_ICONS[d.subject] || '&#x1F4DA;';
+        const card = document.createElement('div');
+        card.className = 'hub-card';
+        card.setAttribute('data-hub-mode', 'student-chat');
+        card.setAttribute('data-hub-subject', d.subject);
+        card.innerHTML =
+          '<div class="hub-icon" style="background:' + color + ';">' + icon + '</div>' +
+          '<div>' +
+            '<div class="hub-label">' + escapeHtml(d.subject) + '</div>' +
+            '<div class="hub-desc">' + d.materials.length + ' material(is) publicado(s). Duvidas sobre conteudo dessa disciplina.</div>' +
+          '</div>';
+        hubGrid.appendChild(card);
+      });
+
+      // Highlight active card
+      updateHubActiveCard();
+    }
+
+    function updateHubActiveCard() {
+      if (!elements.hubGrid) return;
+      elements.hubGrid.querySelectorAll('.hub-card').forEach(function (card) {
+        const mode = card.getAttribute('data-hub-mode');
+        const subject = card.getAttribute('data-hub-subject') || '';
+        const isActive =
+          (mode === state.chatMode && mode === 'webchat') ||
+          (mode === 'student-chat' && state.chatMode === 'student-chat' && subject === (state.selectedDiscipline?.subject || ''));
+        card.classList.toggle('is-active', isActive);
+      });
+    }
+
+    function showHub() {
+      if (elements.agentHub) elements.agentHub.classList.add('is-visible');
+    }
+
+    function hideHub() {
+      if (elements.agentHub) elements.agentHub.classList.remove('is-visible');
+    }
+
+    function selectHubAgent(mode, subject) {
+      if (mode === 'webchat') {
+        state.chatMode = 'webchat';
+        state.selectedDiscipline = null;
+        state.studentSessionId = null;
+        state.sourceDocumentIds = [];
+        state.studentMessages = [];
+        state.lastResponseId = null;
+
+        // Show/hide escalation bar
+        if (elements.escalationBar) elements.escalationBar.classList.remove('is-visible');
+        elements.hubBackBtn.style.display = 'block';
+        updateHubActiveCard();
+        elements.chatTitle.textContent = 'Assistente Escolar';
+        elements.chatSubtitle.textContent = 'Pergunte sobre matricula, documentos, calendario escolar e informacoes gerais.';
+
+        // Reset and start webchat session
+        resetConversationState();
+        startSession().catch(function (error) { showError(error.message); });
+
+      } else if (mode === 'student-chat' && subject) {
+        const discipline = state.disciplines.find(function (d) { return d.subject === subject; });
+        if (!discipline) return;
+
+        state.chatMode = 'student-chat';
+        state.selectedDiscipline = discipline;
+        state.sourceDocumentIds = discipline.source_document_ids || [];
+        state.studentSessionId = null;
+        state.studentMessages = [];
+        state.lastResponseId = null;
+
+        // Show escalation bar
+        if (elements.escalationBar) elements.escalationBar.classList.add('is-visible');
+        elements.hubBackBtn.style.display = 'block';
+        updateHubActiveCard();
+
+        const color = DISCIPLINE_HUB_COLORS[subject] || '#64748b';
+        elements.chatTitle.innerHTML = '<span style="color:' + color + '">&#x25CF;</span> ' + escapeHtml(subject);
+        elements.chatSubtitle.textContent = 'Duvidas sobre o conteudo de ' + subject + '. Baseado nos materiais dos professores.';
+
+        // Stop webchat polling
+        if (state.pollingTimer) {
+          window.clearInterval(state.pollingTimer);
+          state.pollingTimer = null;
+        }
+        state.sessionId = '';
+        state.consultationId = '';
+        state.renderedIds = new Set();
+        elements.messages.innerHTML = '';
+        setStatus('Iniciando sessao de ' + subject + '...');
+
+        // Create student-chat session
+        startStudentSession(subject);
+      }
+    }
+
+    async function startStudentSession(subject) {
+      const schoolId = String(elements.schoolId.value || '').trim();
+      try {
+        const response = await fetch('/api/student-chat/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
+          body: JSON.stringify({
+            school_id: schoolId,
+            discipline: subject,
+            student_name: String(elements.testerName.value || 'Aluno EJA').trim()
+          })
+        });
+        const body = await response.json().catch(function () { return {}; });
+        if (!response.ok || !body.session_id) {
+          throw new Error(body.error || 'Falha ao iniciar sessao.');
+        }
+        state.studentSessionId = body.session_id;
+        setStatus('Sessao de ' + subject + ' ativa.');
+        appendMessage('assistant', subject, 'Ola! Sou o assistente de ' + subject + '. Estou aqui para ajudar com duvidas sobre o conteudo dessa disciplina. O que voce gostaria de saber?');
+      } catch (error) {
+        appendMessage('system', 'Erro', 'Nao foi possivel iniciar a sessao: ' + (error.message || 'erro desconhecido'));
+        showError(error.message);
+      }
+    }
+
+    async function sendStudentMessage(text) {
+      if (state.studentSending) return;
+      if (!state.studentSessionId || !state.selectedDiscipline) return;
+
+      state.studentSending = true;
+      elements.send.disabled = true;
+      const subject = state.selectedDiscipline.subject;
+      const schoolId = String(elements.schoolId.value || '').trim();
+
+      appendMessage('user', elements.testerName.value || 'Aluno', text);
+      showTypingIndicator(subject);
+
+      try {
+        const response = await fetch('/api/student-chat/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
+          body: JSON.stringify({
+            school_id: schoolId,
+            session_id: state.studentSessionId,
+            message: text,
+            discipline: subject,
+            source_document_ids: state.sourceDocumentIds
+          })
+        });
+        const body = await response.json().catch(function () { return {}; });
+        removeTypingIndicator();
+
+        if (!response.ok) {
+          throw new Error(body.error || 'Falha ao enviar mensagem.');
+        }
+
+        state.lastResponseId = body.response_id || null;
+        const msgIndex = state.studentMessages.length;
+        state.studentMessages.push({
+          responseId: body.response_id,
+          sources: body.sources || [],
+          feedback: null
+        });
+
+        // Render assistant bubbles with sources and feedback
+        const sourceHtml = buildStudentSourcePills(body.sources || []);
+        const feedbackHtml = body.response_id ? buildFeedbackButtons(msgIndex) : '';
+        appendRichAssistantMessage(subject, body.response || 'Sem resposta.', sourceHtml + feedbackHtml);
+
+        if (!body.has_context) {
+          appendMessage('system', 'Aviso', 'Nao encontrei conteudo relevante nos materiais. Considere clicar em "Falar com Professor".');
+        }
+      } catch (error) {
+        removeTypingIndicator();
+        appendMessage('system', 'Erro', error.message || 'Falha ao conversar com a IA.');
+        showError(error.message);
+      } finally {
+        state.studentSending = false;
+        elements.send.disabled = false;
+        elements.input.focus();
+      }
+    }
+
+    function buildStudentSourcePills(sources) {
+      if (!sources || !sources.length) return '';
+      return '<div class="msg-sources">' + sources.map(function (s) {
+        return '<span class="msg-source-pill">&#x1F4D6; ' + escapeHtml(s.title) + ' (' + s.similarity + '%)</span>';
+      }).join('') + '</div>';
+    }
+
+    function buildFeedbackButtons(msgIndex) {
+      return '<div class="msg-feedback" data-msg-index="' + msgIndex + '">' +
+        '<button class="msg-feedback-btn" data-ftype="helpful" title="Util">&#x1F44D;</button>' +
+        '<button class="msg-feedback-btn" data-ftype="not_helpful" title="Nao util">&#x1F44E;</button>' +
+        '</div>';
+    }
+
+    function appendRichAssistantMessage(title, text, extraHtml) {
+      const shell = document.createElement('div');
+      shell.className = 'message-shell assistant';
+      const bubble = document.createElement('article');
+      bubble.className = 'bubble assistant fade-in';
+      bubble.innerHTML = '<small>' + escapeHtml(title) + '</small>' + escapeHtml(text) + (extraHtml || '');
+      shell.appendChild(bubble);
+      elements.messages.appendChild(shell);
+      elements.messages.scrollTop = elements.messages.scrollHeight;
+    }
+
+    async function submitStudentFeedback(msgIndex, feedbackType) {
+      const msg = state.studentMessages[msgIndex];
+      if (!msg || !msg.responseId || msg.feedback === feedbackType) return;
+      msg.feedback = feedbackType;
+
+      // Update UI
+      document.querySelectorAll('.msg-feedback[data-msg-index="' + msgIndex + '"] .msg-feedback-btn').forEach(function (btn) {
+        btn.classList.toggle('is-active', btn.getAttribute('data-ftype') === feedbackType);
+      });
+
+      const schoolId = String(elements.schoolId.value || '').trim();
+      try {
+        await fetch('/api/student-chat/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
+          body: JSON.stringify({
+            school_id: schoolId,
+            session_id: state.studentSessionId,
+            response_id: msg.responseId,
+            feedback_type: feedbackType
+          })
+        });
+      } catch (error) {
+        console.error('Erro ao enviar feedback:', error);
+      }
+    }
+
+    async function escalateToTeacher() {
+      if (!state.studentSessionId || !state.selectedDiscipline) return;
+      const schoolId = String(elements.schoolId.value || '').trim();
+      const subject = state.selectedDiscipline.subject;
+
+      if (!window.confirm('Deseja enviar uma solicitacao para o professor de ' + subject + '? Ele sera notificado.')) return;
+
+      try {
+        await fetch('/api/student-chat/escalate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-school-id': schoolId },
+          body: JSON.stringify({
+            school_id: schoolId,
+            session_id: state.studentSessionId,
+            response_id: state.lastResponseId || '',
+            discipline: subject,
+            student_message: ''
+          })
+        });
+        appendMessage('system', 'Escalonamento', 'Solicitacao enviada ao professor de ' + subject + '. Voce pode continuar tirando duvidas com o assistente.');
+      } catch (error) {
+        appendMessage('system', 'Erro', 'Nao foi possivel enviar a solicitacao. Tente novamente.');
+      }
+    }
+
+    async function startNewDisciplineSession() {
+      if (!state.selectedDiscipline) return;
+      const subject = state.selectedDiscipline.subject;
+      state.studentSessionId = null;
+      state.studentMessages = [];
+      state.lastResponseId = null;
+      elements.messages.innerHTML = '';
+      await startStudentSession(subject);
+    }
+
     async function startSession(options = {}) {
       if (!hasExplicitSchoolSelection()) {
-        throw new Error('Escolha a Escola A ou Escola B antes de iniciar o chat.');
+        throw new Error('Escolha o CEF 01 (DF) ou CEPI Lyceu (GO) antes de iniciar o chat.');
       }
       if (state.loadingSession) return state.sessionId;
       state.loadingSession = true;
@@ -1196,16 +1676,23 @@
     async function handleSubmit(event) {
       event.preventDefault();
       if (!hasExplicitSchoolSelection()) {
-        showError('Escolha a Escola A ou Escola B antes de conversar.');
+        showError('Escolha o CEF 01 (DF) ou CEPI Lyceu (GO) antes de conversar.');
         return;
       }
       const text = String(elements.input.value || '').trim();
       if (!text) return;
+      elements.input.value = '';
 
+      // Route based on active chat mode
+      if (state.chatMode === 'student-chat') {
+        await sendStudentMessage(text);
+        return;
+      }
+
+      // Default: webchat mode
       showError('');
       elements.send.disabled = true;
       appendMessage('user', elements.testerName.value || 'Usuario de teste', text);
-      elements.input.value = '';
       await waitForNextPaint();
 
       const fallbackLabel = getAgentLabel(getMetadata().agent_key);
@@ -1235,24 +1722,84 @@
 
     function boot() {
       setStatus('Nenhuma conversa iniciada. Configure o simulador e abra uma nova sessao.');
-      appendMessage('system', 'Simulador', 'Esta pagina foi criada para testar a conversa com a IA sem o antigo bloco omnichannel. Inicie uma sessao e acompanhe o fluxo em /atendimento.');
+      appendMessage('system', 'Simulador', 'Escolha uma escola e depois selecione o assistente desejado no hub ao lado.');
       void loadContextCatalog();
       elements.newSession.addEventListener('click', () => {
-        resetConversationState();
-        startSession().catch((error) => showError(error.message || 'Falha ao iniciar sessao.'));
+        if (state.chatMode === 'student-chat') {
+          startNewDisciplineSession().catch((error) => showError(error.message));
+        } else {
+          resetConversationState();
+          startSession().catch((error) => showError(error.message || 'Falha ao iniciar sessao.'));
+        }
       });
       elements.presetSchoolA.addEventListener('click', () => {
-        applySchoolPreset('escola-a-sandbox').catch((error) => showError(error.message || 'Falha ao trocar para a Escola A.'));
+        applySchoolPreset('cef01-brasilia').then(() => { showHub(); loadHubDisciplines(); }).catch((error) => showError(error.message || 'Falha ao trocar para o CEF 01.'));
       });
       elements.presetSchoolB.addEventListener('click', () => {
-        applySchoolPreset('escola-b-sandbox').catch((error) => showError(error.message || 'Falha ao trocar para a Escola B.'));
+        applySchoolPreset('cepi-lyceu-goiania').then(() => { showHub(); loadHubDisciplines(); }).catch((error) => showError(error.message || 'Falha ao trocar para o CEPI Lyceu.'));
       });
       elements.schoolId.addEventListener('input', syncSchoolNameFromContext);
       elements.openManager.addEventListener('click', openManager);
       elements.form.addEventListener('submit', handleSubmit);
+
+      // Hub card clicks
+      document.addEventListener('click', function (e) {
+        const card = e.target.closest('.hub-card');
+        if (card) {
+          const mode = card.getAttribute('data-hub-mode');
+          const subject = card.getAttribute('data-hub-subject') || '';
+          selectHubAgent(mode, subject);
+        }
+        // Feedback button clicks
+        const fbBtn = e.target.closest('.msg-feedback-btn');
+        if (fbBtn) {
+          const container = fbBtn.closest('.msg-feedback');
+          const idx = parseInt(container?.getAttribute('data-msg-index'), 10);
+          const ftype = fbBtn.getAttribute('data-ftype');
+          if (!isNaN(idx) && ftype) submitStudentFeedback(idx, ftype);
+        }
+      });
+
+      // Hub back button
+      if (elements.hubBackBtn) {
+        elements.hubBackBtn.addEventListener('click', function () {
+          state.chatMode = '';
+          state.selectedDiscipline = null;
+          state.studentSessionId = null;
+          if (state.pollingTimer) { window.clearInterval(state.pollingTimer); state.pollingTimer = null; }
+          state.sessionId = '';
+          state.consultationId = '';
+          elements.messages.innerHTML = '';
+          if (elements.escalationBar) elements.escalationBar.classList.remove('is-visible');
+          elements.hubBackBtn.style.display = 'none';
+          updateHubActiveCard();
+          elements.chatTitle.textContent = 'Conversa de teste';
+          elements.chatSubtitle.textContent = 'Selecione um assistente no hub ao lado para iniciar.';
+          setStatus('Nenhuma conversa iniciada.');
+          appendMessage('system', 'Simulador', 'Escolha um assistente no hub ao lado para iniciar uma conversa.');
+        });
+      }
+
+      // Escalate button
+      if (elements.btnEscalate) {
+        elements.btnEscalate.addEventListener('click', function () {
+          escalateToTeacher();
+        });
+      }
+
+      // New discipline session button
+      if (elements.btnNewDisciplineSession) {
+        elements.btnNewDisciplineSession.addEventListener('click', function () {
+          startNewDisciplineSession().catch(function (error) { showError(error.message); });
+        });
+      }
+
       renderResolvedContext();
+
+      // If school already selected, show hub
       if (hasExplicitSchoolSelection()) {
-        elements.input.focus();
+        showHub();
+        loadHubDisciplines();
       }
     }
 

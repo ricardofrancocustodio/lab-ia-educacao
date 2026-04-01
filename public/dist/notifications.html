@@ -4,22 +4,40 @@
   <title>Assistente Publico | Notificacoes</title>
   <style>
     body { opacity: 0; transition: opacity .3s ease; }
-    .notif-hero { background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%); border: 1px solid #d4ddef; border-radius: 16px; padding: 20px; margin-bottom: 1rem; }
-    .notif-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; margin-bottom: 12px; transition: box-shadow .2s; cursor: pointer; }
-    .notif-card:hover { box-shadow: 0 4px 14px rgba(20,43,73,.08); }
-    .notif-sent { border-left: 4px solid #198754; }
-    .notif-pending { border-left: 4px solid #fd7e14; }
-    .notif-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-    .badge-sent { background: #198754; color: #fff; }
-    .badge-pending { background: #fd7e14; color: #fff; }
-    .badge-manual { background: #6f42c1; color: #fff; }
-    .notif-meta { color: #6c757d; font-size: .84rem; }
-    .notif-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-    .notif-empty { border: 1px dashed #c7d2e2; border-radius: 12px; padding: 32px; color: #6c757d; background: #f8fbff; text-align: center; }
-    .stat-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; text-align: center; }
-    .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-    .stat-card .stat-label { font-size: .82rem; color: #6c757d; margin-top: 4px; }
-    .notif-message-preview { background: #f7f9fc; border-radius: 8px; padding: 10px 12px; font-size: .88rem; margin-top: 8px; color: #333; }
+    .notif-page-header { background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%); border: 1px solid #d4ddef; border-radius: 16px; padding: 20px 24px; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .notif-page-header h4 { margin: 0; font-weight: 700; }
+    .notif-page-header .notif-subtitle { font-size: .88rem; color: #6c757d; margin: 0; }
+
+    /* Stats compactas */
+    .notif-stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .notif-stat { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; min-width: 140px; }
+    .notif-stat .stat-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .9rem; }
+    .notif-stat .stat-value { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+    .notif-stat .stat-label { font-size: .76rem; color: #6c757d; }
+
+    /* Toolbar */
+    .notif-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; padding: 12px 16px; background: #fff; border: 1px solid #e6edf5; border-radius: 12px; }
+
+    /* Cards Jira-style */
+    .notif-card { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: box-shadow .2s, background .15s; }
+    .notif-card:hover { box-shadow: 0 2px 12px rgba(20,43,73,.07); background: #f8fafe; }
+    .notif-card.notif-unread { background: #f0f4ff; border-left: 3px solid #007bff; }
+    .notif-card.notif-read { opacity: .8; }
+    .notif-card .notif-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .notif-card .notif-body { flex: 1; min-width: 0; }
+    .notif-card .notif-msg { font-size: .88rem; color: #343a40; line-height: 1.4; word-break: break-word; }
+    .notif-card.notif-unread .notif-msg { font-weight: 600; }
+    .notif-card .notif-meta { font-size: .76rem; color: #6c757d; margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .notif-card .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #007bff; flex-shrink: 0; margin-top: 6px; }
+
+    /* Grupo de data */
+    .notif-group-header { font-size: .8rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: .04em; margin: 20px 0 8px 4px; }
+
+    /* Empty */
+    .notif-empty { border: 1px dashed #c7d2e2; border-radius: 12px; padding: 48px 20px; color: #6c757d; background: #f8fbff; text-align: center; }
+
+    /* Badges de topico */
+    .notif-topic-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
   </style>
 </head>
 <body class="sidebar-mini layout-fixed layout-navbar-fixed" data-page="notifications">
@@ -37,92 +55,72 @@
           </div>
 
           <div id="notif-root" style="display:none;">
-            <!-- Hero -->
-            <div class="notif-hero d-flex align-items-center flex-wrap">
-              <div class="mr-3"><i class="fas fa-bell fa-2x text-primary"></i></div>
+            <!-- Page Header -->
+            <div class="notif-page-header">
               <div>
-                <h4 class="mb-0 font-weight-bold">Gestao de Notificacoes</h4>
-                <p class="mb-0 text-muted" style="font-size:.9rem;">Fila de envio, rastreamento de entregas e configuracoes por escola</p>
+                <h4><i class="fas fa-bell mr-2 text-primary"></i>Notificacoes</h4>
+                <p class="notif-subtitle">Acompanhe atualizacoes de incidentes, atribuicoes e atividades do sistema</p>
+              </div>
+              <div class="d-flex gap-2" style="gap:8px;">
+                <button id="btn-mark-all-read" class="btn btn-sm btn-outline-primary" style="display:none;">
+                  <i class="fas fa-check-double mr-1"></i>Marcar todas como lidas
+                </button>
               </div>
             </div>
 
             <!-- Stats -->
-            <div class="row mb-3">
-              <div class="col-6 col-md-3 mb-2">
-                <div class="stat-card"><div class="stat-value text-primary" id="stat-total">-</div><div class="stat-label">Total</div></div>
+            <div class="notif-stats-row">
+              <div class="notif-stat">
+                <div class="stat-icon" style="background:#e3f2fd;color:#1976d2;"><i class="fas fa-bell"></i></div>
+                <div><div class="stat-value" id="stat-total">-</div><div class="stat-label">Total</div></div>
               </div>
-              <div class="col-6 col-md-3 mb-2">
-                <div class="stat-card"><div class="stat-value text-success" id="stat-sent">-</div><div class="stat-label">Enviadas</div></div>
+              <div class="notif-stat">
+                <div class="stat-icon" style="background:#e3f2fd;color:#007bff;"><i class="fas fa-envelope"></i></div>
+                <div><div class="stat-value" id="stat-unread">-</div><div class="stat-label">Nao lidas</div></div>
               </div>
-              <div class="col-6 col-md-3 mb-2">
-                <div class="stat-card"><div class="stat-value text-warning" id="stat-pending">-</div><div class="stat-label">Pendentes</div></div>
+              <div class="notif-stat">
+                <div class="stat-icon" style="background:#e8f5e9;color:#28a745;"><i class="fas fa-envelope-open"></i></div>
+                <div><div class="stat-value" id="stat-read">-</div><div class="stat-label">Lidas</div></div>
               </div>
-              <div class="col-6 col-md-3 mb-2">
-                <div class="stat-card"><div class="stat-value text-info" id="stat-today">-</div><div class="stat-label">Hoje</div></div>
+              <div class="notif-stat">
+                <div class="stat-icon" style="background:#fff3e0;color:#ff9800;"><i class="fas fa-clock"></i></div>
+                <div><div class="stat-value" id="stat-today">-</div><div class="stat-label">Hoje</div></div>
               </div>
             </div>
 
             <!-- Toolbar -->
             <div class="notif-toolbar">
-              <select id="filter-sent" class="form-control form-control-sm" style="max-width:180px;">
-                <option value="">Todos os status</option>
-                <option value="false">Pendentes</option>
-                <option value="true">Enviadas</option>
+              <select id="filter-read" class="form-control form-control-sm" style="max-width:160px;">
+                <option value="">Todas</option>
+                <option value="false">Nao lidas</option>
+                <option value="true">Lidas</option>
               </select>
-              <button id="btn-new-notification" class="btn btn-sm btn-primary" style="display:none;">
-                <i class="fas fa-paper-plane mr-1"></i>Nova Notificacao
-              </button>
-              <span class="notif-meta ml-auto" id="notif-count-label">0 notificacoes</span>
+              <select id="filter-topic" class="form-control form-control-sm" style="max-width:200px;">
+                <option value="">Todos os tipos</option>
+                <option value="incident_resolved">Incidente Resolvido</option>
+                <option value="incident_dismissed">Incidente Descartado</option>
+                <option value="incident_in_review">Incidente em Revisao</option>
+                <option value="incident_assigned">Incidente Atribuido</option>
+                <option value="incident_opened">Incidente Aberto</option>
+              </select>
+              <span class="notif-meta ml-auto" id="notif-count-label" style="font-size:.84rem;color:#6c757d;">0 notificacoes</span>
             </div>
 
             <!-- List -->
             <div id="notif-list"></div>
+
+            <!-- Load more -->
+            <div id="notif-load-more" class="text-center py-3" style="display:none;">
+              <button class="btn btn-sm btn-outline-secondary" id="btn-load-more">
+                <i class="fas fa-arrow-down mr-1"></i>Carregar mais
+              </button>
+            </div>
           </div>
 
         </div>
       </section>
     </div>
     <div id="component-footer"></div>
-  </div>
-
-  <!-- Detail Modal -->
-  <div class="modal fade" id="notifDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="notifDetailTitle">Detalhe da Notificacao</h5>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body" id="notifDetailBody"></div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Send Modal -->
-  <div class="modal fade" id="notifSendModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Nova Notificacao</h5>
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="send-topic">Topico</label>
-            <input type="text" class="form-control" id="send-topic" placeholder="Ex: Aviso urgente - matricula">
-          </div>
-          <div class="form-group">
-            <label for="send-message">Mensagem</label>
-            <textarea class="form-control" id="send-message" rows="4" placeholder="Texto da notificacao..."></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btn-confirm-send"><i class="fas fa-paper-plane mr-1"></i>Enviar</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

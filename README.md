@@ -28,7 +28,6 @@ Base institucional derivada do Qnexy para atendimento educacional publico com qu
 - Operador de Atendimento Publico
 - Servidor da Secretaria
 - Servidor da Coordenacao
-- Servidor da Tesouraria
 - Servidor da Direcao
 - Auditor / Compliance
 - Observador Externo

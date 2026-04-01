@@ -8,7 +8,7 @@ const http = require("http");
 // ── Config ──────────────────────────────────────────────────────────
 const BASE = "http://localhost:8084";
 const TOKEN = process.env.TOKEN || "";
-const SCHOOL_ID = "314c2676-73b8-47e6-8582-29cadfaa3863"; // Secretaria Sandbox
+const SCHOOL_ID = "314c2676-73b8-47e6-8582-29cadfaa3863"; // Secretaria de Educacao do DF
 
 if (!TOKEN) {
   console.error("Usage: TOKEN=<jwt> node test-incident-flow.js");

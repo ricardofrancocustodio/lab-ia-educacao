@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head id="component-head">
+    <title>Assistente Publico | Curadoria Pedagogica</title>
+    <style>
+        .teaching-hero { background: linear-gradient(135deg, #f7fbff 0%, #ffffff 100%); border: 1px solid #d9e7f5; border-radius: 16px; padding: 20px; margin-bottom: 1rem; }
+        .teaching-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: 16px; }
+        .teaching-card { border-radius: 14px; border: 1px solid #e5edf6; box-shadow: 0 6px 18px rgba(15, 23, 42, .06); }
+        .teaching-card .card-header { background: transparent; border-bottom: 1px solid #edf2f7; }
+        .teaching-list { display: grid; gap: 12px; }
+        .teaching-item { border: 1px solid #e5edf6; border-radius: 12px; background: #fff; padding: 14px; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+        .teaching-item:hover { border-color: #9cc1e7; box-shadow: 0 8px 18px rgba(30, 64, 175, .08); transform: translateY(-1px); }
+        .teaching-item.active { border-color: #2563eb; box-shadow: 0 10px 22px rgba(37, 99, 235, .12); }
+        .teaching-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .teaching-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; background: #f8fafc; border: 1px solid #dbe7f5; font-size: .78rem; color: #385170; }
+        .teaching-pill-pdf-ready { background: #effaf3; border-color: #b7e4c7; color: #166534; }
+        .teaching-pill-pdf-missing { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+        .teaching-empty { border: 1px dashed #c9d7e6; border-radius: 12px; padding: 18px; text-align: center; color: #64748b; background: #f8fbff; }
+        .teaching-help-list { padding-left: 18px; margin-bottom: 0; color: #516072; }
+        .teaching-help-list li { margin-bottom: 6px; }
+        .teaching-version { border: 1px solid #e6edf5; border-radius: 10px; padding: 10px 12px; background: #fbfdff; }
+        .teaching-version + .teaching-version { margin-top: 8px; }
+        .teaching-status-draft { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+        .teaching-status-published { background: #ecfdf5; color: #166534; border-color: #bbf7d0; }
+        .teaching-status-archived { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+        .teaching-status-pending_approval { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .teaching-approval-approved { background: #ecfdf5; color: #166534; border-color: #86efac; }
+        .teaching-approval-rejected { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .teaching-filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .teaching-filter-bar .btn { font-size: .78rem; padding: 4px 12px; border-radius: 999px; }
+        .teaching-filter-bar .btn.active { font-weight: 600; }
+        .teaching-approval-card { border: 1px solid #e5edf6; border-radius: 12px; background: #fbfdff; padding: 12px 14px; }
+        .teaching-approval-card .btn { min-width: 130px; }
+        .teaching-links a { display: block; word-break: break-word; }
+        .teaching-pdf-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(420px, .8fr); gap: 18px; }
+        .teaching-panel-box { border: 1px solid #e6edf5; border-radius: 12px; background: #fbfdff; padding: 12px; }
+        .teaching-pdf-preview { width: 100%; height: calc(100vh - 210px); min-height: 560px; border: 1px solid #dbe7f5; border-radius: 10px; background: #fff; }
+        .teaching-panel-box textarea { min-height: calc(100vh - 210px); }
+        .teaching-panel-empty { border: 1px dashed #cbd5e1; border-radius: 10px; min-height: calc(100vh - 210px); display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; color: #64748b; background: #fff; }
+        .teaching-extraction-toolbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+        .teaching-upload-summary { border: 1px solid #e6edf5; border-radius: 12px; background: #fbfdff; padding: 12px; }
+        .teaching-official-editor { border: 1px solid #cfe0f5; border-radius: 14px; background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%); padding: 14px; }
+        .teaching-official-editor textarea { min-height: 320px; font-size: 1rem; line-height: 1.55; }
+        .teaching-official-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: .78rem; }
+        #teaching-comparison-modal .modal-dialog.teaching-modal-dialog { max-width: calc(100vw - 24px) !important; width: calc(100vw - 24px) !important; margin: 12px auto !important; }
+        #teaching-comparison-modal .modal-content.teaching-modal-content { min-height: calc(100vh - 24px); height: calc(100vh - 24px); border-radius: 14px; }
+        #teaching-comparison-modal .modal-header { padding: 14px 18px; }
+        #teaching-comparison-modal .modal-body.teaching-modal-body { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px 18px; overflow: hidden; }
+        #teaching-comparison-modal .modal-footer { padding: 12px 18px 18px; }
+        #teaching-comparison-modal .teaching-pdf-grid { flex: 1 1 auto; min-height: 0; }
+        #teaching-comparison-modal .teaching-panel-box { display: flex; flex-direction: column; min-height: 0; }
+        #teaching-comparison-modal .teaching-pdf-preview,
+        #teaching-comparison-modal .teaching-panel-box textarea,
+        #teaching-comparison-modal .teaching-panel-empty { flex: 1 1 auto; min-height: 0; height: 100%; }
+        @media (max-width: 991px) {
+            .teaching-layout { grid-template-columns: 1fr; }
+            .teaching-pdf-grid { grid-template-columns: 1fr; }
+            #teaching-comparison-modal .modal-dialog.teaching-modal-dialog { max-width: calc(100vw - 8px) !important; width: calc(100vw - 8px) !important; margin: 4px auto !important; }
+            #teaching-comparison-modal .modal-content.teaching-modal-content { min-height: calc(100vh - 8px); height: calc(100vh - 8px); }
+            .teaching-pdf-preview { min-height: 420px; height: 420px; }
+            .teaching-panel-box textarea { min-height: 420px; }
+            .teaching-panel-empty { min-height: 420px; }
+        }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed" data-page="teaching-content">
+    <div class="wrapper">
+        <div id="component-header"></div>
+        <div id="component-sidebar"></div>
+
+        <div class="content-wrapper">
+            <section class="content-header pb-0">
+                <div class="container-fluid">
+                    <div class="teaching-hero">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center">
+                            <div>
+                                <h1 class="m-0">Curadoria Pedagógica</h1>
+                                <p class="mb-0 mt-2 text-muted">Cadastre materiais oficiais da disciplina para o professor organizar o conteúdo, versionar textos-base e preparar a futura leitura pela IA por matéria.</p>
+                            </div>
+                            <div class="mt-3 mt-lg-0 text-lg-right">
+                                <div class="small text-muted">Primeira entrega do módulo EJA</div>
+                                <div><strong>Conteúdo oficial por disciplina, módulo e assunto</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="content">
+                <div class="container-fluid">
+                    <div class="teaching-layout">
+                        <div>
+                            <div class="card teaching-card">
+                                <div class="card-header d-flex justify-content-between align-items-center flex-wrap" style="gap:12px;">
+                                    <h3 class="card-title mb-0">Material pedagógico oficial</h3>
+                                    <button class="btn btn-outline-primary btn-sm" id="teaching-new-button">
+                                        <i class="fas fa-plus mr-1"></i>Novo material
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <form id="teaching-content-form">
+                                        <input type="hidden" id="teaching-source-document-id" />
+                                        <div class="row">
+                                            <div class="col-md-8 form-group">
+                                                <label for="teaching-title">Título do material</label>
+                                                <input type="text" class="form-control" id="teaching-title" placeholder="Ex.: Frações equivalentes - módulo 2" required />
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <label for="teaching-status">Status</label>
+                                                <select class="form-control" id="teaching-status">
+                                                    <option value="draft">Rascunho</option>
+                                                    <option value="archived">Arquivado</option>
+                                                </select>
+                                                <small class="form-text text-muted" id="teaching-status-hint">Para publicar, envie para aprovação da coordenação.</small>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="teaching-extraction-toolbar mb-2">
+                                                <div>
+                                                    <label class="mb-1 d-block">Documentação pedagógica</label>
+                                                    <small class="text-muted">Suba primeiro o PDF oficial. O sistema extrai o texto automaticamente e a publicação depende da revisão humana.</small>
+                                                </div>
+                                                <div class="d-flex flex-wrap" style="gap:8px;">
+                                                    <label class="btn btn-outline-danger btn-sm mb-0">
+                                                        <i class="fas fa-file-pdf mr-1"></i>Importar PDF
+                                                        <input type="file" hidden id="teaching-pdf-file" accept="application/pdf,.pdf" />
+                                                    </label>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" id="teaching-open-comparison-button" disabled>
+                                                        <i class="fas fa-columns mr-1"></i>Abrir comparação
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="teaching-upload-summary">
+                                                <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap:10px;">
+                                                    <strong id="teaching-pdf-name">Nenhum PDF carregado</strong>
+                                                    <span class="small text-muted" id="teaching-pdf-summary-status">Carregue um PDF para abrir a comparação em tela ampla.</span>
+                                                </div>
+                                                <small class="form-text text-muted mb-0" id="teaching-extraction-status">Se o PDF estiver em imagem ou vier sem camada de texto, complete manualmente o conteúdo oficial no campo abaixo.</small>
+                                            </div>
+                                        </div>
+                                        <div class="form-group teaching-official-editor" id="teaching-official-editor-card">
+                                            <div class="d-flex justify-content-between align-items-start flex-wrap" style="gap:12px;">
+                                                <div>
+                                                    <label for="teaching-raw-text" class="mb-1 d-block"><strong>Texto oficial que a IA vai considerar</strong></label>
+                                                    <div class="teaching-official-badge"><i class="fas fa-robot"></i>Fonte validada usada nas respostas</div>
+                                                </div>
+                                                <div class="d-flex flex-wrap" style="gap:8px;">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" id="teaching-focus-editor-button">
+                                                        <i class="fas fa-pen mr-1"></i>Editar texto oficial
+                                                    </button>
+                                                    <label class="btn btn-outline-secondary btn-sm mb-0">
+                                                        <i class="fas fa-file-import mr-1"></i>Importar texto
+                                                        <input type="file" hidden id="teaching-text-file" accept=".txt,.md,.csv,.json" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <small class="form-text text-muted mb-2">Depois de revisar o PDF, edite este campo. É este conteúdo validado que a IA vai ler, não a extração bruta.</small>
+                                            <textarea class="form-control mt-2" id="teaching-raw-text" rows="12" placeholder="Edite aqui o texto oficial validado que servirá de base para futuras respostas da IA."></textarea>
+                                        </div>
+                                        <hr class="my-3" />
+                                        <div class="row">
+                                            <div class="col-md-3 form-group">
+                                                <label for="teaching-segment">Segmento</label>
+                                                <select class="form-control" id="teaching-segment">
+                                                    <option value="">Selecione...</option>
+                                                    <option value="EJA">EJA</option>
+                                                    <option value="Ensino Fundamental">Ensino Fundamental</option>
+                                                    <option value="Ensino Médio">Ensino Médio</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 form-group" id="teaching-eja-context-group" style="display:none;">
+                                                <label for="teaching-eja-context">Contexto EJA</label>
+                                                <select class="form-control" id="teaching-eja-context">
+                                                    <option value="">Selecione o contexto...</option>
+                                                    <option value="Regular (Presencial)">Regular (Presencial)</option>
+                                                    <option value="Semipresencial/EAD">Semipresencial / EAD</option>
+                                                    <option value="Modular">Modular</option>
+                                                    <option value="Integrada à Ed. Profissional">Integrada à Ed. Profissional</option>
+                                                    <option value="Educação do Campo">Educação do Campo</option>
+                                                    <option value="Educação Escolar Indígena">Educação Escolar Indígena</option>
+                                                    <option value="Educação Quilombola">Educação Quilombola</option>
+                                                    <option value="Educação em Prisões">Educação em Prisões</option>
+                                                    <option value="Atendimento Socioeducativo">Atendimento Socioeducativo</option>
+                                                    <option value="CIEJA">CIEJA</option>
+                                                    <option value="MOVA">MOVA</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 form-group">
+                                                <label for="teaching-module">Série / módulo</label>
+                                                <input type="text" class="form-control" id="teaching-module" placeholder="Módulo 1" />
+                                            </div>
+                                            <div class="col-md-3 form-group">
+                                                <label for="teaching-subject">Disciplina</label>
+                                                <select class="form-control" id="teaching-subject" required>
+                                                    <option value="">Selecione...</option>
+                                                    <option value="Português">Português</option>
+                                                    <option value="Matemática">Matemática</option>
+                                                    <option value="Geografia">Geografia</option>
+                                                    <option value="História">História</option>
+                                                    <option value="Ciências">Ciências</option>
+                                                    <option value="Inglês">Inglês</option>
+                                                    <option value="Arte">Arte</option>
+                                                    <option value="Educação Física">Educação Física</option>
+                                                    <option value="Outro">Outro</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 form-group" id="teaching-subject-other-group" style="display:none;">
+                                                <label for="teaching-subject-other">Qual disciplina?</label>
+                                                <input type="text" class="form-control" id="teaching-subject-other" placeholder="Nome da disciplina" />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-3 form-group">
+                                                <label for="teaching-turma">Turma</label>
+                                                <input type="text" class="form-control" id="teaching-turma" placeholder="Turma A" />
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <label for="teaching-topic">Assunto</label>
+                                                <input type="text" class="form-control" id="teaching-topic" placeholder="Frações" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teaching-summary">Resumo pedagógico</label>
+                                            <textarea class="form-control" id="teaching-summary" rows="3" placeholder="Explique o objetivo, o contexto da aula e o que a IA poderá usar para orientar o aluno."></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 form-group">
+                                                <label for="teaching-official-link">Link oficial principal</label>
+                                                <input type="url" class="form-control" id="teaching-official-link" placeholder="https://..." />
+                                            </div>
+                                            <div class="col-md-6 form-group">
+                                                <label for="teaching-calendar-reference">Referência de calendário / prazo</label>
+                                                <input type="text" class="form-control" id="teaching-calendar-reference" placeholder="Entrega até 15/04 - calendário EJA 2026" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teaching-support-links">Links de apoio (um por linha)</label>
+                                            <textarea class="form-control" id="teaching-support-links" rows="3" placeholder="https://youtube.com/...&#10;https://.../leitura-complementar"></textarea>
+                                        </div>
+                                        <div class="teaching-approval-card mb-3" id="teaching-approval-card" style="display:none;">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap:12px;">
+                                                <div>
+                                                    <strong>Fluxo de aprovação</strong>
+                                                    <div class="small mt-1" id="teaching-approval-status-label">Salve o material como rascunho e depois envie para aprovação da coordenação.</div>
+                                                </div>
+                                                <div class="d-flex flex-wrap" style="gap:8px;" id="teaching-approval-actions">
+                                                    <button type="button" class="btn btn-warning btn-sm" id="teaching-submit-approval-button" style="display:none;">
+                                                        <i class="fas fa-paper-plane mr-1"></i>Enviar para aprovação
+                                                    </button>
+                                                    <button type="button" class="btn btn-success btn-sm" id="teaching-approve-button" style="display:none;">
+                                                        <i class="fas fa-check mr-1"></i>Aprovar e publicar
+                                                    </button>
+                                                    <button type="button" class="btn btn-danger btn-sm" id="teaching-reject-button" style="display:none;">
+                                                        <i class="fas fa-times mr-1"></i>Reprovar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end flex-wrap" style="gap:10px;">
+                                            <button type="button" class="btn btn-outline-secondary" id="teaching-reset-button">Limpar</button>
+                                            <button type="submit" class="btn btn-primary" id="teaching-save-button">
+                                                <i class="fas fa-save mr-1"></i>Salvar material
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card teaching-card mt-3">
+                                <div class="card-header">
+                                    <h3 class="card-title mb-0">Histórico de versões</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="teaching-versions" class="teaching-empty">Selecione um material para ver o histórico de versões.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="card teaching-card mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title mb-0">Materiais cadastrados</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="teaching-filter-bar" id="teaching-status-filter">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm active" data-filter="all">Todos</button>
+                                        <button type="button" class="btn btn-outline-warning btn-sm" data-filter="draft">Rascunho</button>
+                                        <button type="button" class="btn btn-outline-warning btn-sm" data-filter="pending_approval">Aguardando</button>
+                                        <button type="button" class="btn btn-outline-success btn-sm" data-filter="published">Publicado</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-filter="archived">Arquivado</button>
+                                    </div>
+                                    <div id="teaching-list" class="teaching-list"></div>
+                                </div>
+                            </div>
+
+                            <div class="card teaching-card">
+                                <div class="card-header">
+                                    <h3 class="card-title mb-0">Regras desta primeira entrega</h3>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="teaching-help-list">
+                                        <li>O professor publica o material oficial por disciplina, módulo e assunto.</li>
+                                        <li>O texto base fica versionado para futura leitura da IA por matéria.</li>
+                                        <li>Links de vídeo, leitura e prazo ficam associados ao material.</li>
+                                        <li>Esta entrega ainda não cria questionário nem nota; ela fecha a camada de curadoria.</li>
+                                        <li>Incidentes e auditoria continuam reaproveitando o núcleo já existente do LAB-IA.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="component-footer"></div>
+    </div>
+
+    <div class="modal fade" id="teaching-comparison-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered teaching-modal-dialog" role="document">
+            <div class="modal-content teaching-modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-0">Comparação do PDF com o texto extraído</h5>
+                        <small class="text-muted" id="teaching-modal-file-name">Nenhum PDF carregado</small>
+                        <div class="small text-muted mt-1" id="teaching-modal-version-meta">Abra uma versão para comparar o PDF com o texto usado pela IA.</div>
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body teaching-modal-body">
+                    <div class="teaching-pdf-grid">
+                        <div class="teaching-panel-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2" style="gap:10px;">
+                                <strong>Arquivo original</strong>
+                                <span class="small text-muted" id="teaching-modal-preview-label">Pré-visualização do PDF</span>
+                            </div>
+                            <div id="teaching-pdf-preview-empty" class="teaching-panel-empty">Carregue um PDF para comparar o original com o texto extraído.</div>
+                            <iframe id="teaching-pdf-preview" class="teaching-pdf-preview" style="display:none;" title="Preview do PDF"></iframe>
+                        </div>
+                        <div class="teaching-panel-box">
+                            <div class="d-flex justify-content-between align-items-center mb-2" style="gap:10px;">
+                                <strong id="teaching-modal-text-title">Texto extraído automaticamente</strong>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="teaching-use-extracted-button" disabled>
+                                    <i class="fas fa-arrow-down mr-1"></i>Levar para edição
+                                </button>
+                            </div>
+                            <textarea class="form-control" id="teaching-extracted-text" placeholder="A extração do PDF ou o texto versionado usado pela IA aparecerá aqui para revisão."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between flex-wrap" style="gap:10px;">
+                    <small class="text-muted" id="teaching-modal-footer-hint">Revise aqui, depois envie o texto para o editor oficial abaixo do formulário. Ao salvar, o sistema cria uma nova versão.</small>
+                    <div class="d-flex flex-wrap" style="gap:8px;">
+                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Continuar revisando</button>
+                        <button type="button" class="btn btn-primary" id="teaching-copy-and-edit-button">
+                            <i class="fas fa-arrow-down mr-1"></i>Levar para o texto oficial
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="../js/supabaseConfig.js"></script>
+    <script src="./js/school-switcher.js"></script>
+    <script src="./js/session.js"></script>
+    <script src="./js/permissions.js"></script>
+    <script src="./js/cache.js"></script>
+    <script src="./js/js.js"></script>
+    <script src="./js/coordinator/carregar-componentes.js"></script>
+    <script src="./js/teaching-content/teaching-content.js"></script>
+</body>
+</html>

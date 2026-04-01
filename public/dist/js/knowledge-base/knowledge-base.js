@@ -299,7 +299,6 @@ const PERMISSIONS = {
     public_operator: { canDelete: false, canManageUsers: false, viewAllReports: false, kbCategory: ['Atendimento Publico'] },
     secretariat: { canDelete: false, canManageUsers: false, viewAllReports: false, kbCategory: ['Secretaria'] },
     coordination: { canDelete: false, canManageUsers: false, viewAllReports: true, kbCategory: ['Coordenacao'] },
-    treasury: { canDelete: false, canManageUsers: false, viewAllReports: true, kbCategory: ['Tesouraria'] },
     direction: { canDelete: false, canManageUsers: false, viewAllReports: true, kbCategory: ['Direcao'] },
     auditor: { canDelete: false, canManageUsers: false, viewAllReports: true, kbAll: true },
     observer: { canDelete: false, canManageUsers: false, viewAllReports: false, kbAll: true }

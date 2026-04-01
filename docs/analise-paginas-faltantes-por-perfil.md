@@ -30,7 +30,6 @@ O **Assistente Inteligente de Atendimento Escolar** (Qnexy) e uma plataforma vol
 | `public_operator` | Escola | Operador do atendimento ao publico (front de conversa) |
 | `secretariat` | Escola | Secretaria escolar — documentos, matricula, expediente |
 | `coordination` | Escola | Coordenacao pedagogica |
-| `treasury` | Escola | Tesouraria — acompanhamento administrativo |
 | `direction` | Escola | Direcao da unidade escolar |
 | `auditor` | Escola | Auditor de conformidade e governanca |
 | `observer` | Escola | Observador institucional (somente leitura) |
@@ -55,16 +54,16 @@ O **Assistente Inteligente de Atendimento Escolar** (Qnexy) e uma plataforma vol
 
 ### Permissoes atuais por perfil
 
-| page_key | net_mgr | curator | operator | secret. | coord. | treasury | direction | auditor | observer |
-|---|---|---|---|---|---|---|---|---|---|
-| dashboard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| chat-manager | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
-| reports | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
-| audit | ✅ | ✅ | — | — | — | ✅ | ✅ | ✅ | — |
-| users | ✅ | — | — | — | — | — | — | — | — |
-| preferences | ✅ | — | — | — | — | — | — | — | — |
-| knowledge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ |
-| official-content | ✅ | ✅ | ✅ | ✅ | — | — | ✅ | — | — |
+| page_key | net_mgr | curator | operator | secret. | coord. | direction | auditor | observer |
+|---|---|---|---|---|---|---|---|---|
+| dashboard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| chat-manager | ✅ | — | ✅ | ✅ | ✅ | ✅ | — | — |
+| reports | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ |
+| audit | ✅ | ✅ | — | — | — | ✅ | ✅ | — |
+| users | ✅ | — | — | — | — | — | — | — |
+| preferences | ✅ | — | — | — | — | — | — | — |
+| knowledge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ |
+| official-content | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
 
 ---
 
@@ -104,7 +103,6 @@ As quatro paginas abaixo sao aderentes ao proposito governamental da plataforma 
 | `public_operator` | Consultar comunicados vigentes para informar o cidadao |
 | `secretariat` | Visualizar + criar (tambem em WRITE_ROLES) |
 | `coordination` | Visualizar + criar (tambem em WRITE_ROLES) |
-| `treasury` | Consultar comunicados relevantes a sua area |
 | `direction` | Visualizar + criar (tambem em WRITE_ROLES) |
 | `observer` | Acompanhar comunicados publicados |
 
@@ -204,7 +202,7 @@ As quatro paginas abaixo sao aderentes ao proposito governamental da plataforma 
 **Comportamento por perfil:**
 - **superadmin / network_manager / auditor** — veem todos os incidentes de escolas gerenciadas; podem alterar status (IN_REVIEW, RESOLVED, DISMISSED) e escrever notas de resolucao
 - **direction / content_curator / coordination / public_operator** — visualizam incidentes; nao podem alterar status
-- **secretariat / treasury / observer** — sem acesso a pagina
+- **secretariat / observer** — sem acesso a pagina
 
 ---
 
@@ -459,21 +457,21 @@ Alem das 4 paginas confirmadas, a analise do backend revela lacunas de visibilid
 
 ### Paginas confirmadas
 
-| Pagina | superadmin | net_mgr | curator | operator | secret. | coord. | treasury | direction | auditor | observer |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Mural de Comunicados | ✅ | ✅ | ✏️ | 👁 | ✅ | ✅ | 👁 | ✅ | — | 👁 |
-| Painel de Incidentes | ✅ | ✅ | 👁 | 👁 | — | 👁 | — | 👁 | ✅ | — |
-| Feedback da IA | ✅ | ✅ | ✅ | 👁 | — | — | — | 👁 | 👁 | — |
-| Gestao de Notificacoes | ✅ | ✅ | — | — | ✅ | 👁 | — | ✅ | — | — |
+| Pagina | superadmin | net_mgr | curator | operator | secret. | coord. | direction | auditor | observer |
+|---|---|---|---|---|---|---|---|---|---|
+| Mural de Comunicados | ✅ | ✅ | ✏️ | 👁 | ✅ | ✅ | ✅ | — | 👁 |
+| Painel de Incidentes | ✅ | ✅ | 👁 | 👁 | — | 👁 | 👁 | ✅ | — |
+| Feedback da IA | ✅ | ✅ | ✅ | 👁 | — | — | 👁 | 👁 | — |
+| Gestao de Notificacoes | ✅ | ✅ | — | — | ✅ | 👁 | ✅ | — | — |
 
 ### Paginas sugeridas (lacunas de visibilidade com dados ja disponiveis)
 
-| Pagina | superadmin | net_mgr | curator | operator | secret. | coord. | treasury | direction | auditor | observer |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Lacunas de Conhecimento | ✅ | ✅ | ✅ | — | 👁 | — | — | 👁 | — | — |
-| Fila de Atendimento Humano | ✅ | ✅ | — | ✅ | ✅ | 👁 | — | 👁 | — | — |
-| Trilha de Correcoes da IA | ✅ | ✅ | ✅ | — | — | — | — | 👁 | ✅ | — |
-| Visao Consolidada da Rede | ✅ | ✅ | — | — | — | — | — | 👁 | 👁 | — |
+| Pagina | superadmin | net_mgr | curator | operator | secret. | coord. | direction | auditor | observer |
+|---|---|---|---|---|---|---|---|---|---|
+| Lacunas de Conhecimento | ✅ | ✅ | ✅ | — | 👁 | — | 👁 | — | — |
+| Fila de Atendimento Humano | ✅ | ✅ | — | ✅ | ✅ | 👁 | 👁 | — | — |
+| Trilha de Correcoes da IA | ✅ | ✅ | ✅ | — | — | — | 👁 | ✅ | — |
+| Visao Consolidada da Rede | ✅ | ✅ | — | — | — | — | 👁 | 👁 | — |
 
 **Legenda:** ✅ = acesso completo (CRUD/gestao) | ✏️ = revisao/aprovacao | 👁 = leitura/acompanhamento | — = sem acesso
 

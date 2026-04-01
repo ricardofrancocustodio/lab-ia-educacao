@@ -1,12 +1,45 @@
+/**
+ * Notifications Panel Page (Jira-style)
+ * Pagina completa de notificacoes do usuario com read/unread, filtros e agrupamento temporal.
+ */
 const NotificationsPanelPage = (() => {
   function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return String(text || '').replace(/[&<>"']/g, m => map[m]);
   }
 
-  const SEND_ROLES = new Set(['superadmin', 'network_manager', 'direction', 'secretariat']);
+  const TOPIC_CONFIG = {
+    incident_resolved:          { icon: 'fa-check-circle',      color: '#28a745', bg: '#e8f5e9', label: 'Incidente Resolvido' },
+    incident_dismissed:         { icon: 'fa-times-circle',       color: '#6c757d', bg: '#f5f5f5', label: 'Incidente Descartado' },
+    incident_in_review:         { icon: 'fa-search',             color: '#007bff', bg: '#e3f2fd', label: 'Incidente em Revisao' },
+    incident_assigned:          { icon: 'fa-user-check',         color: '#6f42c1', bg: '#f3e5f5', label: 'Incidente Atribuido' },
+    incident_opened:            { icon: 'fa-exclamation-circle',  color: '#dc3545', bg: '#fce4ec', label: 'Incidente Aberto' },
+    correction_pending_approval:{ icon: 'fa-clipboard-check',    color: '#e67e22', bg: '#fef9e7', label: 'Correção Aguardando Aprovação' },
+    correction_approved:        { icon: 'fa-check-double',       color: '#28a745', bg: '#e8f5e9', label: 'Correção Aprovada' },
+    faq_auto_updated:           { icon: 'fa-robot',               color: '#6f42c1', bg: '#f3e5f5', label: 'FAQ Atualizada Automaticamente' },
+    feedback:                   { icon: 'fa-comment-dots',        color: '#17a2b8', bg: '#e0f7fa', label: 'Feedback' },
+    system:                     { icon: 'fa-cog',                 color: '#6c757d', bg: '#f5f5f5', label: 'Sistema' }
+  };
+  const DEFAULT_TOPIC = { icon: 'fa-bell', color: '#ffc107', bg: '#fff8e1', label: 'Notificacao' };
+
+  const TOPIC_NAV_TARGETS = {
+    incident_assigned:           '/audit',
+    incident_in_review:          '/incidentes',
+    incident_resolved:           '/incidentes',
+    incident_dismissed:          '/incidentes',
+    incident_opened:             '/incidentes',
+    correction_pending_approval: '/audit',
+    correction_approved:         '/audit',
+    faq_auto_updated:            '/conteudo-oficial'
+  };
+
+  function getNotifNavigationTarget(n) {
+    return TOPIC_NAV_TARGETS[n.topic] || '';
+  }
+
   let allNotifications = [];
-  let canSend = false;
+  let currentOffset = 0;
+  const PAGE_SIZE = 50;
 
   async function ensureAuthenticatedContext() {
     if (typeof window.initSession === 'function') {
@@ -17,171 +50,206 @@ const NotificationsPanelPage = (() => {
 
   async function getAuthHeaders() {
     const token = await window.getAccessToken();
-    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    return { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
   }
 
-  function formatDate(dateStr) {
+  function getTopicConfig(topic) {
+    return TOPIC_CONFIG[topic] || DEFAULT_TOPIC;
+  }
+
+  function timeAgo(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    if (isNaN(then)) return '';
+    const diff = Math.max(0, now - then);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'agora';
+    if (mins < 60) return mins + ' min atras';
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + 'h atras';
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'ontem';
+    if (days < 7) return days + ' dias atras';
+    return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function truncate(text, maxLen) {
-    if (!text || text.length <= maxLen) return text || '';
-    return text.substring(0, maxLen) + '...';
+  function getDateGroup(dateStr) {
+    if (!dateStr) return 'Anteriores';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+
+    if (d >= today) return 'Hoje';
+    if (d >= yesterday) return 'Ontem';
+    if (d >= weekAgo) return 'Esta semana';
+    return 'Anteriores';
   }
 
   function renderNotifCard(n) {
-    const statusBadge = n.sent
-      ? '<span class="notif-badge badge-sent"><i class="fas fa-check mr-1"></i>Enviada</span>'
-      : '<span class="notif-badge badge-pending"><i class="fas fa-clock mr-1"></i>Pendente</span>';
+    const cfg = getTopicConfig(n.topic);
+    const isUnread = !n.read_at;
+    const cardClass = isUnread ? 'notif-card notif-unread' : 'notif-card notif-read';
 
-    const isManual = n.details && n.details.manual;
-    const manualBadge = isManual ? ' <span class="notif-badge badge-manual"><i class="fas fa-hand-paper mr-1"></i>Manual</span>' : '';
-    const schoolLabel = n.school_name ? ` &middot; <i class="fas fa-school"></i> ${escapeHtml(n.school_name)}` : '';
-    const senderLabel = n.details?.sent_by ? `<span class="notif-meta ml-2"><i class="fas fa-user mr-1"></i>${escapeHtml(n.details.sent_by)}</span>` : '';
+    const schoolLabel = n.school_name ? '<span><i class="fas fa-school mr-1"></i>' + escapeHtml(n.school_name) + '</span>' : '';
+    const detailsInfo = n.details && n.details.incident_id
+      ? '<span><i class="fas fa-hashtag mr-1"></i>' + escapeHtml(n.details.incident_id.slice(0, 8)) + '</span>'
+      : '';
 
-    let messagePreview = '';
-    if (n.message) {
-      messagePreview = `<div class="notif-message-preview">${escapeHtml(truncate(n.message, 200))}</div>`;
-    }
+    const navTarget = getNotifNavigationTarget(n);
+    const navLink = navTarget
+      ? '<a href="' + escapeHtml(navTarget) + '" class="btn btn-sm btn-outline-primary mt-1" style="border-radius:999px;font-size:.75rem;padding:2px 10px;" onclick="event.stopPropagation(); NotificationsPanelPage.toggleRead(\'' + escapeHtml(n.id) + '\',true);"><i class="fas fa-external-link-alt mr-1"></i>Ver item</a>'
+      : '';
 
-    return `<div class="notif-card ${n.sent ? 'notif-sent' : 'notif-pending'}" onclick="NotificationsPanelPage.viewNotification('${n.id}')">
-      <div class="d-flex justify-content-between align-items-start flex-wrap">
-        <div>
-          ${statusBadge}${manualBadge}
-          <span class="ml-2 font-weight-bold">${escapeHtml(n.topic || 'Sem topico')}</span>
-          ${senderLabel}
-        </div>
-        <div class="notif-meta text-right">
-          ${formatDate(n.created_at)}${schoolLabel}
-        </div>
-      </div>
-      ${messagePreview}
-    </div>`;
+    return '<div class="' + cardClass + '" data-id="' + escapeHtml(n.id) + '" onclick="NotificationsPanelPage.toggleRead(\'' + escapeHtml(n.id) + '\',' + (isUnread ? 'true' : 'false') + ')">'
+      + (isUnread ? '<div class="notif-dot"></div>' : '<div style="width:8px;flex-shrink:0;"></div>')
+      + '<div class="notif-icon" style="background:' + cfg.bg + ';"><i class="fas ' + cfg.icon + '" style="color:' + cfg.color + ';font-size:.9rem;"></i></div>'
+      + '<div class="notif-body">'
+      + '<div class="notif-msg">' + escapeHtml(n.message || '') + '</div>'
+      + '<div class="notif-meta">'
+      + '<span class="notif-topic-badge" style="background:' + cfg.bg + ';color:' + cfg.color + ';">' + escapeHtml(cfg.label) + '</span>'
+      + '<span><i class="far fa-clock mr-1"></i>' + timeAgo(n.created_at) + '</span>'
+      + schoolLabel
+      + detailsInfo
+      + '</div>'
+      + navLink
+      + '</div></div>';
   }
 
-  function renderList(notifications) {
+  function renderGroupedList(notifications) {
     const container = document.getElementById('notif-list');
     const countLabel = document.getElementById('notif-count-label');
     countLabel.textContent = notifications.length + ' notificac' + (notifications.length !== 1 ? 'oes' : 'ao');
+
     if (!notifications.length) {
-      container.innerHTML = '<div class="notif-empty"><i class="fas fa-bell-slash fa-2x mb-2 d-block"></i>Nenhuma notificacao encontrada.</div>';
+      container.innerHTML = '<div class="notif-empty"><i class="fas fa-bell-slash fa-2x mb-2 d-block" style="opacity:.4;"></i><div style="font-size:.92rem;">Nenhuma notificacao encontrada</div></div>';
       return;
     }
-    container.innerHTML = notifications.map(renderNotifCard).join('');
+
+    // Agrupar por data
+    const groups = {};
+    const groupOrder = ['Hoje', 'Ontem', 'Esta semana', 'Anteriores'];
+    notifications.forEach(n => {
+      const group = getDateGroup(n.created_at);
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(n);
+    });
+
+    let html = '';
+    groupOrder.forEach(groupName => {
+      if (!groups[groupName] || !groups[groupName].length) return;
+      html += '<div class="notif-group-header">' + escapeHtml(groupName) + '</div>';
+      html += groups[groupName].map(renderNotifCard).join('');
+    });
+
+    container.innerHTML = html;
   }
 
   function applyFilters() {
-    const sent = document.getElementById('filter-sent').value;
+    const readFilter = document.getElementById('filter-read').value;
+    const topicFilter = document.getElementById('filter-topic').value;
+
     let filtered = [...allNotifications];
-    if (sent === 'true') filtered = filtered.filter(n => n.sent === true);
-    else if (sent === 'false') filtered = filtered.filter(n => n.sent === false);
-    renderList(filtered);
+    if (readFilter === 'true') filtered = filtered.filter(n => n.read_at);
+    else if (readFilter === 'false') filtered = filtered.filter(n => !n.read_at);
+    if (topicFilter) filtered = filtered.filter(n => n.topic === topicFilter);
+
+    renderGroupedList(filtered);
   }
 
-  async function loadNotifications() {
+  async function loadNotifications(append) {
     const headers = await getAuthHeaders();
-    const sentFilter = document.getElementById('filter-sent').value;
-    let url = '/api/notifications/queue?_t=' + Date.now();
-    if (sentFilter) url += '&sent=' + sentFilter;
+
+    const readFilter = document.getElementById('filter-read').value;
+    const topicFilter = document.getElementById('filter-topic').value;
+
+    let url = '/api/notifications/my?limit=' + PAGE_SIZE + '&offset=' + currentOffset + '&_t=' + Date.now();
+    if (readFilter) url += '&read=' + readFilter;
+    if (topicFilter) url += '&topic=' + topicFilter;
+
     const res = await fetch(url, { headers });
     const data = await res.json();
     if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao carregar notificacoes.');
-    allNotifications = data.notifications || [];
+
+    const newNotifs = data.notifications || [];
+
+    if (append) {
+      allNotifications = allNotifications.concat(newNotifs);
+    } else {
+      allNotifications = newNotifs;
+    }
+
     applyFilters();
+
+    // Show/hide load more
+    const loadMoreBtn = document.getElementById('notif-load-more');
+    if (loadMoreBtn) loadMoreBtn.style.display = newNotifs.length >= PAGE_SIZE ? '' : 'none';
   }
 
   async function loadStats() {
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/notifications/stats/summary?_t=' + Date.now(), { headers });
-      const data = await res.json();
-      if (!res.ok || data.ok === false) return;
-      const s = data.stats || {};
-      document.getElementById('stat-total').textContent = s.total ?? '-';
-      document.getElementById('stat-sent').textContent = s.sent ?? '-';
-      document.getElementById('stat-pending').textContent = s.pending ?? '-';
-      document.getElementById('stat-today').textContent = s.today ?? '-';
+      const [countRes, allRes] = await Promise.all([
+        fetch('/api/notifications/my/unread-count?_t=' + Date.now(), { headers }),
+        fetch('/api/notifications/my?limit=200&_t=' + Date.now(), { headers })
+      ]);
+      const countData = await countRes.json();
+      const allData = await allRes.json();
+
+      const allNotifs = allData.notifications || [];
+      const unread = countData.unread || 0;
+      const total = allNotifs.length;
+      const read = total - unread;
+      const today = new Date().toISOString().slice(0, 10);
+      const todayCount = allNotifs.filter(n => n.created_at && n.created_at.startsWith(today)).length;
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-unread').textContent = unread;
+      document.getElementById('stat-read').textContent = read;
+      document.getElementById('stat-today').textContent = todayCount;
+
+      // Show/hide mark all read button
+      const markAllBtn = document.getElementById('btn-mark-all-read');
+      if (markAllBtn) markAllBtn.style.display = unread > 0 ? '' : 'none';
     } catch (e) {
       console.warn('Erro ao carregar stats de notificacoes:', e);
     }
   }
 
-  async function viewNotification(id) {
+  async function toggleRead(id, markAsRead) {
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch(`/api/notifications/queue/${id}`, { headers });
-      const data = await res.json();
-      if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao carregar notificacao.');
-
-      const n = data.notification;
-      const deliveries = data.deliveries || [];
-
-      const statusBadge = n.sent
-        ? '<span class="notif-badge badge-sent"><i class="fas fa-check mr-1"></i>Enviada</span>'
-        : '<span class="notif-badge badge-pending"><i class="fas fa-clock mr-1"></i>Pendente</span>';
-
-      let deliveriesHtml = '';
-      if (deliveries.length) {
-        deliveriesHtml = '<hr><p class="font-weight-bold mb-2"><i class="fas fa-users mr-1"></i>Entregas (' + deliveries.length + ')</p>' +
-          '<table class="table table-sm table-bordered"><thead><tr><th>Usuario</th><th>Enviado em</th></tr></thead><tbody>' +
-          deliveries.map(d => `<tr><td>${escapeHtml(d.user_id)}</td><td>${formatDate(d.sent_at)}</td></tr>`).join('') +
-          '</tbody></table>';
+      if (markAsRead) {
+        await fetch('/api/notifications/' + encodeURIComponent(id) + '/read', { method: 'PUT', headers });
       }
+      // Update local state
+      const notif = allNotifications.find(n => n.id === id);
+      if (notif && markAsRead) notif.read_at = new Date().toISOString();
 
-      let detailsHtml = '';
-      if (n.details && Object.keys(n.details).length) {
-        const clean = { ...n.details };
-        detailsHtml = `<hr><p class="font-weight-bold mb-1"><i class="fas fa-info-circle mr-1"></i>Detalhes</p>
-          <pre style="background:#f7f9fc;padding:10px;border-radius:8px;font-size:.82rem;max-height:200px;overflow:auto;">${escapeHtml(JSON.stringify(clean, null, 2))}</pre>`;
-      }
+      applyFilters();
+      await loadStats();
 
-      document.getElementById('notifDetailTitle').textContent = n.topic || 'Notificacao';
-      document.getElementById('notifDetailBody').innerHTML = `
-        <div class="mb-3">${statusBadge}</div>
-        <p class="notif-meta"><i class="fas fa-clock mr-1"></i>Criada em ${formatDate(n.created_at)}</p>
-        ${n.dispatch_date ? '<p class="notif-meta"><i class="fas fa-calendar mr-1"></i>Data de despacho: ' + escapeHtml(n.dispatch_date) + '</p>' : ''}
-        ${n.school_name ? '<p class="notif-meta"><i class="fas fa-school mr-1"></i>' + escapeHtml(n.school_name) + '</p>' : ''}
-        <hr>
-        <p class="font-weight-bold mb-1"><i class="fas fa-envelope mr-1"></i>Mensagem</p>
-        <div class="notif-message-preview">${escapeHtml(n.message || '')}</div>
-        ${detailsHtml}
-        ${deliveriesHtml}
-      `;
-
-      $('#notifDetailModal').modal('show');
-    } catch (err) {
-      Swal.fire('Erro', err.message, 'error');
+      // Refresh header badge
+      if (typeof HeaderNotifications !== 'undefined') HeaderNotifications.refresh();
+    } catch (e) {
+      console.warn('Erro ao marcar notificacao:', e);
     }
   }
 
-  async function sendNotification() {
-    const topic = document.getElementById('send-topic').value.trim();
-    const message = document.getElementById('send-message').value.trim();
-    if (!topic || !message) {
-      Swal.fire('Atenção', 'Preencha topico e mensagem.', 'warning');
-      return;
-    }
-
+  async function markAllRead() {
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch('/api/notifications/send', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ topic, message })
-      });
-      const data = await res.json();
-      if (!res.ok || data.ok === false) throw new Error(data.error || 'Falha ao enviar notificacao.');
+      await fetch('/api/notifications/read-all', { method: 'PUT', headers });
 
-      $('#notifSendModal').modal('hide');
-      document.getElementById('send-topic').value = '';
-      document.getElementById('send-message').value = '';
-      Swal.fire({ icon: 'success', title: 'Notificacao enfileirada', text: 'Sera processada nos proximos minutos.', timer: 2500, showConfirmButton: false });
-      await Promise.all([loadNotifications(), loadStats()]);
-    } catch (err) {
-      Swal.fire('Erro', err.message, 'error');
+      allNotifications.forEach(n => { if (!n.read_at) n.read_at = new Date().toISOString(); });
+      applyFilters();
+      await loadStats();
+
+      if (typeof HeaderNotifications !== 'undefined') HeaderNotifications.refresh();
+    } catch (e) {
+      Swal.fire('Erro', e.message || 'Falha ao marcar todas como lidas.', 'error');
     }
   }
 
@@ -189,18 +257,30 @@ const NotificationsPanelPage = (() => {
     try {
       await ensureAuthenticatedContext();
 
-      const role = sessionStorage.getItem('EFFECTIVE_ROLE') || sessionStorage.getItem('USER_ROLE') || '';
-      canSend = SEND_ROLES.has(role);
-      if (canSend) {
-        const btnNew = document.getElementById('btn-new-notification');
-        btnNew.style.display = '';
-        btnNew.addEventListener('click', () => $('#notifSendModal').modal('show'));
+      // Bind filters
+      document.getElementById('filter-read').addEventListener('change', () => {
+        currentOffset = 0;
+        loadNotifications(false);
+      });
+      document.getElementById('filter-topic').addEventListener('change', () => {
+        currentOffset = 0;
+        loadNotifications(false);
+      });
+
+      // Mark all read
+      const markAllBtn = document.getElementById('btn-mark-all-read');
+      if (markAllBtn) markAllBtn.addEventListener('click', markAllRead);
+
+      // Load more
+      const loadMoreBtn = document.getElementById('btn-load-more');
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+          currentOffset += PAGE_SIZE;
+          loadNotifications(true);
+        });
       }
 
-      document.getElementById('btn-confirm-send').addEventListener('click', sendNotification);
-      document.getElementById('filter-sent').addEventListener('change', () => loadNotifications());
-
-      await Promise.all([loadNotifications(), loadStats()]);
+      await Promise.all([loadNotifications(false), loadStats()]);
 
       document.getElementById('notif-loading').style.display = 'none';
       document.getElementById('notif-root').style.display = '';
@@ -214,5 +294,5 @@ const NotificationsPanelPage = (() => {
     init();
   });
 
-  return { viewNotification };
+  return { toggleRead, markAllRead };
 })();

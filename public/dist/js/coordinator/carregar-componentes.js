@@ -33,7 +33,7 @@ function getRoleLabel(role) {
         public_operator: 'Atendimento Público',
         secretariat: 'Secretaria',
         coordination: 'Coordenação',
-        treasury: 'Tesouraria',
+        teacher: 'Professor',
         direction: 'Direção',
         auditor: 'Auditoria e Compliance',
         observer: 'Observador Externo'
@@ -48,7 +48,7 @@ const headerRoleTheme = {
     public_operator: { bg: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', accent: '#475569', soft: '#e2e8f0' },
     secretariat: { bg: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', accent: '#0e7490', soft: '#dbeafe' },
     coordination: { bg: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', accent: '#6d28d9', soft: '#ede9fe' },
-    treasury: { bg: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)', accent: '#16a34a', soft: '#dcfce7' },
+    teacher: { bg: 'linear-gradient(135deg, #16a34a 0%, #166534 100%)', accent: '#15803d', soft: '#dcfce7' },
     direction: { bg: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)', accent: '#e11d48', soft: '#ffe4e6' },
     auditor: { bg: 'linear-gradient(135deg, #334155 0%, #0f172a 100%)', accent: '#1e293b', soft: '#e2e8f0' },
     observer: { bg: 'linear-gradient(135deg, #0ea5e9 0%, #1d4ed8 100%)', accent: '#2563eb', soft: '#dbeafe' }
@@ -484,6 +484,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (typeof renderSchoolSwitcher === 'function') {
         await renderSchoolSwitcher();
+    }
+
+    // Inicializar notificacoes do header (Jira-style bell dropdown)
+    if (typeof HeaderNotifications !== 'undefined' && typeof HeaderNotifications.init === 'function') {
+        HeaderNotifications.init().catch(e => console.warn('HeaderNotifications init:', e?.message || e));
     }
 
     document.body.style.opacity = '1';

@@ -158,7 +158,7 @@ O sistema atende perfis distintos, que devem ser separados entre quem **consulta
 | Secretaria escolar | Uso direto para consulta, validacao operacional e eventual encerramento de conversa |
 | `public_operator` | Operacao de atendimento com acesso operacional, sem detalhes profundos de governanca |
 | `secretariat` e `coordination` | Perfis internos de uso cotidiano, com capacidade operacional e menor acesso a detalhes sensiveis |
-| `direction` e `treasury` | Perfis internos especializados, com acesso ampliado a conteudos da respectiva area |
+| `direction` e `auditor` | Perfis internos especializados, com acesso ampliado a conteudos da respectiva area ou de governanca |
 | `content_curator` e `auditor` | Supervisao de qualidade, evidencia, feedback e incidentes |
 | `network_manager` e `superadmin` | Gestao ampla do piloto, incluindo governanca, configuracao e acompanhamento executivo |
 

@@ -1,15 +1,15 @@
 ﻿begin;
 
 -- Ajuste os nomes/slugs se o seu ambiente usar outros identificadores.
--- Este script cria duas redes distintas, vincula Escola A e Escola B a redes-pai diferentes
+-- Este script cria duas redes distintas, vincula CEF 01 (DF) e CEPI Lyceu (GO) a redes-pai diferentes
 -- e garante um Gestor de Rede para cada uma.
 
 with desired_networks as (
   select *
   from (
     values
-      ('rede-a', 'Gestor de Rede A', 'gestor.rede-a@lab-ia.gov.br'),
-      ('rede-b', 'Gestor de Rede B', 'gestor.rede-b@lab-ia.gov.br')
+      ('seedf', 'Secretaria de Educacao do DF', 'gestor.rede-a@lab-ia.gov.br'),
+      ('seduc-go', 'Secretaria de Educacao de Goias', 'gestor.rede-b@lab-ia.gov.br')
   ) as t(network_slug, network_name, manager_email)
 ), upsert_networks as (
   insert into public.schools (
@@ -36,29 +36,29 @@ select 1;
 with network_map as (
   select s.id, s.slug, s.name
   from public.schools s
-  where s.slug in ('rede-a', 'rede-b')
+  where s.slug in ('seedf', 'seduc-go')
 ), school_map as (
   select s.id, s.slug, s.name
   from public.schools s
-  where s.slug in ('escola-a', 'escola-b')
+  where s.slug in ('cef01-brasilia', 'cepi-lyceu-goiania')
 )
 update public.schools s
 set
   institution_type = 'school_unit',
   parent_school_id = case
-    when s.slug = 'escola-a' then (select id from network_map where slug = 'rede-a')
-    when s.slug = 'escola-b' then (select id from network_map where slug = 'rede-b')
+    when s.slug = 'cef01-brasilia' then (select id from network_map where slug = 'seedf')
+    when s.slug = 'cepi-lyceu-goiania' then (select id from network_map where slug = 'seduc-go')
     else s.parent_school_id
   end
-where s.slug in ('escola-a', 'escola-b');
+where s.slug in ('cef01-brasilia', 'cepi-lyceu-goiania');
 
 -- Garante um Gestor de Rede em cada rede-pai.
 with target_members as (
   select *
   from (
     values
-      ('rede-a', 'Gestor de Rede A', 'gestor.rede-a@lab-ia.gov.br'),
-      ('rede-b', 'Gestor de Rede B', 'gestor.rede-b@lab-ia.gov.br')
+      ('seedf', 'Gestor de Rede DF', 'gestor.rede-a@lab-ia.gov.br'),
+      ('seduc-go', 'Gestor de Rede GO', 'gestor.rede-b@lab-ia.gov.br')
   ) as t(network_slug, member_name, member_email)
 ), resolved_networks as (
   select

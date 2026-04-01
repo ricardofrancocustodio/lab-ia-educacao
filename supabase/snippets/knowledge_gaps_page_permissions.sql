@@ -18,7 +18,7 @@ set label = excluded.label,
 -- 2. PERMISSOES POR ESCOLA
 -- ============================================================================
 -- Perfis com acesso: superadmin, network_manager, content_curator, direction, secretariat
--- Perfis SEM acesso: public_operator, coordination, treasury, auditor, observer
+-- Perfis SEM acesso: public_operator, coordination, auditor, observer
 
 insert into public.role_page_permissions (school_id, role, page_key, allowed)
 select s.id, r.role, 'knowledge-gaps', true
@@ -75,13 +75,6 @@ begin
 
   r := 'coordination';
   foreach p in array array['dashboard','chat-manager','reports','incidents','notifications','knowledge','notices'] loop
-    insert into public.role_page_permissions (school_id, role, page_key, allowed)
-    values (p_school_id, r, p, true)
-    on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
-  end loop;
-
-  r := 'treasury';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge','audit','notices'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
