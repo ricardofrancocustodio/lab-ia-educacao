@@ -377,14 +377,14 @@ begin
   delete from public.role_page_permissions where school_id = p_school_id;
 
   r := 'network_manager';
-  foreach p in array array['dashboard','chat-manager','reports','audit','users','preferences','knowledge','official-content'] loop
+  foreach p in array array['dashboard','chat-manager','reports','audit','users','preferences','knowledge','official-content','teacher-governance'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'content_curator';
-  foreach p in array array['dashboard','reports','audit','knowledge','official-content'] loop
+  foreach p in array array['dashboard','reports','audit','knowledge','official-content','teacher-governance'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
@@ -405,21 +405,21 @@ begin
   end loop;
 
   r := 'coordination';
-  foreach p in array array['dashboard','chat-manager','reports','knowledge','teaching-content'] loop
+  foreach p in array array['dashboard','chat-manager','reports','knowledge','teaching-content','teacher-governance'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'teacher';
-  foreach p in array array['teaching-content'] loop
+  foreach p in array array['teaching-content','teacher-governance'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();
   end loop;
 
   r := 'direction';
-  foreach p in array array['dashboard','chat-manager','reports','audit','knowledge','official-content','teaching-content'] loop
+  foreach p in array array['dashboard','chat-manager','reports','audit','knowledge','official-content','teaching-content','teacher-governance'] loop
     insert into public.role_page_permissions (school_id, role, page_key, allowed)
     values (p_school_id, r, p, true)
     on conflict (school_id, role, page_key) do update set allowed = excluded.allowed, updated_at = now();

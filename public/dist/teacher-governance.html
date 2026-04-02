@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head id="component-head">
+  <title>Assistente Publico | Painel de Governanca Pedagogica</title>
+  <style>
+    body { opacity: 0; transition: opacity .3s ease; }
+    .gov-hero { background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%); border: 1px solid #c7ddf5; border-radius: 16px; padding: 20px; margin-bottom: 1rem; }
+    .gov-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 1rem; }
+    .gov-stat { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px; text-align: center; transition: box-shadow .2s; }
+    .gov-stat:hover { box-shadow: 0 4px 14px rgba(20,43,73,.08); }
+    .gov-stat .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .gov-stat .stat-label { font-size: .82rem; color: #6c757d; margin-top: 4px; }
+    .gov-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr); gap: 16px; }
+    .gov-card { border-radius: 14px; border: 1px solid #e5edf6; box-shadow: 0 6px 18px rgba(15,23,42,.06); }
+    .gov-card .card-header { background: transparent; border-bottom: 1px solid #edf2f7; }
+    .gov-session { border: 1px solid #e5edf6; border-radius: 12px; background: #fff; padding: 14px; cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .2s; }
+    .gov-session:hover { border-color: #9cc1e7; box-shadow: 0 8px 18px rgba(30,64,175,.08); transform: translateY(-1px); }
+    .gov-session.active { border-color: #2563eb; box-shadow: 0 10px 22px rgba(37,99,235,.12); }
+    .gov-session + .gov-session { margin-top: 10px; }
+    .gov-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; background: #f8fafc; border: 1px solid #dbe7f5; font-size: .78rem; color: #385170; }
+    .gov-pill-open { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+    .gov-pill-waiting { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .gov-pill-resolved { background: #ecfdf5; border-color: #86efac; color: #166534; }
+    .gov-pill-escalation { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .gov-empty { border: 1px dashed #c9d7e6; border-radius: 12px; padding: 32px; text-align: center; color: #64748b; background: #f8fbff; }
+    .gov-filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: flex-end; }
+    .gov-filter-bar label { font-size: .82rem; color: #475569; margin-bottom: 2px; }
+    .gov-filter-bar input, .gov-filter-bar select { font-size: .85rem; padding: 4px 8px; border-radius: 8px; border: 1px solid #d1d5db; }
+    .gov-chat-bubble { padding: 10px 14px; border-radius: 14px; margin-bottom: 8px; max-width: 85%; word-break: break-word; font-size: .9rem; line-height: 1.4; }
+    .gov-chat-user { background: #eff6ff; border: 1px solid #bfdbfe; margin-right: auto; border-bottom-left-radius: 4px; }
+    .gov-chat-assistant { background: #f0fdf4; border: 1px solid #bbf7d0; margin-left: auto; border-bottom-right-radius: 4px; }
+    .gov-chat-meta { font-size: .75rem; color: #94a3b8; margin-top: 2px; }
+    .gov-chat-feedback { display: inline-flex; gap: 4px; margin-top: 4px; }
+    .gov-chat-feedback .badge { font-size: .7rem; }
+    .gov-incident-card { border: 1px solid #e5edf6; border-radius: 12px; padding: 12px; margin-bottom: 8px; background: #fffbf5; }
+    .gov-incident-card.sev-high { border-left: 4px solid #dc3545; }
+    .gov-incident-card.sev-medium { border-left: 4px solid #ffc107; }
+    .gov-incident-card.sev-low { border-left: 4px solid #6c757d; }
+    .gov-discipline-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .gov-discipline-bar .bar-fill { height: 20px; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 4px; min-width: 8px; }
+    .gov-discipline-bar .bar-label { font-size: .82rem; color: #334155; min-width: 100px; }
+    .gov-discipline-bar .bar-count { font-size: .82rem; font-weight: 600; color: #1e3a5f; }
+    @media (max-width: 992px) {
+      .gov-layout { grid-template-columns: 1fr; }
+      .gov-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    }
+  </style>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed" data-page="teacher-governance">
+  <div class="wrapper">
+    <div id="component-header"></div>
+    <div id="component-sidebar"></div>
+    <div class="content-wrapper">
+      <section class="content-header pb-0">
+        <div class="container-fluid">
+          <div class="gov-hero">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center">
+              <div>
+                <h1 class="m-0"><i class="fas fa-chalkboard mr-2 text-primary"></i>Painel de Governanca Pedagogica</h1>
+                <p class="text-muted mb-0 mt-2">Acompanhe as interacoes dos alunos com a IA, disciplinas mais consultadas, incidentes e feedback.</p>
+              </div>
+              <div class="mt-2 mt-lg-0">
+                <button id="gov-refresh-btn" class="btn btn-outline-primary btn-sm"><i class="fas fa-sync-alt mr-1"></i>Atualizar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="container-fluid">
+
+          <!-- KPI Cards -->
+          <div class="gov-stats" id="gov-stats"></div>
+
+          <!-- Filters -->
+          <div class="gov-filter-bar">
+            <div>
+              <label for="gov-filter-discipline">Disciplina</label><br>
+              <select id="gov-filter-discipline" class="form-control form-control-sm"><option value="">Todas</option></select>
+            </div>
+            <div>
+              <label for="gov-filter-status">Status sessao</label><br>
+              <select id="gov-filter-status" class="form-control form-control-sm">
+                <option value="">Todos</option>
+                <option value="OPEN">Aberta</option>
+                <option value="WAITING_HUMAN">Aguardando professor</option>
+                <option value="RESOLVED">Resolvida</option>
+              </select>
+            </div>
+            <div>
+              <label for="gov-filter-student">Aluno</label><br>
+              <input id="gov-filter-student" type="text" placeholder="Nome do aluno..." class="form-control form-control-sm">
+            </div>
+            <div>
+              <label for="gov-filter-from">De</label><br>
+              <input id="gov-filter-from" type="date" class="form-control form-control-sm">
+            </div>
+            <div>
+              <label for="gov-filter-to">Ate</label><br>
+              <input id="gov-filter-to" type="date" class="form-control form-control-sm">
+            </div>
+            <div>
+              <button id="gov-filter-apply" class="btn btn-primary btn-sm mt-3"><i class="fas fa-search mr-1"></i>Filtrar</button>
+            </div>
+          </div>
+
+          <!-- Main layout: sessions list + detail -->
+          <div class="gov-layout">
+            <!-- Left: Session list -->
+            <div class="gov-card card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title m-0"><i class="fas fa-comments mr-2"></i>Sessoes de Chat</h5>
+                <span class="badge badge-primary" id="gov-session-count">0</span>
+              </div>
+              <div class="card-body p-3" id="gov-session-list" style="max-height: 70vh; overflow-y: auto;">
+                <div class="gov-empty">Carregando sessoes...</div>
+              </div>
+            </div>
+
+            <!-- Right: Session detail + incidents -->
+            <div>
+              <div class="gov-card card mb-3">
+                <div class="card-header">
+                  <h5 class="card-title m-0"><i class="fas fa-eye mr-2"></i>Conversa</h5>
+                </div>
+                <div class="card-body p-3" id="gov-chat-detail" style="max-height: 55vh; overflow-y: auto;">
+                  <div class="gov-empty">Selecione uma sessao na lista para visualizar.</div>
+                </div>
+              </div>
+
+              <div class="gov-card card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h5 class="card-title m-0"><i class="fas fa-exclamation-circle mr-2 text-warning"></i>Incidentes / Escalonamentos</h5>
+                  <span class="badge badge-warning" id="gov-incident-count">0</span>
+                </div>
+                <div class="card-body p-3" id="gov-incident-list" style="max-height: 30vh; overflow-y: auto;">
+                  <div class="gov-empty">Nenhum incidente pendente.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Discipline distribution -->
+          <div class="gov-card card mt-3">
+            <div class="card-header">
+              <h5 class="card-title m-0"><i class="fas fa-chart-bar mr-2 text-info"></i>Disciplinas Mais Consultadas</h5>
+            </div>
+            <div class="card-body p-3" id="gov-disciplines-chart"></div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <div id="component-footer"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="../js/supabaseConfig.js"></script>
+  <script src="./js/school-switcher.js"></script>
+  <script src="./js/session.js"></script>
+  <script src="./js/permissions.js"></script>
+  <script src="./js/cache.js"></script>
+  <script src="./js/js.js"></script>
+  <script src="./js/coordinator/carregar-componentes.js"></script>
+  <script src="./js/teacher-governance/teacher-governance.js"></script>
+</body>
+</html>

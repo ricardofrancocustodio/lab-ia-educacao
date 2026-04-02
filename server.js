@@ -161,8 +161,9 @@ const distPages = new Set([
   "handoff-queue",
   "improvement-cycle",
   "network-overview",
-  "student-chat",
-  "calendario-escolar"
+  "calendario-escolar",
+  "teacher-governance",
+  "guia-uso"
 ]);
 
 app.get("/", (_req, res) => serveDistPage(res, "index.html"));
@@ -195,7 +196,8 @@ app.get("/visao-rede", (_req, res) => serveDistPage(res, "network-overview.html"
 app.get("/notificacoes", (_req, res) => serveDistPage(res, "notifications.html"));
 app.get("/lacunas", (_req, res) => serveDistPage(res, "knowledge-gaps.html"));
 app.get("/calendario-escolar", (_req, res) => serveDistPage(res, "calendario-escolar.html"));
-app.get("/chat-aluno", (_req, res) => serveDistPage(res, "student-chat.html"));
+app.get("/governanca-professor", (_req, res) => serveDistPage(res, "teacher-governance.html"));
+app.get("/guia-uso", (_req, res) => serveDistPage(res, "guia-uso.html"));
 app.get("/esqueci-senha", (_req, res) => serveDistPage(res, "forgot-password.html"));
 app.get("/redefinir-senha", (_req, res) => serveDistPage(res, "reset-password.html"));
 app.get("/ativar-conta", (_req, res) => serveDistPage(res, "accept-invite.html"));
@@ -7414,6 +7416,291 @@ app.get("/api/knowledge-gaps/by-assistant", async (req, res) => {
   } catch (error) {
     console.error("Erro GET /api/knowledge-gaps/by-assistant:", error);
     return res.status(500).json({ ok: false, error: "Falha ao carregar lacunas por assistente." });
+  }
+});
+
+// ===================== TEACHER GOVERNANCE PANEL =====================
+
+const TEACHER_GOVERNANCE_ALLOWED_ROLES = new Set([
+  "superadmin", "network_manager", "content_curator", "coordination", "teacher", "direction"
+]);
+
+app.get("/api/teacher-governance/summary", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHER_GOVERNANCE_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+    const schoolId = access.context.schoolId;
+
+    const [sessionsResult, responsesResult, feedbackResult, incidentsResult] = await Promise.all([
+      supabase
+        .from("institutional_consultations")
+        .select("id, status, opened_at, metadata")
+        .eq("school_id", schoolId)
+        .eq("channel", "student_chat"),
+      supabase
+        .from("assistant_responses")
+        .select("id, confidence_score, fallback_to_human, response_mode, created_at")
+        .eq("school_id", schoolId)
+        .eq("assistant_key", "public.assistant"),
+      supabase
+        .from("interaction_feedback")
+        .select("id, feedback_type")
+        .eq("school_id", schoolId),
+      supabase
+        .from("incident_reports")
+        .select("id, status, severity, incident_type")
+        .eq("school_id", schoolId)
+    ]);
+    if (sessionsResult.error) throw sessionsResult.error;
+    if (responsesResult.error) throw responsesResult.error;
+    if (feedbackResult.error) throw feedbackResult.error;
+    if (incidentsResult.error) throw incidentsResult.error;
+
+    const sessions = sessionsResult.data || [];
+    const responses = responsesResult.data || [];
+    const feedback = feedbackResult.data || [];
+    const incidents = incidentsResult.data || [];
+
+    const totalSessions = sessions.length;
+    const openSessions = sessions.filter((s) => s.status === "OPEN" || s.status === "WAITING_HUMAN").length;
+    const totalResponses = responses.length;
+    const avgConfidence = responses.length
+      ? responses.reduce((sum, r) => sum + (r.confidence_score || 0), 0) / responses.length
+      : 0;
+    const fallbackCount = responses.filter((r) => r.fallback_to_human).length;
+    const safetyCount = responses.filter((r) => r.response_mode === "AUTOMATIC_LIMITED").length;
+
+    const helpfulCount = feedback.filter((f) => f.feedback_type === "helpful").length;
+    const notHelpfulCount = feedback.filter((f) => f.feedback_type === "not_helpful").length;
+    const incorrectCount = feedback.filter((f) => f.feedback_type === "incorrect").length;
+
+    const openIncidents = incidents.filter((i) => i.status === "OPEN" || i.status === "IN_REVIEW").length;
+    const escalations = incidents.filter((i) => i.incident_type === "STUDENT_ESCALATION").length;
+
+    const disciplineMap = new Map();
+    for (const s of sessions) {
+      const disc = s.metadata?.discipline || "Desconhecida";
+      disciplineMap.set(disc, (disciplineMap.get(disc) || 0) + 1);
+    }
+    const topDisciplines = [...disciplineMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
+    return res.json({
+      ok: true,
+      summary: {
+        total_sessions: totalSessions,
+        open_sessions: openSessions,
+        total_responses: totalResponses,
+        avg_confidence: Math.round(avgConfidence * 100),
+        fallback_count: fallbackCount,
+        safety_block_count: safetyCount,
+        feedback_helpful: helpfulCount,
+        feedback_not_helpful: notHelpfulCount,
+        feedback_incorrect: incorrectCount,
+        open_incidents: openIncidents,
+        escalations: escalations,
+        top_disciplines: topDisciplines
+      }
+    });
+  } catch (error) {
+    console.error("Erro GET /api/teacher-governance/summary:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar resumo de governanca." });
+  }
+});
+
+app.get("/api/teacher-governance/sessions", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHER_GOVERNANCE_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+    const schoolId = access.context.schoolId;
+
+    const discipline = String(req.query.discipline || "").trim();
+    const status = String(req.query.status || "").trim().toUpperCase();
+    const dateFrom = String(req.query.date_from || "").trim();
+    const dateTo = String(req.query.date_to || "").trim();
+    const studentName = String(req.query.student_name || "").trim().toLowerCase();
+    const limit = clampQueryLimit(req.query.limit, 50, 100);
+
+    let query = supabase
+      .from("institutional_consultations")
+      .select("id, requester_name, primary_topic, status, opened_at, resolved_at, metadata")
+      .eq("school_id", schoolId)
+      .eq("channel", "student_chat")
+      .order("opened_at", { ascending: false })
+      .limit(limit);
+
+    if (status) query = query.eq("status", status);
+    if (dateFrom) query = query.gte("opened_at", dateFrom);
+    if (dateTo) query = query.lte("opened_at", dateTo + "T23:59:59.999Z");
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    let sessions = (data || []).map((s) => ({
+      id: s.id,
+      student_name: s.requester_name || "Aluno",
+      discipline: s.metadata?.discipline || "",
+      status: s.status,
+      opened_at: s.opened_at,
+      resolved_at: s.resolved_at
+    }));
+
+    if (discipline) {
+      sessions = sessions.filter((s) => s.discipline.toLowerCase() === discipline.toLowerCase());
+    }
+    if (studentName) {
+      sessions = sessions.filter((s) => s.student_name.toLowerCase().includes(studentName));
+    }
+
+    return res.json({ ok: true, sessions });
+  } catch (error) {
+    console.error("Erro GET /api/teacher-governance/sessions:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar sessoes." });
+  }
+});
+
+app.get("/api/teacher-governance/sessions/:sessionId", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHER_GOVERNANCE_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+    const schoolId = access.context.schoolId;
+    const sessionId = String(req.params.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ ok: false, error: "session_id obrigatorio." });
+
+    const [sessionResult, messagesResult, responsesResult, feedbackResult, incidentsResult] = await Promise.all([
+      supabase
+        .from("institutional_consultations")
+        .select("id, requester_name, primary_topic, status, opened_at, resolved_at, metadata")
+        .eq("school_id", schoolId)
+        .eq("id", sessionId)
+        .maybeSingle(),
+      supabase
+        .from("consultation_messages")
+        .select("id, direction, actor_type, actor_name, message_text, created_at")
+        .eq("consultation_id", sessionId)
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("assistant_responses")
+        .select("id, response_text, confidence_score, response_mode, fallback_to_human, supporting_source_title, supporting_source_excerpt, consulted_sources, created_at")
+        .eq("consultation_id", sessionId)
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("interaction_feedback")
+        .select("id, response_id, feedback_type, comment, created_at")
+        .eq("consultation_id", sessionId)
+        .eq("school_id", schoolId),
+      supabase
+        .from("incident_reports")
+        .select("id, incident_type, severity, status, topic, details, opened_at")
+        .eq("consultation_id", sessionId)
+        .eq("school_id", schoolId)
+    ]);
+    if (sessionResult.error) throw sessionResult.error;
+    if (!sessionResult.data) return res.status(404).json({ ok: false, error: "Sessao nao encontrada." });
+    if (messagesResult.error) throw messagesResult.error;
+    if (responsesResult.error) throw responsesResult.error;
+    if (feedbackResult.error) throw feedbackResult.error;
+    if (incidentsResult.error) throw incidentsResult.error;
+
+    const s = sessionResult.data;
+    const feedbackMap = new Map();
+    for (const f of feedbackResult.data || []) {
+      if (!feedbackMap.has(f.response_id)) feedbackMap.set(f.response_id, []);
+      feedbackMap.get(f.response_id).push({ type: f.feedback_type, comment: f.comment });
+    }
+
+    const responseMap = new Map();
+    for (const r of responsesResult.data || []) {
+      responseMap.set(r.id, {
+        confidence: r.confidence_score,
+        mode: r.response_mode,
+        fallback: r.fallback_to_human,
+        source_title: r.supporting_source_title,
+        source_excerpt: r.supporting_source_excerpt,
+        feedback: feedbackMap.get(r.id) || []
+      });
+    }
+
+    const messages = (messagesResult.data || []).map((m) => ({
+      id: m.id,
+      role: m.direction === "INBOUND" ? "user" : "assistant",
+      text: m.message_text || "",
+      actor: m.actor_name || "",
+      created_at: m.created_at
+    }));
+
+    return res.json({
+      ok: true,
+      session: {
+        id: s.id,
+        student_name: s.requester_name || "Aluno",
+        discipline: s.metadata?.discipline || "",
+        status: s.status,
+        opened_at: s.opened_at,
+        resolved_at: s.resolved_at
+      },
+      messages,
+      responses: Object.fromEntries(responseMap),
+      incidents: (incidentsResult.data || []).map((i) => ({
+        id: i.id,
+        type: i.incident_type,
+        severity: i.severity,
+        status: i.status,
+        topic: i.topic,
+        opened_at: i.opened_at
+      }))
+    });
+  } catch (error) {
+    console.error("Erro GET /api/teacher-governance/sessions/:id:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar detalhes da sessao." });
+  }
+});
+
+app.get("/api/teacher-governance/incidents", async (req, res) => {
+  if (!supabase) return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+  try {
+    const access = await requireRequestContext(req, res, { allowedRoles: [...TEACHER_GOVERNANCE_ALLOWED_ROLES] });
+    if (!access.ok) return access.response;
+    const schoolId = access.context.schoolId;
+    const statusFilter = String(req.query.status || "").trim().toUpperCase();
+    const limit = clampQueryLimit(req.query.limit, 50, 100);
+
+    let query = supabase
+      .from("incident_reports")
+      .select("id, consultation_id, incident_type, severity, status, topic, details, opened_by, opened_at, resolved_at")
+      .eq("school_id", schoolId)
+      .order("opened_at", { ascending: false })
+      .limit(limit);
+    if (statusFilter) query = query.eq("status", statusFilter);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const incidents = (data || []).map((i) => ({
+      id: i.id,
+      consultation_id: i.consultation_id,
+      type: i.incident_type,
+      severity: i.severity,
+      status: i.status,
+      topic: i.topic,
+      discipline: i.details?.discipline || "",
+      student_message: i.details?.student_message || "",
+      opened_by: i.opened_by,
+      opened_at: i.opened_at,
+      resolved_at: i.resolved_at
+    }));
+
+    return res.json({ ok: true, incidents });
+  } catch (error) {
+    console.error("Erro GET /api/teacher-governance/incidents:", error);
+    return res.status(500).json({ ok: false, error: "Falha ao carregar incidentes." });
   }
 });
 

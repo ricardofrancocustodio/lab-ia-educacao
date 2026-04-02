@@ -17,37 +17,37 @@
 - 🔜 Sincronização de usuários (aluno/professor) — via launch LTI ou importação
 - 🔜 Acesso ao chat IA via Moodle ou painel externo
 
-## 3. Tela do Aluno: Chat com IA
-- Campo para digitar dúvidas
-- IA responde apenas com base no material aprovado daquela disciplina/turma
-- Botão “Falar com professor” se a dúvida não for resolvida
-- Histórico das interações
-- Feedback: “A resposta foi útil?” (sim/não/incidente)
+## 3. Tela do Aluno: Chat com IA — ✅ Implementado (consolidado em simulador-chat.html)
+- ✅ Campo para digitar dúvidas
+- ✅ IA responde apenas com base no material aprovado daquela disciplina/turma
+- ✅ Botão "Falar com professor" se a dúvida não for resolvida (com aviso de fluxo em definição)
+- ✅ Histórico das interações
+- ✅ Feedback: "A resposta foi útil?" (sim/não/incidente)
 
-## 4. Tela do Professor: Painel de Governança
-- Visualização de interações dos alunos com a IA
-- Filtros por aluno, disciplina, data, tipo de dúvida
-- Notificações de incidentes/dúvidas não resolvidas
-- Relatórios de uso, temas mais consultados, incidentes abertos/fechados
+## 4. Tela do Professor: Painel de Governança — ✅ Implementado (01/04/2026)
+- ✅ Visualização de interações dos alunos com a IA
+- ✅ Filtros por aluno, disciplina, data, tipo de dúvida
+- ✅ Notificações de incidentes/dúvidas não resolvidas
+- ✅ Relatórios de uso, temas mais consultados, incidentes abertos/fechados
 
-## 5. Tela de Gestão de Incidentes (JA TA PRONTO! APENAS INTEGRAR COM O QUE JA TEM DA LAB-IA)
-- Lista de incidentes abertos (resposta inadequada, dúvida não resolvida, etc.)
-- Detalhe do incidente: pergunta, resposta da IA, contexto, ação tomada
-- Marcar como resolvido, adicionar comentário, encaminhar para revisão
+## 5. Tela de Gestão de Incidentes — ✅ Integrado (já existente na LAB-IA)
+- ✅ Lista de incidentes abertos (resposta inadequada, dúvida não resolvida, etc.)
+- ✅ Detalhe do incidente: pergunta, resposta da IA, contexto, ação tomada
+- ✅ Marcar como resolvido, adicionar comentário, encaminhar para revisão
 
-## 6. Arquitetura Mínima (APENAS CHECKLIST PARA VER SE ESTÁ TUDO OK)
+## 6. Arquitetura Mínima — ✅ Verificado
 - ✅ Backend LAB-IA: upload, extração assistida de PDF, versionamento, logs, incidentes, chat IA
 - 🔜 Integração Moodle: plugin ou API REST para autenticação e passagem de contexto
 - ✅ Banco de dados: separação entre conteúdo institucional e pedagógico (Supabase)
 - ✅ Camada de governança: logs, trilha de auditoria (formal_audit_events), painel de incidentes
 
-## 7. Fluxo de Publicação com PDF (CHECKLIST TAMBÉM)
-- Professor envia o PDF original do material
-- Sistema extrai automaticamente o texto disponível no PDF
-- Interface apresenta comparação lado a lado entre o arquivo original e o texto extraído
-- Professor revisa, corrige e complementa o texto oficial validado
-- Somente o texto validado é publicado como base oficial para a IA
-- O PDF permanece armazenado como documento de origem para conferência humana, auditoria e reabertura futura
+## 7. Fluxo de Publicação com PDF — ✅ Implementado
+- ✅ Professor envia o PDF original do material
+- ✅ Sistema extrai automaticamente o texto disponível no PDF
+- ✅ Interface apresenta comparação lado a lado entre o arquivo original e o texto extraído
+- ✅ Professor revisa, corrige e complementa o texto oficial validado
+- ✅ Somente o texto validado é publicado como base oficial para a IA
+- ✅ O PDF permanece armazenado como documento de origem para conferência humana, auditoria e reabertura futura
 *** Add File: c:\Projects\lab-ia-educacao\supabase\snippets\teaching_content_pdf_storage.sql
 alter table public.knowledge_source_versions
 	add column if not exists storage_bucket text null;

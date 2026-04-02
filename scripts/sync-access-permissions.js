@@ -21,18 +21,19 @@ const PAGE_DEFINITIONS = [
   { key: 'preferences', label: 'Preferencias', menu_order: 70 },
   { key: 'knowledge', label: 'Base de Conhecimento', menu_order: 80 },
   { key: 'teaching-content', label: 'Curadoria Pedagogica', menu_order: 85 },
+  { key: 'teacher-governance', label: 'Governanca Pedagogica', menu_order: 86 },
   { key: 'official-content', label: 'Conteudo Oficial', menu_order: 90 }
 ];
 
 const ROLE_PAGE_MAP = {
-  superadmin: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'preferences', 'users'],
-  network_manager: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'teaching-content', 'preferences', 'users'],
-  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'knowledge-gaps', 'knowledge', 'official-content', 'teaching-content'],
+  superadmin: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'preferences', 'users', 'teacher-governance'],
+  network_manager: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'teaching-content', 'preferences', 'users', 'teacher-governance'],
+  content_curator: ['dashboard', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'knowledge-gaps', 'knowledge', 'official-content', 'teaching-content', 'teacher-governance'],
   public_operator: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'incidents', 'feedback', 'corrections', 'knowledge'],
   secretariat: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'knowledge-gaps', 'knowledge', 'official-content'],
-  coordination: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'reports', 'incidents', 'knowledge', 'teaching-content'],
-  teacher: ['notices', 'notifications', 'teaching-content'],
-  direction: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'teaching-content'],
+  coordination: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'notifications', 'reports', 'incidents', 'knowledge', 'teaching-content', 'teacher-governance'],
+  teacher: ['notices', 'notifications', 'teaching-content', 'teacher-governance'],
+  direction: ['dashboard', 'chat-manager', 'handoff-queue', 'notices', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'knowledge-gaps', 'network-overview', 'knowledge', 'official-content', 'teaching-content', 'teacher-governance'],
   auditor: ['dashboard', 'reports', 'audit', 'incidents', 'feedback', 'corrections', 'improvement-cycle', 'notifications', 'network-overview'],
   observer: ['dashboard', 'notices', 'reports', 'knowledge']
 };

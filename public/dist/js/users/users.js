@@ -13,6 +13,7 @@ const fallbackPageLabels = {
     preferences: 'Preferências',
     knowledge: 'Base de Conhecimento',
     'teaching-content': 'Curadoria Pedagógica',
+    'teacher-governance': 'Governança Pedagógica',
     'official-content': 'Conteúdo Oficial'
 };
 const SANDBOX_DEFAULT_PASSWORD = '123456789';

@@ -70,6 +70,35 @@ function invalidateAIProviderCache() {
   runtimeSettingsCache = { value: null, expiresAt: 0 };
 }
 
+// ---------------------------------------------------------------------------
+// PII Sanitizer — removes personally identifiable information before sending
+// text to the AI provider. Catches CPF, email, phone numbers and replaces
+// them with neutral placeholders so no personal data reaches the LLM.
+// ---------------------------------------------------------------------------
+const PII_PATTERNS = [
+  { regex: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g,        placeholder: "[CPF_REMOVIDO]" },
+  { regex: /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g, placeholder: "[EMAIL_REMOVIDO]" },
+  { regex: /(?:\+55\s?)?(?:\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}\b/g,  placeholder: "[TELEFONE_REMOVIDO]" },
+];
+
+function sanitizePII(text) {
+  if (!text || typeof text !== "string") return text;
+  let sanitized = text;
+  for (const { regex, placeholder } of PII_PATTERNS) {
+    sanitized = sanitized.replace(regex, placeholder);
+  }
+  return sanitized;
+}
+
+function sanitizeHistory(history) {
+  if (!Array.isArray(history)) return history;
+  return history.map((msg) => ({
+    ...msg,
+    content: msg.role === "system" ? msg.content : sanitizePII(msg.content)
+  }));
+}
+// ---------------------------------------------------------------------------
+
 function resolveAvailableProvider(settings = {}) {
   const requested = String(settings.active_provider || DEFAULT_PROVIDER).toLowerCase();
   return requested === 'groq' ? 'groq' : DEFAULT_PROVIDER;
@@ -98,7 +127,9 @@ async function askAI(systemPrompt, userText, history = []) {
   try {
     const settings = await loadRuntimeSettings();
     const provider = buildProviderInstance(settings);
-    return await provider.generateResponse(systemPrompt, userText, history);
+    const safeText = sanitizePII(userText);
+    const safeHistory = sanitizeHistory(history);
+    return await provider.generateResponse(systemPrompt, safeText, safeHistory);
   } catch (error) {
     console.error("Erro na comunicacao com a IA:", error);
     return "Instabilidade tecnica no momento.";

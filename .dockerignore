@@ -1,7 +1,10 @@
 node_modules
 npm-debug.log
-Dockerfile
 .dockerignore
 .git
 .gitignore
 .env
+docs
+test-*.js
+tmp-*.js
+project-context-for-ai.md

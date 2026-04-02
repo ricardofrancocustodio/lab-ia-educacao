@@ -61,3 +61,13 @@ Base institucional derivada do Qnexy para atendimento educacional publico com qu
 - eventos
 - financeiro legado
 - social monitor
+
+## Licenciamento Open Source
+
+Este projeto e licenciado sob a **Apache License 2.0**.
+
+Em conformidade com o art. 36 do Edital no 1/2026 do Sandbox Regulatorio de Inteligencia Artificial na Educacao (MEC/SEAI), o codigo-fonte, os componentes tecnicos, os pipelines de inferencia, a documentacao tecnica e os artefatos desenvolvidos no ambito do Sandbox Regulatorio serao disponibilizados sob a licenca Apache License 2.0.
+
+Permanecem resguardados os direitos sobre componentes de terceiros sujeitos a licenciamento proprio (ex: AdminLTE sob MIT), bem como eventuais restricoes legais aplicaveis.
+
+Consulte o arquivo [LICENSE](LICENSE) para os termos completos.
