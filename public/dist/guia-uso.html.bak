@@ -1,8 +1,8 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>Assistente Público | Guia de Uso Institucional</title>
+  <title>Assistente Publico | Guia de Uso Institucional</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/rawline@5.0.18/index.css" />
@@ -372,67 +372,67 @@
   <main class="page-shell">
     <div class="hero">
       <h1><i class="bi bi-journal-check"></i> Guia de Uso Institucional</h1>
-      <p>Orientações de acesso, perfis de usuário, telas disponíveis e fluxos operacionais da plataforma de atendimento inteligente com governança algorítmica.</p>
+      <p>Orientacoes de acesso, perfis de usuario, telas disponiveis e fluxos operacionais da plataforma de atendimento inteligente com governanca algoritmica.</p>
     </div>
 
     <!-- Indice -->
     <div class="toc" id="toc">
-      <h2>Índice</h2>
+      <h2>Indice</h2>
       <ol>
-        <li><a href="#visao-geral">Visão geral da plataforma</a></li>
+        <li><a href="#visao-geral">Visao geral da plataforma</a></li>
         <li><a href="#acesso">Como acessar</a></li>
-        <li><a href="#perfis">Perfis e permissões</a></li>
+        <li><a href="#perfis">Perfis e permissoes</a></li>
         <li><a href="#telas">Telas do sistema</a></li>
         <li><a href="#perfil-detalhe">Guia por perfil</a></li>
         <li><a href="#fluxos">Fluxos operacionais</a></li>
-        <li><a href="#governanca">Governança e auditoria</a></li>
-        <li><a href="#pedagogico">Módulo pedagógico</a></li>
-        <li><a href="#suporte">Suporte e dúvidas</a></li>
+        <li><a href="#governanca">Governanca e auditoria</a></li>
+        <li><a href="#pedagogico">Modulo pedagogico</a></li>
+        <li><a href="#suporte">Suporte e duvidas</a></li>
       </ol>
     </div>
 
     <!-- 1. Visao Geral -->
-    <h2 class="section-title" id="visao-geral">1. Visão geral da plataforma</h2>
+    <h2 class="section-title" id="visao-geral">1. Visao geral da plataforma</h2>
     <div class="card-section">
-      <p>O <strong>lab-ia</strong> é uma plataforma de atendimento institucional inteligente para redes educacionais. Ela utiliza inteligência artificial para responder dúvidas de famílias, alunos e servidores com base em documentos oficiais da escola e da secretaria de educação.</p>
-      <p>Toda resposta gerada pela IA é <strong>rastreável</strong>: possui score de confiança, fonte documental, nível de risco e trilha de auditoria. O sistema não decide — ele orienta, e um ser humano sempre pode revisar, corrigir ou escalar.</p>
+      <p>O <strong>lab-ia</strong> e uma plataforma de atendimento institucional inteligente para redes educacionais. Ela utiliza inteligencia artificial para responder duvidas de familias, alunos e servidores com base em documentos oficiais da escola e da secretaria de educacao.</p>
+      <p>Toda resposta gerada pela IA e <strong>rastreavel</strong>: possui score de confianca, fonte documental, nivel de risco e trilha de auditoria. O sistema nao decide — ele orienta, e um ser humano sempre pode revisar, corrigir ou escalar.</p>
       <p><strong>Principais capacidades:</strong></p>
       <ul>
-        <li>Atendimento por webchat com assistentes temáticos (público, secretaria, tesouraria, direção)</li>
-        <li>Base de conhecimento versionada com FAQ, calendário, matrícula e avisos</li>
-        <li>Módulo pedagógico com curadoria por disciplina e assistente para estudantes</li>
-        <li>Auditoria formal com timeline de eventos, incidentes e correções</li>
-        <li>Painel de indicadores operacionais e de governança</li>
-        <li>Controle de acesso por perfil (RBAC) com permissões granulares</li>
+        <li>Atendimento por webchat com assistentes tematicos (publico, secretaria, tesouraria, direcao)</li>
+        <li>Base de conhecimento versionada com FAQ, calendario, matricula e avisos</li>
+        <li>Modulo pedagogico com curadoria por disciplina e assistente para estudantes</li>
+        <li>Auditoria formal com timeline de eventos, incidentes e correcoes</li>
+        <li>Painel de indicadores operacionais e de governanca</li>
+        <li>Controle de acesso por perfil (RBAC) com permissoes granulares</li>
       </ul>
     </div>
 
     <!-- 2. Como Acessar -->
     <h2 class="section-title" id="acesso">2. Como acessar</h2>
     <div class="card-section">
-      <p>O acesso é feito por <strong>convite</strong>. Não há autocadastro. Um administrador (superadmin ou gestor de rede) envia um convite com e-mail e perfil. O convidado recebe um link para ativar a conta e definir a senha.</p>
+      <p>O acesso e feito por <strong>convite</strong>. Nao ha autocadastro. Um administrador (superadmin ou gestor de rede) envia um convite com e-mail e perfil. O convidado recebe um link para ativar a conta e definir a senha.</p>
 
       <h3 class="subsection">Passo a passo</h3>
       <ol>
-        <li>Você recebe um e-mail de convite com o assunto <em>"Convite para a plataforma lab-ia"</em></li>
-        <li>Clique no link do e-mail — você será direcionado para a tela de ativação de conta</li>
+        <li>Voce recebe um e-mail de convite com o assunto <em>"Convite para a plataforma lab-ia"</em></li>
+        <li>Clique no link do e-mail — voce sera direcionado para a tela de ativacao de conta</li>
         <li>Defina sua senha (minimo 6 caracteres)</li>
-        <li>Após a ativação, acesse o sistema pelo endereço da plataforma e faça login com e-mail e senha</li>
-        <li>O sistema direcionará você automaticamente para a tela inicial do seu perfil</li>
+        <li>Apos a ativacao, acesse o sistema pelo endereco da plataforma e faca login com e-mail e senha</li>
+        <li>O sistema direcionara voce automaticamente para a tela inicial do seu perfil</li>
       </ol>
 
       <h3 class="subsection">Esqueci minha senha</h3>
-      <p>Na tela de login, clique em <strong>"Recuperar acesso com redefinição de senha"</strong>. Informe seu e-mail institucional e você receberá um link para redefinir a senha.</p>
+      <p>Na tela de login, clique em <strong>"Recuperar acesso com redefinicao de senha"</strong>. Informe seu e-mail institucional e voce recebera um link para redefinir a senha.</p>
 
-      <h3 class="subsection">Sessão e segurança</h3>
+      <h3 class="subsection">Sessao e seguranca</h3>
       <ul>
-        <li>Sessões expiram após <strong>30 minutos de inatividade</strong></li>
-        <li>Toda ação é registrada com identificação do usuário</li>
-        <li>A comunicação é criptografada (HTTPS)</li>
+        <li>Sessoes expiram apos <strong>30 minutos de inatividade</strong></li>
+        <li>Toda acao e registrada com identificacao do usuario</li>
+        <li>A comunicacao e criptografada (HTTPS)</li>
       </ul>
 
       <h3 class="subsection" id="credenciais-teste">Credenciais de teste (Sandbox)</h3>
-      <p>Os usuários abaixo estão disponíveis para avaliação do sistema durante o período de sandbox. Todos utilizam a <strong>senha padrão: <code>123456789</code></strong>, salvo indicação contrária.</p>
+      <p>Os usuarios abaixo estao disponiveis para avaliacao do sistema durante o periodo de sandbox. Todos utilizam a <strong>senha padrao: <code>123456789</code></strong>, salvo indicacao contraria.</p>
 
       <h3 class="subsection">Perfis de plataforma</h3>
       <table class="guide-table">
@@ -463,7 +463,7 @@
         </tbody>
       </table>
 
-      <h3 class="subsection">CEF 01 de Brasília (SEEDF)</h3>
+      <h3 class="subsection">CEF 01 de Brasilia (SEEDF)</h3>
       <table class="guide-table">
         <thead>
           <tr>
@@ -481,13 +481,13 @@
             <td><code>123456789</code></td>
           </tr>
           <tr>
-            <td><strong>Curador de Conteúdo</strong></td>
+            <td><strong>Curador de Conteudo</strong></td>
             <td>Curador CEF01</td>
             <td><code>curador.cef01@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
           </tr>
           <tr>
-            <td><strong>Operador Público</strong></td>
+            <td><strong>Operador Publico</strong></td>
             <td>Operador CEF01</td>
             <td><code>operador.cef01@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
@@ -499,8 +499,8 @@
             <td><code>123456789</code></td>
           </tr>
           <tr>
-            <td><strong>Coordenação</strong></td>
-            <td>João da Coordenação</td>
+            <td><strong>Coordenacao</strong></td>
+            <td>Joao da Coordenacao</td>
             <td><code>coordenacao.cef01@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
           </tr>
@@ -511,7 +511,7 @@
             <td><code>prof123456</code></td>
           </tr>
           <tr>
-            <td><strong>Direção</strong></td>
+            <td><strong>Direcao</strong></td>
             <td>Diretor CEF01</td>
             <td><code>direcao.cef01@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
@@ -525,7 +525,7 @@
         </tbody>
       </table>
 
-      <h3 class="subsection">CEPI Lyceu de Goiânia (SEDUC-GO)</h3>
+      <h3 class="subsection">CEPI Lyceu de Goiania (SEDUC-GO)</h3>
       <table class="guide-table">
         <thead>
           <tr>
@@ -543,13 +543,13 @@
             <td><code>123456789</code></td>
           </tr>
           <tr>
-            <td><strong>Curador de Conteúdo</strong></td>
+            <td><strong>Curador de Conteudo</strong></td>
             <td>Curador CEPI</td>
             <td><code>curador.cepi@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
           </tr>
           <tr>
-            <td><strong>Operador Público</strong></td>
+            <td><strong>Operador Publico</strong></td>
             <td>Operador CEPI</td>
             <td><code>operador.cepi@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
@@ -561,8 +561,8 @@
             <td><code>123456789</code></td>
           </tr>
           <tr>
-            <td><strong>Coordenação</strong></td>
-            <td>Coordenação CEPI</td>
+            <td><strong>Coordenacao</strong></td>
+            <td>Coordenacao CEPI</td>
             <td><code>coordenacao.cepi@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
           </tr>
@@ -573,7 +573,7 @@
             <td><code>prof123456</code></td>
           </tr>
           <tr>
-            <td><strong>Direção</strong></td>
+            <td><strong>Direcao</strong></td>
             <td>Diretor CEPI</td>
             <td><code>direcao.cepi@lab-ia.gov.br</code></td>
             <td><code>123456789</code></td>
@@ -587,24 +587,24 @@
         </tbody>
       </table>
 
-      <p style="margin-top:10px;font-size:0.9rem;color:var(--govbr-muted);"><i class="bi bi-info-circle"></i> Os usuários de escola acima devem ser cadastrados pelo <strong>gestor de rede</strong> na tela de <strong>Usuários</strong> (individualmente ou por importação em lote). A senha padrão do sandbox e <code>123456789</code>.</p>
+      <p style="margin-top:10px;font-size:0.9rem;color:var(--govbr-muted);"><i class="bi bi-info-circle"></i> Os usuarios de escola acima devem ser cadastrados pelo <strong>gestor de rede</strong> na tela de <strong>Usuarios</strong> (individualmente ou por importacao em lote). A senha padrao do sandbox e <code>123456789</code>.</p>
     </div>
 
-    <!-- 3. Perfis e permissões -->
-    <h2 class="section-title" id="perfis">3. Perfis e permissões</h2>
+    <!-- 3. Perfis e Permissoes -->
+    <h2 class="section-title" id="perfis">3. Perfis e permissoes</h2>
     <div class="card-section">
-      <p>Cada usuário recebe um <strong>perfil</strong> (role) que determina quais telas pode acessar e quais ações pode realizar. Existem dois níveis:</p>
+      <p>Cada usuario recebe um <strong>perfil</strong> (role) que determina quais telas pode acessar e quais acoes pode realizar. Existem dois niveis:</p>
       <ul>
-        <li><strong>Perfis de plataforma:</strong> Superadmin e Auditor — acesso global, sem vínculo a escola específica</li>
-        <li><strong>Perfis de escola:</strong> vinculados a uma escola, com acesso restrito ao contexto daquela instituição</li>
+        <li><strong>Perfis de plataforma:</strong> Superadmin e Auditor — acesso global, sem vinculo a escola especifica</li>
+        <li><strong>Perfis de escola:</strong> vinculados a uma escola, com acesso restrito ao contexto daquela instituicao</li>
       </ul>
 
       <table class="guide-table">
         <thead>
           <tr>
             <th>Perfil</th>
-            <th>Nível</th>
-            <th>Descrição</th>
+            <th>Nivel</th>
+            <th>Descricao</th>
             <th>Tela inicial</th>
           </tr>
         </thead>
@@ -612,61 +612,61 @@
           <tr>
             <td><strong>Superadmin</strong></td>
             <td>Plataforma</td>
-            <td>Acesso total a todas as funcionalidades, escolas e configurações do sistema</td>
+            <td>Acesso total a todas as funcionalidades, escolas e configuracoes do sistema</td>
             <td>Dashboard</td>
           </tr>
           <tr>
             <td><strong>Auditor</strong></td>
             <td>Plataforma</td>
-            <td>Acesso a auditoria formal, incidentes, feedback, correções e relatórios — em todas as escolas</td>
+            <td>Acesso a auditoria formal, incidentes, feedback, correcoes e relatorios — em todas as escolas</td>
             <td>Dashboard</td>
           </tr>
           <tr>
             <td><strong>Gestor de Rede</strong></td>
             <td>Escola</td>
-            <td>Administra a escola no sistema: usuários, preferências, conhecimento, conteúdo e governança</td>
+            <td>Administra a escola no sistema: usuarios, preferencias, conhecimento, conteudo e governanca</td>
             <td>Dashboard</td>
           </tr>
           <tr>
-            <td><strong>Curador de Conteúdo</strong></td>
+            <td><strong>Curador de Conteudo</strong></td>
             <td>Escola</td>
-            <td>Gerencia a base de conhecimento, FAQ, calendário e conteúdo oficial que alimenta a IA</td>
+            <td>Gerencia a base de conhecimento, FAQ, calendario e conteudo oficial que alimenta a IA</td>
             <td>Dashboard</td>
           </tr>
           <tr>
-            <td><strong>Operador Público</strong></td>
+            <td><strong>Operador Publico</strong></td>
             <td>Escola</td>
-            <td>Opera o atendimento via chat — vê conversas, trata fila humana e registra feedback</td>
+            <td>Opera o atendimento via chat — ve conversas, trata fila humana e registra feedback</td>
             <td>Atendimento</td>
           </tr>
           <tr>
             <td><strong>Secretaria</strong></td>
             <td>Escola</td>
-            <td>Gerencia comunicados, conteúdo oficial e acompanha atendimento da secretaria</td>
+            <td>Gerencia comunicados, conteudo oficial e acompanha atendimento da secretaria</td>
             <td>Comunicados</td>
           </tr>
           <tr>
-            <td><strong>Coordenação</strong></td>
+            <td><strong>Coordenacao</strong></td>
             <td>Escola</td>
-            <td>Supervisiona atendimento, aprova conteúdo pedagógico, acompanha governança</td>
+            <td>Supervisiona atendimento, aprova conteudo pedagogico, acompanha governanca</td>
             <td>Dashboard</td>
           </tr>
           <tr>
             <td><strong>Professor</strong></td>
             <td>Escola</td>
-            <td>Publica e gerencia conteúdo pedagógico da sua disciplina para o assistente de estudantes</td>
-            <td>Curadoria Pedagógica</td>
+            <td>Publica e gerencia conteudo pedagogico da sua disciplina para o assistente de estudantes</td>
+            <td>Curadoria Pedagogica</td>
           </tr>
           <tr>
-            <td><strong>Direção</strong></td>
+            <td><strong>Direcao</strong></td>
             <td>Escola</td>
-            <td>Visão gerencial: dashboards, auditoria, incidentes, relatórios e visão da rede</td>
+            <td>Visao gerencial: dashboards, auditoria, incidentes, relatorios e visao da rede</td>
             <td>Dashboard</td>
           </tr>
           <tr>
             <td><strong>Observador</strong></td>
             <td>Escola</td>
-            <td>Acesso somente leitura a comunicados, dashboard, relatórios, base de conhecimento</td>
+            <td>Acesso somente leitura a comunicados, dashboard, relatorios, base de conhecimento</td>
             <td>Comunicados</td>
           </tr>
         </tbody>
@@ -676,45 +676,45 @@
     <!-- 4. Telas do Sistema -->
     <h2 class="section-title" id="telas">4. Telas do sistema</h2>
     <div class="card-section">
-      <p>O sistema possui 18 telas organizadas em três grupos no menu lateral:</p>
+      <p>O sistema possui 18 telas organizadas em tres grupos no menu lateral:</p>
 
       <h3 class="subsection"><i class="bi bi-chat-dots"></i> Atendimento</h3>
       <table class="guide-table">
         <thead><tr><th>Tela</th><th>O que faz</th></tr></thead>
         <tbody>
-          <tr><td><strong>Inteligência</strong> (Dashboard)</td><td>Painel com métricas operacionais: volume de consultas, score de confiança, taxa de abstinência, temas mais perguntados, distribuição por assistente e indicadores de governança</td></tr>
-          <tr><td><strong>Atendimento</strong></td><td>Central de conversas do chat com a IA. Mostra histórico, fontes usadas, score de risco e permite tratamento (escalar, encaminhar, abrir incidente)</td></tr>
-          <tr><td><strong>Fila Humana</strong></td><td>Fila de solicitações que a IA não conseguiu resolver e que precisam de atendimento humano</td></tr>
+          <tr><td><strong>Inteligencia</strong> (Dashboard)</td><td>Painel com metricas operacionais: volume de consultas, score de confianca, taxa de abstinencia, temas mais perguntados, distribuicao por assistente e indicadores de governanca</td></tr>
+          <tr><td><strong>Atendimento</strong></td><td>Central de conversas do chat com a IA. Mostra historico, fontes usadas, score de risco e permite tratamento (escalar, encaminhar, abrir incidente)</td></tr>
+          <tr><td><strong>Fila Humana</strong></td><td>Fila de solicitacoes que a IA nao conseguiu resolver e que precisam de atendimento humano</td></tr>
           <tr><td><strong>Comunicados</strong></td><td>Mural de comunicados internos da escola para equipe</td></tr>
         </tbody>
       </table>
 
-      <h3 class="subsection"><i class="bi bi-graph-up"></i> Gestão</h3>
+      <h3 class="subsection"><i class="bi bi-graph-up"></i> Gestao</h3>
       <table class="guide-table">
         <thead><tr><th>Tela</th><th>O que faz</th></tr></thead>
         <tbody>
-          <tr><td><strong>Relatórios</strong></td><td>Relatórios consolidados de operação, atendimento e governança por período</td></tr>
-          <tr><td><strong>Auditoria Formal</strong></td><td>Timeline completa de cada resposta da IA: fonte, score, risco, revisão, incidentes e correções vinculadas</td></tr>
-          <tr><td><strong>Incidentes</strong></td><td>Gerenciamento de ocorrências: abertura, classificação por severidade, roteamento e resolução</td></tr>
-          <tr><td><strong>Feedback da IA</strong></td><td>Avaliações de respostas (útil, não útil, incorreto) com rastreabilidade até a resposta original</td></tr>
-          <tr><td><strong>Correções</strong></td><td>Propostas de correção na base de conhecimento: proposta, aprovação, aplicação automática com registro antes/depois</td></tr>
-          <tr><td><strong>Ciclo de Melhoria</strong></td><td>Visão integrada do ciclo feedback → incidente → correção → melhoria da base</td></tr>
-          <tr><td><strong>Notificações</strong></td><td>Central de alertas do sistema: novas correções, incidentes, feedbacks pendentes</td></tr>
+          <tr><td><strong>Relatorios</strong></td><td>Relatorios consolidados de operacao, atendimento e governanca por periodo</td></tr>
+          <tr><td><strong>Auditoria Formal</strong></td><td>Timeline completa de cada resposta da IA: fonte, score, risco, revisao, incidentes e correcoes vinculadas</td></tr>
+          <tr><td><strong>Incidentes</strong></td><td>Gerenciamento de ocorrencias: abertura, classificacao por severidade, roteamento e resolucao</td></tr>
+          <tr><td><strong>Feedback da IA</strong></td><td>Avaliacoes de respostas (util, nao util, incorreto) com rastreabilidade ate a resposta original</td></tr>
+          <tr><td><strong>Correcoes</strong></td><td>Propostas de correcao na base de conhecimento: proposta, aprovacao, aplicacao automatica com registro antes/depois</td></tr>
+          <tr><td><strong>Ciclo de Melhoria</strong></td><td>Visao integrada do ciclo feedback → incidente → correcao → melhoria da base</td></tr>
+          <tr><td><strong>Notificacoes</strong></td><td>Central de alertas do sistema: novas correcoes, incidentes, feedbacks pendentes</td></tr>
           <tr><td><strong>Lacunas de Conhecimento</strong></td><td>Temas consultados pela IA sem cobertura documental suficiente — aponta onde a base precisa crescer</td></tr>
-          <tr><td><strong>Visão da Rede</strong></td><td>Painel comparativo entre escolas da rede: volume, qualidade, governança</td></tr>
+          <tr><td><strong>Visao da Rede</strong></td><td>Painel comparativo entre escolas da rede: volume, qualidade, governanca</td></tr>
         </tbody>
       </table>
 
-      <h3 class="subsection"><i class="bi bi-gear"></i> Configurações</h3>
+      <h3 class="subsection"><i class="bi bi-gear"></i> Configuracoes</h3>
       <table class="guide-table">
         <thead><tr><th>Tela</th><th>O que faz</th></tr></thead>
         <tbody>
-          <tr><td><strong>Usuários</strong></td><td>Convite, edição de perfil, ativação/inativação de membros. Apenas superadmin e gestor de rede</td></tr>
-          <tr><td><strong>Preferências</strong></td><td>Configurações do sistema: parâmetros de IA, thresholds de evidência, nome da instituição</td></tr>
-          <tr><td><strong>Base de Conhecimento</strong></td><td>Upload e gerenciamento de documentos que alimentam a IA (embedding + busca semântica)</td></tr>
-          <tr><td><strong>Conteúdo Oficial</strong></td><td>Calendário escolar, orientações de matrícula, FAQ institucional, avisos oficiais — com versionamento</td></tr>
-          <tr><td><strong>Curadoria Pedagógica</strong></td><td>Publicação de materiais didáticos por disciplina para o assistente de estudantes</td></tr>
-          <tr><td><strong>Governança Pedagógica</strong></td><td>Painel de supervisão da curadoria: aprovação de conteúdo, indicadores de publicação e uso</td></tr>
+          <tr><td><strong>Usuarios</strong></td><td>Convite, edicao de perfil, ativacao/inativacao de membros. Apenas superadmin e gestor de rede</td></tr>
+          <tr><td><strong>Preferencias</strong></td><td>Configuracoes do sistema: parametros de IA, thresholds de evidencia, nome da instituicao</td></tr>
+          <tr><td><strong>Base de Conhecimento</strong></td><td>Upload e gerenciamento de documentos que alimentam a IA (embedding + busca semantica)</td></tr>
+          <tr><td><strong>Conteudo Oficial</strong></td><td>Calendario escolar, orientacoes de matricula, FAQ institucional, avisos oficiais — com versionamento</td></tr>
+          <tr><td><strong>Curadoria Pedagogica</strong></td><td>Publicacao de materiais didaticos por disciplina para o assistente de estudantes</td></tr>
+          <tr><td><strong>Governanca Pedagogica</strong></td><td>Painel de supervisao da curadoria: aprovacao de conteudo, indicadores de publicacao e uso</td></tr>
         </tbody>
       </table>
     </div>
@@ -729,12 +729,12 @@
         <h3>Superadmin</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Administração completa da plataforma. Gerencia escolas, usuários, configurações globais e tem visibilidade total sobre todos os dados e fluxos.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Administracao completa da plataforma. Gerencia escolas, usuarios, configuracoes globais e tem visibilidade total sobre todos os dados e fluxos.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Todas as 18 telas</li>
         </ul>
-        <p><strong>Ações exclusivas:</strong> convidar usuários, alterar perfis, configurar preferências do sistema, gerenciar permissões por escola.</p>
+        <p><strong>Acoes exclusivas:</strong> convidar usuarios, alterar perfis, configurar preferencias do sistema, gerenciar permissoes por escola.</p>
       </div>
     </div>
 
@@ -745,30 +745,30 @@
         <h3>Gestor de Rede</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Administra a escola dentro da plataforma. Controla usuários, conteúdo, base de conhecimento e acompanha indicadores.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Administra a escola dentro da plataforma. Controla usuarios, conteudo, base de conhecimento e acompanha indicadores.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Atendimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Fila Humana</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Auditoria Formal</li>
           <li><i class="bi bi-check-circle-fill"></i> Incidentes</li>
           <li><i class="bi bi-check-circle-fill"></i> Feedback da IA</li>
-          <li><i class="bi bi-check-circle-fill"></i> Correções</li>
+          <li><i class="bi bi-check-circle-fill"></i> Correcoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Ciclo de Melhoria</li>
-          <li><i class="bi bi-check-circle-fill"></i> Notificações</li>
+          <li><i class="bi bi-check-circle-fill"></i> Notificacoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Lacunas</li>
           <li><i class="bi bi-check-circle-fill"></i> Visao da Rede</li>
           <li><i class="bi bi-check-circle-fill"></i> Usuarios</li>
-          <li><i class="bi bi-check-circle-fill"></i> Preferências</li>
+          <li><i class="bi bi-check-circle-fill"></i> Preferencias</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Conteudo Oficial</li>
           <li><i class="bi bi-check-circle-fill"></i> Curadoria Pedagogica</li>
-          <li><i class="bi bi-check-circle-fill"></i> Governança Pedagogica</li>
+          <li><i class="bi bi-check-circle-fill"></i> Governanca Pedagogica</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Convida equipe → publica base de conhecimento → configura assistentes → monitora dashboard → trata incidentes quando necessário.</p>
+        <p><strong>Fluxo tipico:</strong> Convida equipe → publica base de conhecimento → configura assistentes → monitora dashboard → trata incidentes quando necessario.</p>
       </div>
     </div>
 
@@ -776,26 +776,26 @@
     <div class="role-card">
       <div class="role-card-header teal">
         <i class="bi bi-journal-richtext"></i>
-        <h3>Curador de Conteúdo</h3>
+        <h3>Curador de Conteudo</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Manter atualizada a base documental que alimenta a IA. Publica FAQ, calendário, orientações e garante que as fontes estejam versionadas e corretas.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Manter atualizada a base documental que alimenta a IA. Publica FAQ, calendario, orientacoes e garante que as fontes estejam versionadas e corretas.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Auditoria Formal</li>
           <li><i class="bi bi-check-circle-fill"></i> Incidentes</li>
           <li><i class="bi bi-check-circle-fill"></i> Feedback da IA</li>
-          <li><i class="bi bi-check-circle-fill"></i> Correções</li>
+          <li><i class="bi bi-check-circle-fill"></i> Correcoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Ciclo de Melhoria</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Conteudo Oficial</li>
           <li><i class="bi bi-check-circle-fill"></i> Curadoria Pedagogica</li>
-          <li><i class="bi bi-check-circle-fill"></i> Governança Pedagogica</li>
+          <li><i class="bi bi-check-circle-fill"></i> Governanca Pedagogica</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Recebe documento oficial → publica na base → IA passa a usar como fonte → monitora lacunas para saber onde falta conteúdo → aplica correções quando necessário.</p>
+        <p><strong>Fluxo tipico:</strong> Recebe documento oficial → publica na base → IA passa a usar como fonte → monitora lacunas para saber onde falta conteudo → aplica correcoes quando necessario.</p>
       </div>
     </div>
 
@@ -803,23 +803,23 @@
     <div class="role-card">
       <div class="role-card-header orange">
         <i class="bi bi-headset"></i>
-        <h3>Operador Público</h3>
+        <h3>Operador Publico</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Opera o atendimento do dia. Acompanha conversas, trata solicitações da fila humana, registra feedback sobre respostas da IA e abre incidentes quando necessário.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Opera o atendimento do dia. Acompanha conversas, trata solicitacoes da fila humana, registra feedback sobre respostas da IA e abre incidentes quando necessario.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Atendimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Fila Humana</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Incidentes</li>
           <li><i class="bi bi-check-circle-fill"></i> Feedback da IA</li>
-          <li><i class="bi bi-check-circle-fill"></i> Correções</li>
+          <li><i class="bi bi-check-circle-fill"></i> Correcoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Monitora chat → vê que IA respondeu com risco médio → avalia a resposta → registra feedback (útil/incorreto) → se incorreto, abre incidente ou propõe correção na base.</p>
+        <p><strong>Fluxo tipico:</strong> Monitora chat → ve que IA respondeu com risco medio → avalia a resposta → registra feedback (util/incorreto) → se incorreto, abre incidente ou propoe correcao na base.</p>
       </div>
     </div>
 
@@ -830,19 +830,19 @@
         <h3>Secretaria</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Gerencia comunicados, acompanha o atendimento da secretaria escolar e mantém conteúdo oficial atualizado (matrícula, documentos, orientações).</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Gerencia comunicados, acompanha o atendimento da secretaria escolar e mantem conteudo oficial atualizado (matricula, documentos, orientacoes).</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Atendimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Fila Humana</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Notificações</li>
+          <li><i class="bi bi-check-circle-fill"></i> Notificacoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Lacunas</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Conteudo Oficial</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Cria comunicado → publica conteúdo oficial (ex: novo calendário) → IA passa a responder com base nesse conteúdo → verifica lacunas para identificar temas sem cobertura.</p>
+        <p><strong>Fluxo tipico:</strong> Cria comunicado → publica conteudo oficial (ex: novo calendario) → IA passa a responder com base nesse conteudo → verifica lacunas para identificar temas sem cobertura.</p>
       </div>
     </div>
 
@@ -850,25 +850,25 @@
     <div class="role-card">
       <div class="role-card-header purple">
         <i class="bi bi-people"></i>
-        <h3>Coordenação Pedagógica</h3>
+        <h3>Coordenacao Pedagogica</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Supervisiona o atendimento e a curadoria pedagógica. Aprova conteúdo publicado por professores, acompanha indicadores de uso educacional e trata incidentes pedagógicos.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Supervisiona o atendimento e a curadoria pedagogica. Aprova conteudo publicado por professores, acompanha indicadores de uso educacional e trata incidentes pedagogicos.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Atendimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Fila Humana</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Incidentes</li>
-          <li><i class="bi bi-check-circle-fill"></i> Notificações</li>
+          <li><i class="bi bi-check-circle-fill"></i> Notificacoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Conteudo Oficial</li>
           <li><i class="bi bi-check-circle-fill"></i> Curadoria Pedagogica</li>
-          <li><i class="bi bi-check-circle-fill"></i> Governança Pedagogica</li>
+          <li><i class="bi bi-check-circle-fill"></i> Governanca Pedagogica</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Professor publica material → coordenação aprova → IA disponibiliza para alunos → monitora governança pedagógica → trata incidentes se houver conteúdo inadequado.</p>
+        <p><strong>Fluxo tipico:</strong> Professor publica material → coordenacao aprova → IA disponibiliza para alunos → monitora governanca pedagogica → trata incidentes se houver conteudo inadequado.</p>
       </div>
     </div>
 
@@ -879,15 +879,15 @@
         <h3>Professor</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Publica e gerencia conteúdo pedagógico da sua disciplina. O material aprovado alimenta o assistente de estudantes para dúvidas sobre a matéria.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Publica e gerencia conteudo pedagogico da sua disciplina. O material aprovado alimenta o assistente de estudantes para duvidas sobre a materia.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Notificações</li>
+          <li><i class="bi bi-check-circle-fill"></i> Notificacoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Curadoria Pedagogica</li>
-          <li><i class="bi bi-check-circle-fill"></i> Governança Pedagogica</li>
+          <li><i class="bi bi-check-circle-fill"></i> Governanca Pedagogica</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Acessa Curadoria Pedagógica → publica material da disciplina → aguarda aprovação da coordenação → acompanha na Governança Pedagógica os indicadores de uso pelos alunos.</p>
+        <p><strong>Fluxo tipico:</strong> Acessa Curadoria Pedagogica → publica material da disciplina → aguarda aprovacao da coordenacao → acompanha na Governanca Pedagogica os indicadores de uso pelos alunos.</p>
       </div>
     </div>
 
@@ -895,31 +895,31 @@
     <div class="role-card">
       <div class="role-card-header">
         <i class="bi bi-briefcase"></i>
-        <h3>Direção</h3>
+        <h3>Direcao</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Visão gerencial da escola. Acompanha indicadores, auditoria, incidentes e supervisiona a qualidade do atendimento.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Visao gerencial da escola. Acompanha indicadores, auditoria, incidentes e supervisiona a qualidade do atendimento.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Atendimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Fila Humana</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Auditoria Formal</li>
           <li><i class="bi bi-check-circle-fill"></i> Incidentes</li>
           <li><i class="bi bi-check-circle-fill"></i> Feedback da IA</li>
-          <li><i class="bi bi-check-circle-fill"></i> Correções</li>
+          <li><i class="bi bi-check-circle-fill"></i> Correcoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Ciclo de Melhoria</li>
-          <li><i class="bi bi-check-circle-fill"></i> Notificações</li>
+          <li><i class="bi bi-check-circle-fill"></i> Notificacoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Lacunas</li>
           <li><i class="bi bi-check-circle-fill"></i> Visao da Rede</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
           <li><i class="bi bi-check-circle-fill"></i> Conteudo Oficial</li>
           <li><i class="bi bi-check-circle-fill"></i> Curadoria Pedagogica</li>
-          <li><i class="bi bi-check-circle-fill"></i> Governança Pedagogica</li>
+          <li><i class="bi bi-check-circle-fill"></i> Governanca Pedagogica</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Consulta Dashboard → analisa incidentes abertos → verifica auditoria de respostas críticas → acompanha correções aplicadas → avalia relatórios periódicos.</p>
+        <p><strong>Fluxo tipico:</strong> Consulta Dashboard → analisa incidentes abertos → verifica auditoria de respostas criticas → acompanha correcoes aplicadas → avalia relatorios periodicos.</p>
       </div>
     </div>
 
@@ -930,20 +930,20 @@
         <h3>Auditor</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Fiscaliza a qualidade e a conformidade das respostas da IA. Acessa trilhas de auditoria, incidentes, feedback e relatórios de governança.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Fiscaliza a qualidade e a conformidade das respostas da IA. Acessa trilhas de auditoria, incidentes, feedback e relatorios de governanca.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Auditoria Formal</li>
           <li><i class="bi bi-check-circle-fill"></i> Incidentes</li>
           <li><i class="bi bi-check-circle-fill"></i> Feedback da IA</li>
-          <li><i class="bi bi-check-circle-fill"></i> Correções</li>
+          <li><i class="bi bi-check-circle-fill"></i> Correcoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Ciclo de Melhoria</li>
-          <li><i class="bi bi-check-circle-fill"></i> Notificações</li>
+          <li><i class="bi bi-check-circle-fill"></i> Notificacoes</li>
           <li><i class="bi bi-check-circle-fill"></i> Visao da Rede</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Acessa Auditoria Formal → seleciona evento → vê timeline completa (fonte, score, risco, feedback, incidentes vinculados) → verifica se correções foram aplicadas corretamente.</p>
+        <p><strong>Fluxo tipico:</strong> Acessa Auditoria Formal → seleciona evento → ve timeline completa (fonte, score, risco, feedback, incidentes vinculados) → verifica se correcoes foram aplicadas corretamente.</p>
       </div>
     </div>
 
@@ -954,15 +954,15 @@
         <h3>Observador</h3>
       </div>
       <div class="role-card-body">
-        <p><strong>Responsabilidade:</strong> Acesso somente leitura para acompanhamento institucional. Não realiza ações — apenas visualiza indicadores, comunicados e relatórios.</p>
-        <p><strong>Telas disponíveis:</strong></p>
+        <p><strong>Responsabilidade:</strong> Acesso somente leitura para acompanhamento institucional. Nao realiza acoes — apenas visualiza indicadores, comunicados e relatorios.</p>
+        <p><strong>Telas disponiveis:</strong></p>
         <ul class="screen-list">
           <li><i class="bi bi-check-circle-fill"></i> Dashboard</li>
           <li><i class="bi bi-check-circle-fill"></i> Comunicados</li>
-          <li><i class="bi bi-check-circle-fill"></i> Relatórios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Relatorios</li>
           <li><i class="bi bi-check-circle-fill"></i> Base de Conhecimento</li>
         </ul>
-        <p><strong>Fluxo típico:</strong> Acessa o sistema → consulta comunicados e dashboard → verifica relatórios periódicos.</p>
+        <p><strong>Fluxo tipico:</strong> Acessa o sistema → consulta comunicados e dashboard → verifica relatorios periodicos.</p>
       </div>
     </div>
 
@@ -970,10 +970,10 @@
     <h2 class="section-title" id="fluxos">6. Fluxos operacionais</h2>
 
     <div class="card-section">
-      <h3 class="subsection">6.1 Fluxo de atendimento público</h3>
-      <p>Quando uma família ou aluno faz uma pergunta pelo chat:</p>
+      <h3 class="subsection">6.1 Fluxo de atendimento publico</h3>
+      <p>Quando uma familia ou aluno faz uma pergunta pelo chat:</p>
       <div class="flow-diagram">
-        <span class="flow-step"><i class="bi bi-person"></i> Usuário pergunta</span>
+        <span class="flow-step"><i class="bi bi-person"></i> Usuario pergunta</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-robot"></i> IA busca fontes</span>
         <span class="flow-arrow">→</span>
@@ -983,19 +983,19 @@
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-journal-check"></i> Registra auditoria</span>
       </div>
-      <p><strong>Se a evidência for insuficiente:</strong> a IA se abstém, marca alto risco e recomenda revisão humana. A resposta entra na <strong>Fila Humana</strong>.</p>
-      <p><strong>Perfis envolvidos:</strong> <span class="badge-role orange">Operador Público</span> <span class="badge-role">Secretaria</span> <span class="badge-role purple">Coordenação</span></p>
+      <p><strong>Se a evidencia for insuficiente:</strong> a IA se abstem, marca alto risco e recomenda revisao humana. A resposta entra na <strong>Fila Humana</strong>.</p>
+      <p><strong>Perfis envolvidos:</strong> <span class="badge-role orange">Operador Publico</span> <span class="badge-role">Secretaria</span> <span class="badge-role purple">Coordenacao</span></p>
 
-      <h3 class="subsection">6.2 Fluxo de governança pós-resposta</h3>
-      <p>Após cada resposta da IA, inicia-se o ciclo de governança:</p>
+      <h3 class="subsection">6.2 Fluxo de governanca pos-resposta</h3>
+      <p>Apos cada resposta da IA, inicia-se o ciclo de governanca:</p>
       <div class="flow-diagram">
         <span class="flow-step"><i class="bi bi-chat-left-text"></i> Resposta da IA</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-hand-thumbs-up"></i> Feedback</span>
-        <span class="flow-label">(útil / incorreto)</span>
+        <span class="flow-label">(util / incorreto)</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-exclamation-triangle"></i> Incidente</span>
-        <span class="flow-label">(se necessário)</span>
+        <span class="flow-label">(se necessario)</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-pencil-square"></i> Correcao</span>
         <span class="flow-arrow">→</span>
@@ -1003,10 +1003,10 @@
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-database-check"></i> Aplicacao na base</span>
       </div>
-      <p><strong>Perfis envolvidos:</strong> <span class="badge-role orange">Operador Público</span> <span class="badge-role teal">Curador</span> <span class="badge-role teal">Auditor</span> <span class="badge-role">Direção</span></p>
+      <p><strong>Perfis envolvidos:</strong> <span class="badge-role orange">Operador Publico</span> <span class="badge-role teal">Curador</span> <span class="badge-role teal">Auditor</span> <span class="badge-role">Direcao</span></p>
 
-      <h3 class="subsection">6.3 Fluxo de curadoria de conteúdo</h3>
-      <p>Como um documento oficial chega até a base que a IA utiliza:</p>
+      <h3 class="subsection">6.3 Fluxo de curadoria de conteudo</h3>
+      <p>Como um documento oficial chega ate a base que a IA utiliza:</p>
       <div class="flow-diagram">
         <span class="flow-step"><i class="bi bi-file-earmark-text"></i> Documento oficial</span>
         <span class="flow-arrow">→</span>
@@ -1018,25 +1018,25 @@
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-robot"></i> IA usa como fonte</span>
       </div>
-      <p><strong>Perfis envolvidos:</strong> <span class="badge-role teal">Curador de Conteúdo</span> <span class="badge-role">Secretaria</span> <span class="badge-role green">Gestor de Rede</span></p>
+      <p><strong>Perfis envolvidos:</strong> <span class="badge-role teal">Curador de Conteudo</span> <span class="badge-role">Secretaria</span> <span class="badge-role green">Gestor de Rede</span></p>
 
-      <h3 class="subsection">6.4 Fluxo de curadoria pedagógica</h3>
-      <p>Como o conteúdo do professor chega até o assistente de estudantes:</p>
+      <h3 class="subsection">6.4 Fluxo de curadoria pedagogica</h3>
+      <p>Como o conteudo do professor chega ate o assistente de estudantes:</p>
       <div class="flow-diagram">
         <span class="flow-step"><i class="bi bi-mortarboard"></i> Professor cria material</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-send"></i> Publica na disciplina</span>
         <span class="flow-arrow">→</span>
-        <span class="flow-step"><i class="bi bi-person-check"></i> Coordenação aprova</span>
+        <span class="flow-step"><i class="bi bi-person-check"></i> Coordenacao aprova</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-cpu"></i> Embedding gerado</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-mortarboard"></i> Aluno consulta</span>
       </div>
-      <p><strong>Perfis envolvidos:</strong> <span class="badge-role green">Professor</span> <span class="badge-role purple">Coordenação</span> <span class="badge-role teal">Curador</span></p>
+      <p><strong>Perfis envolvidos:</strong> <span class="badge-role green">Professor</span> <span class="badge-role purple">Coordenacao</span> <span class="badge-role teal">Curador</span></p>
 
-      <h3 class="subsection">6.5 Fluxo de gestão de incidentes</h3>
-      <p>Quando uma resposta incorreta ou um problema é identificado:</p>
+      <h3 class="subsection">6.5 Fluxo de gestao de incidentes</h3>
+      <p>Quando uma resposta incorreta ou um problema e identificado:</p>
       <div class="flow-diagram">
         <span class="flow-step"><i class="bi bi-exclamation-octagon"></i> Identificacao</span>
         <span class="flow-arrow">→</span>
@@ -1044,78 +1044,78 @@
         <span class="flow-label">(severidade)</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-arrow-right-circle"></i> Roteamento</span>
-        <span class="flow-label">(destino responsável)</span>
+        <span class="flow-label">(destino responsavel)</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-wrench"></i> Tratamento</span>
         <span class="flow-arrow">→</span>
         <span class="flow-step"><i class="bi bi-check-circle"></i> Resolucao</span>
       </div>
-      <p><strong>Perfis envolvidos:</strong> <span class="badge-role orange">Operador</span> <span class="badge-role teal">Auditor</span> <span class="badge-role">Direção</span> <span class="badge-role green">Gestor de Rede</span></p>
+      <p><strong>Perfis envolvidos:</strong> <span class="badge-role orange">Operador</span> <span class="badge-role teal">Auditor</span> <span class="badge-role">Direcao</span> <span class="badge-role green">Gestor de Rede</span></p>
     </div>
 
-    <!-- 7. Governança e auditoria -->
-    <h2 class="section-title" id="governanca">7. Governança e auditoria</h2>
+    <!-- 7. Governanca e Auditoria -->
+    <h2 class="section-title" id="governanca">7. Governanca e auditoria</h2>
     <div class="card-section">
       <p>Toda resposta da IA gera automaticamente um registro de auditoria contendo:</p>
       <table class="guide-table">
-        <thead><tr><th>Dado registrado</th><th>Descrição</th></tr></thead>
+        <thead><tr><th>Dado registrado</th><th>Descricao</th></tr></thead>
         <tbody>
-          <tr><td>Score de confiança</td><td>Valor de 0 a 1 indicando o quanto a resposta é sustentada por fontes</td></tr>
-          <tr><td>Score de evidência</td><td>Qualidade da base documental recuperada</td></tr>
-          <tr><td>Nível de risco</td><td>Baixo, médio ou alto — baseado nos thresholds de evidência</td></tr>
-          <tr><td>Fonte consultada</td><td>Título e versão do documento usado na resposta</td></tr>
-          <tr><td>Status de revisão</td><td>Se a resposta requer revisão humana</td></tr>
+          <tr><td>Score de confianca</td><td>Valor de 0 a 1 indicando o quanto a resposta e sustentada por fontes</td></tr>
+          <tr><td>Score de evidencia</td><td>Qualidade da base documental recuperada</td></tr>
+          <tr><td>Nivel de risco</td><td>Baixo, medio ou alto — baseado nos thresholds de evidencia</td></tr>
+          <tr><td>Fonte consultada</td><td>Titulo e versao do documento usado na resposta</td></tr>
+          <tr><td>Status de revisao</td><td>Se a resposta requer revisao humana</td></tr>
           <tr><td>Fallback humano</td><td>Se a IA recomendou encaminhamento para atendente</td></tr>
         </tbody>
       </table>
-      <p>A tela de <strong>Auditoria Formal</strong> permite navegar pela timeline de eventos: ver a pergunta original, a resposta da IA, os feedbacks recebidos, incidentes abertos e correções aplicadas — tudo vinculado em uma única trilha.</p>
+      <p>A tela de <strong>Auditoria Formal</strong> permite navegar pela timeline de eventos: ver a pergunta original, a resposta da IA, os feedbacks recebidos, incidentes abertos e correcoes aplicadas — tudo vinculado em uma unica trilha.</p>
       <p><strong>Estados decis&oacute;rios da IA:</strong></p>
       <table class="guide-table">
         <thead><tr><th>Estado</th><th>Quando ocorre</th><th>O que a IA faz</th></tr></thead>
         <tbody>
-          <tr><td><strong>SAFE_TO_ANSWER</strong></td><td>Evidência forte (score ≥ 0.78)</td><td>Responde com segurança, registra fonte e confiança</td></tr>
-          <tr><td><strong>ANSWER_WITH_WARNING</strong></td><td>Evidência parcial (0.58 a 0.78)</td><td>Responde de forma conservadora, marca revisão requerida</td></tr>
-          <tr><td><strong>ABSTAIN_AND_REVIEW</strong></td><td>Evidência insuficiente (&lt; 0.58)</td><td>Não responde conclusivamente, recomenda revisão humana</td></tr>
+          <tr><td><strong>SAFE_TO_ANSWER</strong></td><td>Evidencia forte (score ≥ 0.78)</td><td>Responde com seguranca, registra fonte e confianca</td></tr>
+          <tr><td><strong>ANSWER_WITH_WARNING</strong></td><td>Evidencia parcial (0.58 a 0.78)</td><td>Responde de forma conservadora, marca revisao requerida</td></tr>
+          <tr><td><strong>ABSTAIN_AND_REVIEW</strong></td><td>Evidencia insuficiente (&lt; 0.58)</td><td>Nao responde conclusivamente, recomenda revisao humana</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 8. Módulo pedagógico -->
-    <h2 class="section-title" id="pedagogico">8. Módulo pedagógico</h2>
+    <!-- 8. Modulo pedagogico -->
+    <h2 class="section-title" id="pedagogico">8. Modulo pedagogico</h2>
     <div class="card-section">
-      <p>O modulo pedagogico permite que <strong>professores</strong> publiquem materiais didaticos por disciplina e turma. O conteúdo aprovado pela <strong>Coordenação</strong> alimenta um assistente de estudantes que responde duvidas sobre a materia.</p>
+      <p>O modulo pedagogico permite que <strong>professores</strong> publiquem materiais didaticos por disciplina e turma. O conteudo aprovado pela <strong>coordenacao</strong> alimenta um assistente de estudantes que responde duvidas sobre a materia.</p>
 
       <h3 class="subsection">Como funciona para o professor</h3>
       <ol>
-        <li>Acesse <strong>Curadoria Pedagógica</strong> no menu</li>
+        <li>Acesse <strong>Curadoria Pedagogica</strong> no menu</li>
         <li>Selecione a disciplina e a turma</li>
-        <li>Publique o material (texto, resumo, exercícios, orientações)</li>
-        <li>O material ficará com status <em>"pendente"</em> até que a coordenação aprove</li>
-        <li>Após aprovado, o conteúdo será embeddado e estará disponível para a IA</li>
+        <li>Publique o material (texto, resumo, exercicios, orientacoes)</li>
+        <li>O material ficara com status <em>"pendente"</em> ate que a coordenacao aprove</li>
+        <li>Apos aprovado, o conteudo sera embeddado e estara disponivel para a IA</li>
       </ol>
 
-      <h3 class="subsection">Como funciona para a coordenação</h3>
+      <h3 class="subsection">Como funciona para a coordenacao</h3>
       <ol>
-        <li>Acesse <strong>Governança Pedagógica</strong> no menu</li>
-        <li>Veja materiais pendentes de aprovação</li>
-        <li>Revise o conteúdo e aprove ou rejeite com justificativa</li>
-        <li>Acompanhe indicadores: materiais por disciplina, sessões de estudantes, temas mais consultados</li>
+        <li>Acesse <strong>Governanca Pedagogica</strong> no menu</li>
+        <li>Veja materiais pendentes de aprovacao</li>
+        <li>Revise o conteudo e aprove ou rejeite com justificativa</li>
+        <li>Acompanhe indicadores: materiais por disciplina, sessoes de estudantes, temas mais consultados</li>
       </ol>
 
       <h3 class="subsection">Para o estudante</h3>
-      <p>O estudante acessa o chat público da escola e pode perguntar sobre a matéria. A IA responde usando exclusivamente o conteúdo aprovado e publicado pelo professor daquela disciplina.</p>
+      <p>O estudante acessa o chat publico da escola e pode perguntar sobre a materia. A IA responde usando exclusivamente o conteudo aprovado e publicado pelo professor daquela disciplina.</p>
     </div>
 
     <!-- 9. Suporte -->
-    <h2 class="section-title" id="suporte">9. Suporte e dúvidas</h2>
+    <h2 class="section-title" id="suporte">9. Suporte e duvidas</h2>
     <div class="card-section">
-      <p>Em caso de dificuldade de acesso, dúvidas sobre funcionalidades ou problemas técnicos:</p>
+      <p>Em caso de dificuldade de acesso, duvidas sobre funcionalidades ou problemas tecnicos:</p>
       <ul>
-        <li>Fale com o <strong>gestor de rede</strong> ou <strong>superadmin</strong> da sua instituição</li>
-        <li>Na tela de login, use o link <strong>"Suporte para credenciais e permissões"</strong></li>
-        <li>Dentro do sistema, use o menu de <strong>Notificações</strong> para acompanhar alertas pendentes</li>
+        <li>Fale com o <strong>gestor de rede</strong> ou <strong>superadmin</strong> da sua instituicao</li>
+        <li>Na tela de login, use o link <strong>"Suporte para credenciais e permissoes"</strong></li>
+        <li>Dentro do sistema, use o menu de <strong>Notificacoes</strong> para acompanhar alertas pendentes</li>
       </ul>
-      <p>Este guia está disponível sem necessidade de login no endereço <strong>/guia-uso</strong>.</p>
+      <p>Este guia esta disponivel sem necessidade de login no endereco <strong>/guia-uso</strong>.</p>
     </div>
 
   </main>

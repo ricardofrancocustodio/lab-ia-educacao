@@ -886,6 +886,7 @@
       studentSessionId: null,
       sourceDocumentIds: [],
       studentMessages: [],
+      webchatFeedbackByResponseId: {},
       lastResponseId: null,
       studentSending: false
     };
@@ -1067,6 +1068,7 @@
       state.sessionId = '';
       state.consultationId = '';
       state.renderedIds = new Set();
+      state.webchatFeedbackByResponseId = {};
       elements.messages.innerHTML = '';
       setStatus('Nenhuma conversa iniciada. Configure o simulador e abra uma nova sessao.');
     }
@@ -1159,12 +1161,12 @@
       };
     }
 
-    function appendMessage(role, title, text, sourceCard = null) {
+    function appendMessage(role, title, text, sourceCard = null, extraHtml = '') {
       const shell = document.createElement('div');
       shell.className = 'message-shell ' + role;
       const bubble = document.createElement('article');
       bubble.className = 'bubble ' + role;
-      bubble.innerHTML = '<small>' + escapeHtml(title) + '</small>' + escapeHtml(text);
+      bubble.innerHTML = '<small>' + escapeHtml(title) + '</small>' + escapeHtml(text) + (extraHtml || '');
       shell.appendChild(bubble);
       if (role === 'assistant' && sourceCard) {
         shell.insertAdjacentHTML('beforeend', buildSourceCard(sourceCard));
@@ -1208,7 +1210,7 @@
       if (existing) existing.remove();
     }
 
-    async function appendAssistantBubbles(title, text, sourceCard) {
+    async function appendAssistantBubbles(title, text, sourceCard, extraHtml = '') {
       const chunks = splitIntoBubbles(text);
       for (let i = 0; i < chunks.length; i++) {
         if (i > 0) {
@@ -1221,7 +1223,7 @@
         const bubble = document.createElement('article');
         bubble.className = 'bubble assistant fade-in';
         const isLast = i === chunks.length - 1;
-        bubble.innerHTML = (i === 0 ? '<small>' + escapeHtml(title) + '</small>' : '') + escapeHtml(chunks[i]);
+        bubble.innerHTML = (i === 0 ? '<small>' + escapeHtml(title) + '</small>' : '') + escapeHtml(chunks[i]) + (isLast ? (extraHtml || '') : '');
         shell.appendChild(bubble);
         if (isLast && sourceCard) {
           shell.insertAdjacentHTML('beforeend', buildSourceCard(sourceCard));
@@ -1248,7 +1250,15 @@
         state.renderedIds.add(message.id);
         const role = message.role === 'user' ? 'user' : 'assistant';
         const title = role === 'user' ? (message.source || 'Usuario') : (message.source || 'Assistente');
-        appendMessage(role, title, message.text || '', role === 'assistant' ? getSourceCardFromAudit(message.audit) : null);
+        const responseId = role === 'assistant' ? String(message.audit?.response_id || '') : '';
+        const feedbackHtml = responseId
+          ? buildFeedbackButtons({
+              mode: 'webchat',
+              responseId,
+              activeType: state.webchatFeedbackByResponseId[responseId] || ''
+            })
+          : '';
+        appendMessage(role, title, message.text || '', role === 'assistant' ? getSourceCardFromAudit(message.audit) : null, feedbackHtml);
       });
     }
 
@@ -1344,6 +1354,7 @@
         state.studentSessionId = null;
         state.sourceDocumentIds = [];
         state.studentMessages = [];
+        state.webchatFeedbackByResponseId = {};
         state.lastResponseId = null;
 
         // Show/hide escalation bar
@@ -1366,6 +1377,7 @@
         state.sourceDocumentIds = discipline.source_document_ids || [];
         state.studentSessionId = null;
         state.studentMessages = [];
+        state.webchatFeedbackByResponseId = {};
         state.lastResponseId = null;
 
         // Show escalation bar
@@ -1459,10 +1471,10 @@
 
         // Render assistant bubbles with sources and feedback
         const sourceHtml = buildStudentSourcePills(body.sources || []);
-        const feedbackHtml = body.response_id ? buildFeedbackButtons(msgIndex) : '';
+        const feedbackHtml = body.response_id ? buildFeedbackButtons({ mode: 'student', msgIndex: msgIndex }) : '';
         appendRichAssistantMessage(subject, body.response || 'Sem resposta.', sourceHtml + feedbackHtml);
 
-        if (!body.has_context) {
+        if (body.show_no_context_warning) {
           appendMessage('system', 'Aviso', 'Nao encontrei conteudo relevante nos materiais. Considere clicar em "Falar com Professor".');
         }
       } catch (error) {
@@ -1483,11 +1495,24 @@
       }).join('') + '</div>';
     }
 
-    function buildFeedbackButtons(msgIndex) {
-      return '<div class="msg-feedback" data-msg-index="' + msgIndex + '">' +
-        '<button class="msg-feedback-btn" data-ftype="helpful" title="Util">&#x1F44D;</button>' +
-        '<button class="msg-feedback-btn" data-ftype="not_helpful" title="Nao util">&#x1F44E;</button>' +
+    function buildFeedbackButtons(options) {
+      const mode = String(options?.mode || 'student').trim();
+      const msgIndex = Number.isInteger(options?.msgIndex) ? String(options.msgIndex) : '';
+      const responseId = String(options?.responseId || '').trim();
+      const activeType = String(options?.activeType || '').trim();
+      return '<div class="msg-feedback" data-feedback-mode="' + escapeHtml(mode) + '"' +
+        (msgIndex ? ' data-msg-index="' + escapeHtml(msgIndex) + '"' : '') +
+        (responseId ? ' data-response-id="' + escapeHtml(responseId) + '"' : '') + '>' +
+        '<button class="msg-feedback-btn' + (activeType === 'helpful' ? ' is-active' : '') + '" data-ftype="helpful" title="Util">&#x1F44D;</button>' +
+        '<button class="msg-feedback-btn' + (activeType === 'not_helpful' ? ' is-active' : '') + '" data-ftype="not_helpful" title="Nao util">&#x1F44E;</button>' +
         '</div>';
+    }
+
+    function syncFeedbackButtons(container, feedbackType) {
+      if (!container) return;
+      container.querySelectorAll('.msg-feedback-btn').forEach(function (btn) {
+        btn.classList.toggle('is-active', btn.getAttribute('data-ftype') === feedbackType);
+      });
     }
 
     function appendRichAssistantMessage(title, text, extraHtml) {
@@ -1507,8 +1532,8 @@
       msg.feedback = feedbackType;
 
       // Update UI
-      document.querySelectorAll('.msg-feedback[data-msg-index="' + msgIndex + '"] .msg-feedback-btn').forEach(function (btn) {
-        btn.classList.toggle('is-active', btn.getAttribute('data-ftype') === feedbackType);
+      document.querySelectorAll('.msg-feedback[data-feedback-mode="student"][data-msg-index="' + msgIndex + '"]').forEach(function (container) {
+        syncFeedbackButtons(container, feedbackType);
       });
 
       const schoolId = String(elements.schoolId.value || '').trim();
@@ -1525,6 +1550,36 @@
         });
       } catch (error) {
         console.error('Erro ao enviar feedback:', error);
+      }
+    }
+
+    async function submitWebchatFeedback(responseId, feedbackType, container) {
+      const normalizedResponseId = String(responseId || '').trim();
+      if (!normalizedResponseId || !state.sessionId || !feedbackType) return;
+      if (state.webchatFeedbackByResponseId[normalizedResponseId] === feedbackType) return;
+
+      state.webchatFeedbackByResponseId[normalizedResponseId] = feedbackType;
+      syncFeedbackButtons(container, feedbackType);
+
+      const schoolId = String(elements.schoolId.value || '').trim();
+      try {
+        const response = await fetch('/api/webchat/responses/' + encodeURIComponent(normalizedResponseId) + '/public-feedback', {
+          method: 'POST',
+          headers: getRequestHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            school_id: schoolId,
+            session_id: state.sessionId,
+            feedback_type: feedbackType
+          })
+        });
+        const body = await response.json().catch(function () { return {}; });
+        if (!response.ok) {
+          throw new Error(body.error || 'Falha ao registrar feedback.');
+        }
+      } catch (error) {
+        delete state.webchatFeedbackByResponseId[normalizedResponseId];
+        syncFeedbackButtons(container, '');
+        console.error('Erro ao enviar feedback do webchat:', error);
       }
     }
 
@@ -1631,6 +1686,7 @@
         state.consultationId = String(body.consultation_id || '');
         setStatus('Sessao ativa para teste controlado em ' + getResolvedContext().schoolName + '.');
       }
+      state.lastResponseId = body?.assistant_response_id ? String(body.assistant_response_id || '') : state.lastResponseId;
       return body;
     }
 
@@ -1703,7 +1759,15 @@
         removeTypingIndicator();
         if (body?.reply) {
           const agentLabel = getAgentLabel(body?.metadata?.routed_agent) || fallbackLabel;
-          await appendAssistantBubbles(agentLabel, String(body.reply || ''), body.source_card || null);
+          const responseId = String(body.assistant_response_id || '');
+          const feedbackHtml = responseId
+            ? buildFeedbackButtons({
+                mode: 'webchat',
+                responseId,
+                activeType: state.webchatFeedbackByResponseId[responseId] || ''
+              })
+            : '';
+          await appendAssistantBubbles(agentLabel, String(body.reply || ''), body.source_card || null, feedbackHtml);
         }
         await loadConversation();
       } catch (error) {
@@ -1754,9 +1818,15 @@
         const fbBtn = e.target.closest('.msg-feedback-btn');
         if (fbBtn) {
           const container = fbBtn.closest('.msg-feedback');
-          const idx = parseInt(container?.getAttribute('data-msg-index'), 10);
           const ftype = fbBtn.getAttribute('data-ftype');
-          if (!isNaN(idx) && ftype) submitStudentFeedback(idx, ftype);
+          const mode = String(container?.getAttribute('data-feedback-mode') || '').trim();
+          if (mode === 'student') {
+            const idx = parseInt(container?.getAttribute('data-msg-index'), 10);
+            if (!isNaN(idx) && ftype) submitStudentFeedback(idx, ftype);
+          } else if (mode === 'webchat') {
+            const responseId = String(container?.getAttribute('data-response-id') || '').trim();
+            if (responseId && ftype) submitWebchatFeedback(responseId, ftype, container);
+          }
         }
       });
 
@@ -1766,6 +1836,7 @@
           state.chatMode = '';
           state.selectedDiscipline = null;
           state.studentSessionId = null;
+          state.webchatFeedbackByResponseId = {};
           if (state.pollingTimer) { window.clearInterval(state.pollingTimer); state.pollingTimer = null; }
           state.sessionId = '';
           state.consultationId = '';

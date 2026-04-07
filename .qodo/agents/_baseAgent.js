@@ -5,10 +5,35 @@ const { findMatchingEntries } = require(path.resolve("./.qodo/services/supabase.
 const { getSession, setSession } = require(path.resolve("./.qodo/store/sessions.js"));
 const buildAssistantGuardrails = require(path.resolve("./.qodo/core/constants/buildAssistantGuardrails.js"));
 const { detectAssistantSafetyIssue, buildSafetyRedirectMessage } = require(path.resolve("./.qodo/core/assistantSafety.js"));
+const { detectCapabilityIntent } = require(path.resolve("./.qodo/core/capabilityIntent.js"));
 
 const SCHOOL_ID = process.env.SCHOOL_ID;
 const SAFE_EVIDENCE_SCORE = 0.78;
 const WARNING_EVIDENCE_SCORE = 0.58;
+
+function normalize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function normalizeConversationText(value) {
+  return normalize(value)
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isGreetingIntent(text) {
+  const value = normalizeConversationText(text);
+  const compact = value.replace(/\s+/g, "");
+  return compact.length <= 12 && (
+    /^(oi+|opa+|eai|ei+|bomdia|boatarde|boanoite)$/.test(compact) ||
+    compact.startsWith("ol")
+  );
+}
 
 function namespacedSessionId(from, agentKey) {
   return `agent:${agentKey}:${from}`;
@@ -27,6 +52,7 @@ function renderSources(entries) {
 function mapConsultedSources(entries = []) {
   return entries.map((entry) => ({
     source_document_id: entry.source_document_id || null,
+    source_document_type: entry.source_document_type || null,
     source_title: entry.source_title || null,
     source_version_id: entry.source_version_id || null,
     source_version_label: entry.source_version_label || entry.source_version_number || null,
@@ -37,6 +63,9 @@ function mapConsultedSources(entries = []) {
 }
 
 function hasReliableInstitutionalSource(source = {}) {
+  if (String(source?.source_document_type || '').trim().toLowerCase() === 'teaching_material') {
+    return false;
+  }
   return Boolean(
     source?.source_version_id ||
     source?.source_document_id ||
@@ -114,6 +143,18 @@ function buildAbstentionReply(areaLabel) {
   return `Quero te ajudar com esse tema da area ${areaLabel}, mas ainda nao encontrei base institucional suficiente e versionada para responder com seguranca. Se voce puder detalhar melhor o que precisa, eu tento localizar a orientacao correta sem inventar informacoes.`;
 }
 
+function buildScopedGreetingReply(name, scopeDescription) {
+  return `Ola! Voce esta falando com ${name}. Posso ajudar com ${scopeDescription}. Me conte sua duvida e eu sigo daqui com base institucional validada.`;
+}
+
+function buildScopedClarificationReply(areaLabel, scopeDescription) {
+  return `Posso ajudar com demandas da area ${areaLabel}. Me diga o tema exato dentro de ${scopeDescription}, para eu localizar apenas orientacoes institucionais confiaveis.`;
+}
+
+function buildScopedCapabilityReply(areaLabel, scopeDescription) {
+  return `Posso orientar sobre demandas da area ${areaLabel}, dentro de ${scopeDescription}. Se voce me disser o tema exato, eu sigo por esse assunto com base institucional validada.`;
+}
+
 function buildWarningPrefix() {
   return 'Encontrei apenas base institucional parcial para esta pergunta. Vou responder de forma conservadora e limitada ao que esta registrado.';
 }
@@ -183,8 +224,50 @@ function createAgent(config) {
       const session = getSession(sessionId) || { step: 0, data: { history: [] } };
       session.data.history = Array.isArray(session.data.history) ? session.data.history : [];
 
+      if (isGreetingIntent(text)) {
+        return {
+          text: buildScopedGreetingReply(name, scopeDescription),
+          audit: {
+            assistant_key: agentKey,
+            assistant_name: name,
+            confidence_score: 0.5,
+            evidence_score: 0.16,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_GREETING',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+
+      const capabilityIntent = detectCapabilityIntent(text);
+      if (capabilityIntent) {
+        return {
+          text: buildScopedCapabilityReply(areaLabel, scopeDescription),
+          audit: {
+            assistant_key: agentKey,
+            assistant_name: name,
+            confidence_score: 0.8,
+            evidence_score: 0.18,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_CAPABILITY',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+
       const safetyIssue = detectAssistantSafetyIssue(text);
       if (safetyIssue) {
+        const isAbuse = ['threat', 'harassment', 'profanity'].includes(safetyIssue.type);
         return {
           text: buildSafetyRedirectMessage({
             issue: safetyIssue,
@@ -201,12 +284,12 @@ function createAgent(config) {
             confidence_score: 0.42,
             evidence_score: 0.12,
             hallucination_risk_level: safetyIssue.severity === 'high' ? 'HIGH' : 'MEDIUM',
-            review_required: false,
-            review_reason: 'safety_redirect',
+            review_required: isAbuse,
+            review_reason: isAbuse ? `safety_${safetyIssue.type}` : 'safety_redirect',
             response_mode: 'AUTOMATIC_LIMITED',
             consulted_sources: [],
             supporting_source: null,
-            fallback_to_human: true,
+            fallback_to_human: !isAbuse,
             abstained: false
           }
         };
@@ -214,6 +297,7 @@ function createAgent(config) {
 
       const entries = await findMatchingEntries(text, resolvedSchoolId || SCHOOL_ID, {
         categories: knowledgeCategories,
+        excludeDocumentTypes: ['teaching_material'],
         limit: 3
       });
       const assessment = buildEvidenceAssessment(entries);
@@ -233,8 +317,7 @@ function createAgent(config) {
             consulted_sources: assessment.consulted_sources,
             supporting_source: assessment.supporting_source,
             fallback_to_human: true,
-            abstained: true,
-            source_card: buildSourceCard(assessment.supporting_source)
+            abstained: true
           }
         };
       }

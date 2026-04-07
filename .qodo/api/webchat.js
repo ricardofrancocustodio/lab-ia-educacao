@@ -78,6 +78,10 @@ function getRoleCapabilities(req) {
   return { ...defaults, ...(CHAT_MANAGER_ROLE_CAPABILITIES[role] || {}) };
 }
 
+function buildPublicWebchatFeedbackActor(sessionId) {
+  return `public_webchat:${String(sessionId || '').trim()}`;
+}
+
 function sanitizeAuditForCapabilities(audit = {}, capabilities = {}) {
   const sanitized = {
     ...audit,
@@ -692,6 +696,114 @@ router.post("/responses/:id/feedback", async (req, res) => {
     return res.status(200).json({ ok: true, feedback: data, auto_incident: autoIncident });
   } catch (err) {
     console.error("Erro /api/webchat/responses/:id/feedback:", err);
+    return res.status(500).json({ ok: false, error: "Falha ao registrar feedback." });
+  }
+});
+
+router.post("/responses/:id/public-feedback", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({ ok: false, error: "Supabase indisponivel." });
+    }
+
+    const responseId = String(req.params.id || '').trim();
+    const sessionId = String(req.body?.session_id || '').trim();
+    const feedbackType = String(req.body?.feedback_type || '').trim().toLowerCase();
+
+    if (!responseId) return res.status(400).json({ ok: false, error: "Resposta invalida." });
+    if (!isWebchatSessionId(sessionId)) {
+      return res.status(400).json({ ok: false, error: "session_id invalido." });
+    }
+    if (!['helpful', 'not_helpful'].includes(feedbackType)) {
+      return res.status(400).json({ ok: false, error: "feedback_type invalido." });
+    }
+
+    const schoolId = getRequestedSchoolId(req, sessionId);
+    let responseQuery = supabase
+      .from('assistant_responses')
+      .select('id, school_id, consultation_id')
+      .eq('id', responseId)
+      .limit(1)
+      .maybeSingle();
+
+    if (schoolId) responseQuery = responseQuery.eq('school_id', schoolId);
+
+    const { data: responseRow, error: responseError } = await responseQuery;
+    if (responseError) throw responseError;
+    if (!responseRow) return res.status(404).json({ ok: false, error: "Resposta nao encontrada." });
+
+    let consultationQuery = supabase
+      .from('institutional_consultations')
+      .select('id, school_id, requester_id, channel')
+      .eq('id', responseRow.consultation_id)
+      .eq('requester_id', sessionId)
+      .eq('channel', 'webchat')
+      .limit(1)
+      .maybeSingle();
+
+    if (schoolId) consultationQuery = consultationQuery.eq('school_id', schoolId);
+
+    const { data: consultationRow, error: consultationError } = await consultationQuery;
+    if (consultationError) throw consultationError;
+    if (!consultationRow) {
+      return res.status(404).json({ ok: false, error: "Resposta nao encontrada para esta sessao." });
+    }
+
+    const createdBy = buildPublicWebchatFeedbackActor(sessionId);
+    const payload = {
+      school_id: responseRow.school_id,
+      consultation_id: responseRow.consultation_id,
+      response_id: responseRow.id,
+      feedback_type: feedbackType,
+      comment: null,
+      created_by: createdBy
+    };
+
+    const { error: cleanupError } = await supabase
+      .from('interaction_feedback')
+      .delete()
+      .eq('response_id', responseRow.id)
+      .eq('created_by', createdBy);
+
+    if (cleanupError) {
+      if (isMissingRelationError(cleanupError)) {
+        return res.status(501).json({ ok: false, error: 'Tabela interaction_feedback ainda nao foi criada no banco.' });
+      }
+      throw cleanupError;
+    }
+
+    const { data, error } = await supabase
+      .from('interaction_feedback')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) {
+      if (isMissingRelationError(error)) {
+        return res.status(501).json({ ok: false, error: 'Tabela interaction_feedback ainda nao foi criada no banco.' });
+      }
+      throw error;
+    }
+
+    await supabase.from('formal_audit_events').insert({
+      school_id: responseRow.school_id,
+      consultation_id: responseRow.consultation_id,
+      event_type: 'INTERACTION_FEEDBACK_RECORDED',
+      severity: 'INFO',
+      actor_type: 'HUMAN',
+      actor_name: createdBy,
+      summary: 'Feedback registrado pelo usuario no webchat publico.',
+      details: {
+        response_id: responseRow.id,
+        feedback_type: feedbackType,
+        origin: 'public_webchat',
+        session_id: sessionId
+      }
+    });
+
+    return res.status(200).json({ ok: true, feedback: data });
+  } catch (err) {
+    console.error("Erro /api/webchat/responses/:id/public-feedback:", err);
     return res.status(500).json({ ok: false, error: "Falha ao registrar feedback." });
   }
 });

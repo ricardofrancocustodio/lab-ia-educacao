@@ -96,6 +96,9 @@ function normalizeReply(result, fallbackAgent) {
 }
 
 function hasReliableInstitutionalSource(source = {}) {
+  if (String(source?.source_document_type || '').trim().toLowerCase() === 'teaching_material') {
+    return false;
+  }
   return Boolean(
     source?.source_version_id ||
     source?.source_document_id ||
@@ -148,6 +151,8 @@ function buildAuditEnvelope(normalizedAudit = {}, resolvedAgent) {
     auditSummary = `Resposta automatica emitida com evidencia parcial para ${normalizedAudit.assistant_name || resolvedAgent?.name || 'Assistente Publico'}.`;
   }
 
+  const showSourceCard = Boolean(hasReliableBase && !abstained && !reviewRequired);
+
   return {
     supportingSource,
     consultedSources,
@@ -160,7 +165,8 @@ function buildAuditEnvelope(normalizedAudit = {}, resolvedAgent) {
     auditSeverity,
     auditReason,
     auditSummary,
-    fallbackArea
+    fallbackArea,
+    showSourceCard
   };
 }
 
@@ -256,7 +262,7 @@ async function handleInboundChat({ channel, userId, text, metadata = {} }) {
     consultation_id: persistenceResult?.consultation?.id || null,
     assistant_response_id: persistenceResult?.assistant_response?.id || null,
     reply: finalReply,
-    source_card: buildSourceCardPayload(auditEnvelope.supportingSource),
+    source_card: auditEnvelope.showSourceCard ? buildSourceCardPayload(auditEnvelope.supportingSource) : null,
     metadata: {
       ...metadata,
       routed_agent: normalizedResult.audit.assistant_key || resolvedAgent?.agentKey || "public.assistant"

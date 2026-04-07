@@ -1161,6 +1161,46 @@ function normalizeText(text) {
     .trim();
 }
 
+function normalizeSearchText(text) {
+  return normalizeText(text)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isGreetingOnlyMessage(text) {
+  const normalized = normalizeSearchText(text);
+  if (!normalized) return false;
+
+  if (/^(oi|ola|opa|e ai|eae|bom dia|boa tarde|boa noite)( tudo bem)?$/.test(normalized)) {
+    return true;
+  }
+  if (normalized === "tudo bem") return true;
+
+  const exactGreetings = new Set([
+    "oi",
+    "ola",
+    "opa",
+    "e ai",
+    "eae",
+    "oi tudo bem",
+    "ola tudo bem",
+    "tudo bem",
+    "bom dia",
+    "boa tarde",
+    "boa noite"
+  ]);
+
+  if (exactGreetings.has(normalized)) return true;
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  const allowedTokens = new Set(["oi", "ola", "opa", "e", "ai", "eae", "tudo", "bem", "bom", "dia", "boa", "tarde", "noite"]);
+  return tokens.length > 0 && tokens.length <= 4 && tokens.every((token) => allowedTokens.has(token));
+}
+
 function slugifyToken(value = "") {
   const normalized = normalizeText(value)
     .toLowerCase()
@@ -7737,6 +7777,17 @@ MATERIAIS CADASTRADOS NESTA DISCIPLINA:
 TRECHOS DO MATERIAL DIDATICO (usados para responder a pergunta atual):
 {{CONTEXT}}`;
 
+const STUDENT_CHAT_NO_INFO_MESSAGE = "Nao encontrei essa informacao no material da disciplina. Voce pode clicar em 'Falar com Professor' para tirar essa duvida.";
+
+function buildStudentGreetingFallbackMessage(discipline, materialsCatalog) {
+  const hasPublishedMaterials = materialsCatalog && !String(materialsCatalog).includes("Nenhum material publicado");
+  if (hasPublishedMaterials) {
+    return `Ola! Sou o assistente de ${discipline}. Estou aqui para ajudar com duvidas sobre o conteudo dessa disciplina. Posso explicar os temas disponiveis nos materiais publicados e orientar seus estudos. O que voce gostaria de saber?`;
+  }
+
+  return `Ola! Sou o assistente de ${discipline}. No momento, esta disciplina ainda nao possui material publicado nesta escola para eu responder com seguranca. Se quiser, voce pode clicar em 'Falar com Professor' para tirar essa duvida.`;
+}
+
 function buildStudentChatGuardrails(discipline) {
   return buildAssistantGuardrails({
     assistantName: `assistente pedagogico de ${discipline}`,
@@ -7748,7 +7799,7 @@ function buildStudentChatGuardrails(discipline) {
     humanHandoffAction: 'clicar em "Falar com Professor" ou procurar um professor, coordenacao ou outro adulto de confianca da escola',
     greetingInstruction: 'Se a mensagem for apenas uma saudacao, apresente-se brevemente e liste os assuntos disponiveis para estudo.',
     redirectInstruction: 'Se o assunto estiver fora do material da disciplina, recuse com educacao e redirecione para a materia ou para o botao "Falar com Professor".',
-    noInfoMessage: "Nao encontrei essa informacao no material da disciplina. Voce pode clicar em 'Falar com Professor' para tirar essa duvida.",
+    noInfoMessage: STUDENT_CHAT_NO_INFO_MESSAGE,
     useEmojis: false
   });
 }
@@ -7853,6 +7904,7 @@ app.post("/api/student-chat/message", async (req, res) => {
     let evidenceRows = [];
     let aiResponse = "";
     let responseMode = "AUTOMATIC";
+    const guardrailsPrompt = buildStudentChatGuardrails(discipline);
 
     if (safetyIssue) {
       aiResponse = buildSafetyRedirectMessage({
@@ -7865,7 +7917,11 @@ app.post("/api/student-chat/message", async (req, res) => {
       responseMode = "AUTOMATIC_LIMITED";
     }
 
-    if (!safetyIssue && HUGGINGFACE_API_KEY) {
+    const teachingSourceDocumentIds = Array.isArray(sourceDocumentIds)
+      ? sourceDocumentIds.map((item) => String(item || "").trim()).filter(Boolean)
+      : [];
+
+    if (!safetyIssue && HUGGINGFACE_API_KEY && teachingSourceDocumentIds.length) {
       try {
         const queryEmbedding = await generateEmbedding(userMessage);
         if (queryEmbedding) {
@@ -7873,19 +7929,14 @@ app.post("/api/student-chat/message", async (req, res) => {
             query_embedding: queryEmbedding,
             match_threshold: 0.3,
             match_count: 5,
-            p_school_id: schoolId
+            p_school_id: schoolId,
+            p_source_document_ids: teachingSourceDocumentIds
           };
 
-          let rpcResult;
-          if (Array.isArray(sourceDocumentIds) && sourceDocumentIds.length) {
-            rpcParams.p_source_document_ids = sourceDocumentIds;
-            rpcResult = await supabase.rpc("match_teaching_knowledge", rpcParams);
-          } else {
-            rpcResult = await supabase.rpc("match_knowledge", rpcParams);
-          }
+          const rpcResult = await supabase.rpc("match_teaching_knowledge", rpcParams);
 
           if (rpcResult.error) {
-            console.error("Erro match_knowledge RPC:", rpcResult.error.message);
+            console.error("Erro match_teaching_knowledge RPC:", rpcResult.error.message);
           } else {
             contextChunks = (rpcResult.data || []).map((row) => ({
               question: row.question || "",
@@ -7941,7 +7992,7 @@ app.post("/api/student-chat/message", async (req, res) => {
     // 4. Build system prompt
     const systemPrompt = STUDENT_CHAT_SYSTEM_PROMPT_TEMPLATE
       .replace("{{DISCIPLINE}}", discipline)
-      .replace("{{GUARDRAILS}}", buildStudentChatGuardrails(discipline))
+      .replace("{{GUARDRAILS}}", guardrailsPrompt)
       .replace("{{MATERIALS_CATALOG}}", materialsCatalog)
       .replace("{{CONTEXT}}", contextText);
 
@@ -7961,7 +8012,16 @@ app.post("/api/student-chat/message", async (req, res) => {
       }));
 
     // 6. Call LLM via askAI only if the message passed the deterministic safety filter
-    if (!safetyIssue) {
+    const greetingOnlyMessage = isGreetingOnlyMessage(userMessage);
+    const shouldShowNoContextWarning = !safetyIssue && contextChunks.length === 0 && !greetingOnlyMessage;
+
+    if (!safetyIssue && contextChunks.length === 0 && greetingOnlyMessage) {
+      aiResponse = buildStudentGreetingFallbackMessage(discipline, materialsCatalog);
+      responseMode = "AUTOMATIC_LIMITED";
+    } else if (!safetyIssue && contextChunks.length === 0) {
+      aiResponse = STUDENT_CHAT_NO_INFO_MESSAGE;
+      responseMode = "AUTOMATIC_LIMITED";
+    } else if (!safetyIssue) {
       aiResponse = await askAI(systemPrompt, userMessage, chatHistory);
     }
 
@@ -8031,7 +8091,8 @@ app.post("/api/student-chat/message", async (req, res) => {
       response_id: responseRecord?.id || null,
       sources: evidenceRows.map((e) => ({ title: e.source_title, similarity: Math.round((e.similarity || 0) * 100) })),
       has_context: contextChunks.length > 0,
-      handled_by_safety_policy: Boolean(safetyIssue)
+      handled_by_safety_policy: Boolean(safetyIssue),
+      show_no_context_warning: shouldShowNoContextWarning
     });
   } catch (error) {
     console.error("Erro POST /api/student-chat/message:", error);

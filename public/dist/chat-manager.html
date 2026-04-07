@@ -5,11 +5,22 @@
     <style>
         body { opacity: 0; transition: opacity 0.4s ease-in-out; }
         .chat-container { height: calc(100vh - 180px); display: flex; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .chat-entry-note { margin-bottom: 16px; border: 1px solid #bcd3f6; border-left: 4px solid #1351b4; border-radius: 10px; background: #eef5ff; color: #183b78; }
+        .chat-entry-note a { font-weight: 700; color: #0a2247 !important; text-decoration: none; }
+        .chat-entry-note a:hover { color: #06152d !important; text-decoration: underline; }
         .chat-sidebar { width: 300px; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         .chat-main { flex: 1; display: flex; flex-direction: column; background: #f4f6f9; min-width: 0; }
         .chat-body { flex: 1; display: flex; min-height: 0; }
         .chat-thread { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .chat-messages a { color: #0a2247 !important; font-weight: 700; text-decoration: none; }
+        .chat-messages a:hover { color: #06152d !important; text-decoration: underline; }
+        .chat-messages .text-muted a,
+        #contact-list .text-muted a { color: #0a2247 !important; font-weight: 700; text-decoration: none; }
+        .chat-messages .text-muted a:hover,
+        #contact-list .text-muted a:hover { color: #06152d !important; text-decoration: underline; }
+        .simulator-link { color: #0a2247 !important; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+        .simulator-link:hover { color: #06152d !important; }
         .chat-audit { width: 360px; border-left: 1px solid #ddd; background: #fff; padding: 20px; overflow-y: auto; }
         .message { max-width: 78%; padding: 10px 15px; border-radius: 15px; position: relative; }
         .msg-in { align-self: flex-start; background: #fff; border: 1px solid #ddd; }
@@ -60,6 +71,9 @@
 
         <section class="content">
             <div class="container-fluid">
+                <div class="alert chat-entry-note" role="note">
+                    <strong>Origem das conversas:</strong> os atendimentos monitorados nesta tela sao iniciados no <a class="simulator-link" style="color:#0a2247!important" href="/simulador-chat" target="_blank" rel="noopener noreferrer">simulador-chat</a>. Use esse link para abrir novas conversas de teste e acompanhe aqui o historico operacional.
+                </div>
                 <div class="chat-container">
                     <div class="chat-sidebar">
                         <div class="p-3 border-bottom">
@@ -82,7 +96,7 @@
                         <div class="chat-body">
                             <div class="chat-thread">
                                 <div id="chat-window" class="chat-messages">
-                                    <div class="text-center text-muted py-5">Clique em um contato para iniciar o atendimento.</div>
+                                    <div class="text-center text-muted py-5">As conversas desta tela comecam no <a class="simulator-link" style="color:#0a2247!important" href="/simulador-chat" target="_blank" rel="noopener noreferrer">simulador-chat</a>. Depois, selecione aqui um contato para acompanhar o atendimento.</div>
                                 </div>
 
                                 <div class="chat-footer">

@@ -159,6 +159,7 @@ function normalizeMatchedKnowledgeRow(item = {}, normalizedQuestion) {
     question: item.question,
     answer: item.answer,
     source_document_id: item.source_document_id || null,
+    source_document_type: item.source_document_type || null,
     source_title: item.source_title || null,
     source_version_id: item.source_version_id || null,
     source_version_label: item.source_version_label || item.source_version_number || null,
@@ -170,6 +171,43 @@ function normalizeMatchedKnowledgeRow(item = {}, normalizedQuestion) {
     text_score: textScore,
     evidence_score: Number(evidenceScore.toFixed(3))
   };
+}
+
+async function loadSourceDocumentTypeMap(sourceDocumentIds = []) {
+  const uniqueIds = [...new Set((sourceDocumentIds || []).map((value) => String(value || '').trim()).filter(Boolean))];
+  if (!supabase || !uniqueIds.length) return new Map();
+
+  const { data, error } = await supabase
+    .from('source_documents')
+    .select('id, document_type')
+    .in('id', uniqueIds);
+
+  if (error) {
+    console.error('Erro ao carregar tipos dos documentos-fonte:', error.message);
+    return new Map();
+  }
+
+  return new Map((data || []).map((item) => [String(item.id || '').trim(), String(item.document_type || '').trim() || null]));
+}
+
+function shouldKeepKnowledgeRowForOptions(item = {}, options = {}) {
+  const excludeDocumentTypes = Array.isArray(options.excludeDocumentTypes)
+    ? options.excludeDocumentTypes.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+    : [];
+  const allowedDocumentTypes = Array.isArray(options.allowedDocumentTypes)
+    ? options.allowedDocumentTypes.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
+    : [];
+  const sourceDocumentType = String(item.source_document_type || '').trim().toLowerCase();
+
+  if (excludeDocumentTypes.length && sourceDocumentType && excludeDocumentTypes.includes(sourceDocumentType)) {
+    return false;
+  }
+
+  if (allowedDocumentTypes.length && sourceDocumentType && !allowedDocumentTypes.includes(sourceDocumentType)) {
+    return false;
+  }
+
+  return true;
 }
 
 function normalizeSearchText(value) {
@@ -438,6 +476,7 @@ function buildOfficialContentRows(records = []) {
           question: [record.title, entry.title, entry.event_type, ...aliases].filter(Boolean).join(' | '),
           answer: answerParts.join(' | '),
           source_document_id: record.source_document_id || null,
+          source_document_type: 'official_content',
           source_title: record.title || 'Conteudo Oficial',
           source_version_id: record.source_version_id || null,
           source_version_label: record.status === 'published' ? 'publicado' : (record.status || null),
@@ -458,6 +497,7 @@ function buildOfficialContentRows(records = []) {
       question: [record.title, record.summary].filter(Boolean).join(' | '),
       answer: [record.title, record.summary, contentPayload].filter(Boolean).join(' | '),
       source_document_id: record.source_document_id || null,
+      source_document_type: 'official_content',
       source_title: record.title || 'Conteudo Oficial',
       source_version_id: record.source_version_id || null,
       source_version_label: record.status === 'published' ? 'publicado' : (record.status || null),
@@ -1123,8 +1163,15 @@ async function findMatchingEntries(userQuestion, schoolId, options = {}) {
     return [];
   }
 
+  const sourceDocumentTypeMap = await loadSourceDocumentTypeMap((data || []).map((item) => item.source_document_id));
+
   const candidateMap = new Map();
-  const filteredRows = (data || []).filter((item) => !allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories));
+  const filteredRows = (data || [])
+    .map((item) => ({
+      ...item,
+      source_document_type: item.source_document_id ? (sourceDocumentTypeMap.get(String(item.source_document_id || '').trim()) || null) : null
+    }))
+    .filter((item) => (!allowedCategories.length || matchesKnowledgeCategory(item.category, allowedCategories)) && shouldKeepKnowledgeRowForOptions(item, options));
 
   filteredRows.forEach((item) => {
     const normalizedItem = normalizeMatchedKnowledgeRow(item, normalized);
@@ -1259,10 +1306,13 @@ async function recordConsultationEvent(payload = {}) {
       const consultedSources = Array.isArray(payload.consulted_sources)
         ? payload.consulted_sources.map((source) => ({
             source_document_id: source?.source_document_id || null,
+            source_document_type: source?.source_document_type || null,
             source_title: source?.source_title || null,
             source_version_id: source?.source_version_id || null,
             source_version_label: source?.source_version_label || source?.source_version_number || null,
-            source_excerpt: source?.source_excerpt || source?.excerpt || null
+            source_excerpt: source?.source_excerpt || source?.excerpt || null,
+            retrieval_method: source?.retrieval_method || null,
+            evidence_score: source?.evidence_score ?? source?.similarity ?? null
           }))
         : [];
       const supportingSource = payload.supporting_source || consultedSources[0] || null;

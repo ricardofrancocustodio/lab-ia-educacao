@@ -1,3 +1,4 @@
+const buildCorePromptSection = require("./buildCorePromptSection");
 const buildBehaviorRules = require("./behaviorRules");
 const buildSafetyRules = require("./safetyRules");
 const buildContactProtocol = require("./contactProtocol");
@@ -5,6 +6,7 @@ const buildToneStyle = require("./toneStyle");
 
 function buildAssistantGuardrails(options = {}) {
   return [
+    buildCorePromptSection(options),
     buildBehaviorRules(options),
     buildToneStyle(options),
     buildSafetyRules(options),

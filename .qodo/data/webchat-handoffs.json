@@ -1161,5 +1161,850 @@
       ],
       "last_message": "De acordo com as fontes institucionais disponíveis, o recesso escolar ocorre nos seguintes dias:\n\n- Início em 01/04/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n- Início em 02/04/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n- Início em 20/06/2026 (Fonte: Calendário da Rede/Secretaria, Versão: publicado, Evidência: 0.94)\n\nEssas datas se referem a períodos de recesso escolar, mas não especificam a duração exata de cada recesso. Para informações mais detalhadas, recomendo consultar o Calendário Escolar 2026 ou entrar em contato diretamente com a secretaria da instituição.\n\nFonte: Calendario da Rede/Secretaria (publicado)."
     }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:ce568ae5-1d3c-4038-8a53-1eb485ad55b5",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:ce568ae5-1d3c-4038-8a53-1eb485ad55b5",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:ce568ae5-1d3c-4038-8a53-1eb485ad55b5",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T19:07:59.082Z",
+      "updated_at": "2026-04-06T19:08:21.103Z",
+      "transcript": [
+        {
+          "id": "5860f17f-28bc-4d84-97ba-d93c2fa31121",
+          "role": "user",
+          "source": "webchat",
+          "text": "oi",
+          "created_at": "2026-04-06T19:07:59.100Z"
+        },
+        {
+          "id": "e9577445-e8f6-4ccc-8827-d49c05557ea7",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Se precisar falar com a Secretaria, Tesouraria ou Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-06T19:07:59.274Z"
+        },
+        {
+          "id": "705d5c55-0fbb-4405-a799-bcfef499430e",
+          "role": "user",
+          "source": "webchat",
+          "text": "com o que voce pode me ajudar?",
+          "created_at": "2026-04-06T19:08:20.685Z"
+        },
+        {
+          "id": "3cd2e593-c7e4-4835-9b88-669828310703",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T19:08:21.103Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:402ba54c-332a-49d7-8194-f4654e13a2c2",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:402ba54c-332a-49d7-8194-f4654e13a2c2",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:402ba54c-332a-49d7-8194-f4654e13a2c2",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T19:08:55.334Z",
+      "updated_at": "2026-04-06T19:08:55.734Z",
+      "transcript": [
+        {
+          "id": "753273cb-93d4-48fa-a9ef-0c1fd3feeb68",
+          "role": "user",
+          "source": "webchat",
+          "text": "ola! com o que você pode me ajudar?",
+          "created_at": "2026-04-06T19:08:55.337Z"
+        },
+        {
+          "id": "be419c50-1b46-4998-b606-22764ae6f62f",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T19:08:55.733Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:2d21a6ff-6622-4d04-bdd5-747e23613177",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:2d21a6ff-6622-4d04-bdd5-747e23613177",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:2d21a6ff-6622-4d04-bdd5-747e23613177",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T19:14:39.539Z",
+      "updated_at": "2026-04-06T19:14:39.999Z",
+      "transcript": [
+        {
+          "id": "e4ae8524-6cb9-4655-b502-79068649bec2",
+          "role": "user",
+          "source": "webchat",
+          "text": "ola! com o que voce pode me ajudar?",
+          "created_at": "2026-04-06T19:14:39.540Z"
+        },
+        {
+          "id": "32a94f18-be15-4e0a-b3e0-fc314682530d",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T19:14:39.999Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:f71e0814-af5e-4627-a78a-a71ed34bf6c8",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:f71e0814-af5e-4627-a78a-a71ed34bf6c8",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:f71e0814-af5e-4627-a78a-a71ed34bf6c8",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:04:10.709Z",
+      "updated_at": "2026-04-06T21:04:35.100Z",
+      "transcript": [
+        {
+          "id": "760fe6bd-edc0-47ce-85f0-db22a7469205",
+          "role": "user",
+          "source": "webchat",
+          "text": "olá",
+          "created_at": "2026-04-06T21:04:10.716Z"
+        },
+        {
+          "id": "cb3d76a6-c23d-451a-a699-cd9d68c8cd6e",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-06T21:04:10.843Z"
+        },
+        {
+          "id": "60368855-89b9-49d3-84d2-0b0df4ad3dc9",
+          "role": "user",
+          "source": "webchat",
+          "text": "o que voce consegue me responder?",
+          "created_at": "2026-04-06T21:04:34.030Z"
+        },
+        {
+          "id": "31a73d28-2a3c-4016-941f-5625db2c8d7d",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:04:35.100Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:54f6e782-f3cc-43b3-8b26-73c898dfd7be",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:54f6e782-f3cc-43b3-8b26-73c898dfd7be",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:54f6e782-f3cc-43b3-8b26-73c898dfd7be",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:05:20.247Z",
+      "updated_at": "2026-04-06T21:05:26.192Z",
+      "transcript": [
+        {
+          "id": "5a6bc06a-b7cf-4325-b2ec-231470446d6a",
+          "role": "user",
+          "source": "webchat",
+          "text": "oloa",
+          "created_at": "2026-04-06T21:05:20.251Z"
+        },
+        {
+          "id": "e1dee1b3-22e5-46dd-b69e-53ff7a79e2d4",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-06T21:05:20.398Z"
+        },
+        {
+          "id": "be4f5a9f-66a8-4ca6-829c-b0052158b6d7",
+          "role": "user",
+          "source": "webchat",
+          "text": "o que voce consegue me responder?",
+          "created_at": "2026-04-06T21:05:25.615Z"
+        },
+        {
+          "id": "da475630-ac01-41ce-814c-8d20981eb031",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:05:26.191Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:80f555aa-0e37-41c5-80a8-0f3103f4b681",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:80f555aa-0e37-41c5-80a8-0f3103f4b681",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:80f555aa-0e37-41c5-80a8-0f3103f4b681",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:08:39.826Z",
+      "updated_at": "2026-04-06T21:08:40.233Z",
+      "transcript": [
+        {
+          "id": "02ba54ed-35e9-4e81-9b66-ba4ec2543e8a",
+          "role": "user",
+          "source": "webchat",
+          "text": "quais assuntos voce atende?",
+          "created_at": "2026-04-06T21:08:39.828Z"
+        },
+        {
+          "id": "1298a649-06da-4b9f-a127-b78d69022e5a",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:08:40.233Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6eb290e1-5fcf-4c60-842e-9b1c6f6f9a8a",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6eb290e1-5fcf-4c60-842e-9b1c6f6f9a8a",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6eb290e1-5fcf-4c60-842e-9b1c6f6f9a8a",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:13:34.866Z",
+      "updated_at": "2026-04-06T21:13:49.637Z",
+      "transcript": [
+        {
+          "id": "1f887f5e-8d4c-4543-b51b-fa21de2cda21",
+          "role": "user",
+          "source": "webchat",
+          "text": "oi!",
+          "created_at": "2026-04-06T21:13:34.873Z"
+        },
+        {
+          "id": "0ebc2463-3e89-43c7-9e92-9ce82cde2a25",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-06T21:13:35.015Z"
+        },
+        {
+          "id": "2b561f45-cdb5-4f5a-b651-075c2ec63945",
+          "role": "user",
+          "source": "webchat",
+          "text": "o que voce consegue me responder?",
+          "created_at": "2026-04-06T21:13:49.159Z"
+        },
+        {
+          "id": "20da3874-c021-49eb-a58e-55b2a6913e98",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:13:49.635Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:1866d455-16ef-4d8b-b363-df12da60f50a",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:1866d455-16ef-4d8b-b363-df12da60f50a",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:1866d455-16ef-4d8b-b363-df12da60f50a",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:28:26.172Z",
+      "updated_at": "2026-04-06T21:28:26.727Z",
+      "transcript": [
+        {
+          "id": "1b2bcaf7-19e6-4e62-94ad-ede05472de61",
+          "role": "user",
+          "source": "webchat",
+          "text": "o que voce consegue me responder?",
+          "created_at": "2026-04-06T21:28:26.173Z"
+        },
+        {
+          "id": "8c058c0a-1009-4f8d-ae77-e64ae830e7b1",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:28:26.726Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:7cbe0478-6d0c-4a3f-b989-8eb1ef1670b0",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:7cbe0478-6d0c-4a3f-b989-8eb1ef1670b0",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:7cbe0478-6d0c-4a3f-b989-8eb1ef1670b0",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:28:27.368Z",
+      "updated_at": "2026-04-06T21:28:27.699Z",
+      "transcript": [
+        {
+          "id": "a24d6ef5-b128-4beb-bcbc-6439cb5782d5",
+          "role": "user",
+          "source": "webchat",
+          "text": "quais assuntos voce atende?",
+          "created_at": "2026-04-06T21:28:27.370Z"
+        },
+        {
+          "id": "7bffb5c0-6afc-4bd2-b690-c2604a3646cc",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:28:27.698Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:0c8a3ef2-341d-41d3-b2a7-fb3d6916fa7d",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:0c8a3ef2-341d-41d3-b2a7-fb3d6916fa7d",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:0c8a3ef2-341d-41d3-b2a7-fb3d6916fa7d",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:28:28.103Z",
+      "updated_at": "2026-04-06T21:28:28.454Z",
+      "transcript": [
+        {
+          "id": "489b9e1d-96cd-4389-9b1e-b0940e51ab21",
+          "role": "user",
+          "source": "webchat",
+          "text": "com o que voce pode ajudar?",
+          "created_at": "2026-04-06T21:28:28.105Z"
+        },
+        {
+          "id": "43540e60-0219-4f43-b2d8-f46c209301ac",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:28:28.453Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:870a2ca4-809d-4a77-a5fa-6d184b2c52b1",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:870a2ca4-809d-4a77-a5fa-6d184b2c52b1",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:870a2ca4-809d-4a77-a5fa-6d184b2c52b1",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:28:28.810Z",
+      "updated_at": "2026-04-06T21:28:29.083Z",
+      "transcript": [
+        {
+          "id": "0de6f8fe-9e04-4dc9-8ccd-ca5746913452",
+          "role": "user",
+          "source": "webchat",
+          "text": "voce responde sobre matricula?",
+          "created_at": "2026-04-06T21:28:28.815Z"
+        },
+        {
+          "id": "20c71e61-3a91-430b-91b7-a41b7e20fb5a",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta.",
+          "created_at": "2026-04-06T21:28:29.082Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:87f3fb09-4bdd-4fb8-b029-5ff576847f03",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:87f3fb09-4bdd-4fb8-b029-5ff576847f03",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:87f3fb09-4bdd-4fb8-b029-5ff576847f03",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:28:29.558Z",
+      "updated_at": "2026-04-06T21:28:29.825Z",
+      "transcript": [
+        {
+          "id": "98a3ad16-a3b3-4507-858c-10127a0cea25",
+          "role": "user",
+          "source": "webchat",
+          "text": "como faco matricula?",
+          "created_at": "2026-04-06T21:28:29.562Z"
+        },
+        {
+          "id": "59125b76-2a0a-43ea-a5e0-2b2db3e3b745",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta.",
+          "created_at": "2026-04-06T21:28:29.824Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:cedab576-6a3a-46ca-967d-3d17d1eeb0f2",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:cedab576-6a3a-46ca-967d-3d17d1eeb0f2",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:cedab576-6a3a-46ca-967d-3d17d1eeb0f2",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:28:30.237Z",
+      "updated_at": "2026-04-06T21:28:30.370Z",
+      "transcript": [
+        {
+          "id": "09b48762-b409-44af-8cfa-ee03c0cb50de",
+          "role": "user",
+          "source": "webchat",
+          "text": "oi",
+          "created_at": "2026-04-06T21:28:30.239Z"
+        },
+        {
+          "id": "e2173da4-e626-4a48-ab87-85b8022e818a",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-06T21:28:30.369Z"
+        }
+      ],
+      "last_message": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:037ea021-d080-4bb0-8fcf-09284a5ed1e3",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:037ea021-d080-4bb0-8fcf-09284a5ed1e3",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:037ea021-d080-4bb0-8fcf-09284a5ed1e3",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:29:21.068Z",
+      "updated_at": "2026-04-06T21:29:21.477Z",
+      "transcript": [
+        {
+          "id": "3ec31558-5450-4a77-aa29-d4e170b48588",
+          "role": "user",
+          "source": "webchat",
+          "text": "o que voce consegue me responder?",
+          "created_at": "2026-04-06T21:29:21.070Z"
+        },
+        {
+          "id": "be97aaf2-01f0-44f0-b126-3eb096558ad6",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:29:21.476Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:3f3d8c0c-8be1-48e9-8547-73f990877815",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:3f3d8c0c-8be1-48e9-8547-73f990877815",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:3f3d8c0c-8be1-48e9-8547-73f990877815",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:29:21.940Z",
+      "updated_at": "2026-04-06T21:29:22.277Z",
+      "transcript": [
+        {
+          "id": "2d99667c-39ae-4988-bf64-4c9b54a3d95b",
+          "role": "user",
+          "source": "webchat",
+          "text": "quais assuntos voce atende?",
+          "created_at": "2026-04-06T21:29:21.944Z"
+        },
+        {
+          "id": "0030cf79-2747-4224-b67c-5f1c6c1ee3b3",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:29:22.275Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:28102e82-948b-43d8-bbb5-7a0ba0d0f37d",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:28102e82-948b-43d8-bbb5-7a0ba0d0f37d",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:28102e82-948b-43d8-bbb5-7a0ba0d0f37d",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:29:22.684Z",
+      "updated_at": "2026-04-06T21:29:22.984Z",
+      "transcript": [
+        {
+          "id": "994f96ce-2ec2-488e-b058-f8c2b274190b",
+          "role": "user",
+          "source": "webchat",
+          "text": "com o que voce pode ajudar?",
+          "created_at": "2026-04-06T21:29:22.687Z"
+        },
+        {
+          "id": "a81151f4-2f32-4df4-ba17-8207d5d412df",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-06T21:29:22.982Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:608aea46-c5fd-4de3-a988-9ea56f26e01f",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:608aea46-c5fd-4de3-a988-9ea56f26e01f",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:608aea46-c5fd-4de3-a988-9ea56f26e01f",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:29:23.420Z",
+      "updated_at": "2026-04-06T21:29:23.716Z",
+      "transcript": [
+        {
+          "id": "cb992ccc-eb5b-465b-b0c8-49855b706da1",
+          "role": "user",
+          "source": "webchat",
+          "text": "voce responde sobre matricula?",
+          "created_at": "2026-04-06T21:29:23.426Z"
+        },
+        {
+          "id": "24db7216-ba18-4f06-92b6-b0b91473a330",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta.",
+          "created_at": "2026-04-06T21:29:23.715Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:74f47e59-18ae-4146-85c8-f52f9fc380eb",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:74f47e59-18ae-4146-85c8-f52f9fc380eb",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:74f47e59-18ae-4146-85c8-f52f9fc380eb",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:29:24.209Z",
+      "updated_at": "2026-04-06T21:29:24.488Z",
+      "transcript": [
+        {
+          "id": "0efb60a5-98a6-462b-a9da-6c69848af4b4",
+          "role": "user",
+          "source": "webchat",
+          "text": "como faco matricula?",
+          "created_at": "2026-04-06T21:29:24.213Z"
+        },
+        {
+          "id": "e678e1a0-bc36-4b3a-a876-65046f2aba68",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta.",
+          "created_at": "2026-04-06T21:29:24.487Z"
+        }
+      ],
+      "last_message": "Quero te ajudar com isso sobre matricula, mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6d5e5f87-bb1f-44c9-917b-470d6b195d48",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6d5e5f87-bb1f-44c9-917b-470d6b195d48",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6d5e5f87-bb1f-44c9-917b-470d6b195d48",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "agent_key": "public.assistant",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "parent_name": "Usuario de teste"
+      },
+      "summary": "",
+      "created_at": "2026-04-06T21:29:24.931Z",
+      "updated_at": "2026-04-06T21:29:25.065Z",
+      "transcript": [
+        {
+          "id": "8eee9736-215b-4059-b963-a63f39715501",
+          "role": "user",
+          "source": "webchat",
+          "text": "oi",
+          "created_at": "2026-04-06T21:29:24.938Z"
+        },
+        {
+          "id": "213da4e4-f957-4d11-94cf-c3169bd42b3d",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-06T21:29:25.065Z"
+        }
+      ],
+      "last_message": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce."
+    }
+  ],
+  [
+    "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6ebbda46-1d41-45ea-ad01-b47ecfb6c698",
+    {
+      "id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6ebbda46-1d41-45ea-ad01-b47ecfb6c698",
+      "user_id": "webchat:c5166e00-2e7a-445a-9946-d56380ad4a32:simulador_piloto:6ebbda46-1d41-45ea-ad01-b47ecfb6c698",
+      "channel": "webchat",
+      "status": "AI_ACTIVE",
+      "ai_enabled": true,
+      "metadata": {
+        "school_name": "CEF 01 de Brasilia",
+        "school_id": "c5166e00-2e7a-445a-9946-d56380ad4a32",
+        "entrypoint": "simulador_piloto",
+        "requester_profile": "simulador_chat",
+        "profile": "simulador_chat",
+        "parent_name": "Usuario de teste",
+        "agent_key": "",
+        "agent_title": "Auto-roteamento",
+        "routed_agent": "public.assistant"
+      },
+      "summary": "",
+      "created_at": "2026-04-07T01:48:09.146Z",
+      "updated_at": "2026-04-07T01:50:19.373Z",
+      "transcript": [
+        {
+          "id": "89afa05d-76d6-47a0-9ee6-8f02764b8bd9",
+          "role": "user",
+          "source": "webchat",
+          "text": "oi",
+          "created_at": "2026-04-07T01:48:09.151Z"
+        },
+        {
+          "id": "9a19f1af-41e8-4ef6-9daf-2a3a333555d9",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Ola! Sou a Assistente Publica da CEF 01 de Brasilia, vinculada a Secretaria de Educacao do DF. Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.",
+          "created_at": "2026-04-07T01:48:09.555Z"
+        },
+        {
+          "id": "128ad4fc-3968-4478-8325-f292f069eb41",
+          "role": "user",
+          "source": "webchat",
+          "text": "sobre o que voce responde?",
+          "created_at": "2026-04-07T01:48:18.698Z"
+        },
+        {
+          "id": "b84ec531-0327-4a23-9bf4-7e47081bf74d",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Posso orientar sobre calendario escolar, matricula, documentos, contato e atendimento da escola, vida escolar, comunicados institucionais e encaminhamentos para a Secretaria ou a Direcao. Se voce me disser o tema exato, eu sigo por esse assunto.",
+          "created_at": "2026-04-07T01:48:18.708Z"
+        },
+        {
+          "id": "945a6a57-9e18-471f-a31e-ad0bfc7ddc26",
+          "role": "user",
+          "source": "webchat",
+          "text": "e que duvidas você poderia me tirar?",
+          "created_at": "2026-04-07T01:49:51.846Z"
+        },
+        {
+          "id": "e69c99c1-8f3a-4700-83e7-1c877c5ee32c",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Quero te ajudar com isso, mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.",
+          "created_at": "2026-04-07T01:49:52.385Z"
+        },
+        {
+          "id": "db8d3d9d-fc77-41ae-ae25-3b039f143c46",
+          "role": "user",
+          "source": "webchat",
+          "text": "você consegue transferir para a assistente de geografia?",
+          "created_at": "2026-04-07T01:50:19.370Z"
+        },
+        {
+          "id": "375034b2-67eb-4cb0-a8e5-4aaf43412ee0",
+          "role": "assistant",
+          "source": "public.assistant",
+          "text": "Posso orientar sobre calendario escolar, matricula, documentos, contato e atendimento da escola, vida escolar, comunicados institucionais e encaminhamentos para a Secretaria ou a Direcao. Se voce me disser o tema exato, eu sigo por esse assunto.",
+          "created_at": "2026-04-07T01:50:19.373Z"
+        }
+      ],
+      "last_message": "Posso orientar sobre calendario escolar, matricula, documentos, contato e atendimento da escola, vida escolar, comunicados institucionais e encaminhamentos para a Secretaria ou a Direcao. Se voce me disser o tema exato, eu sigo por esse assunto."
+    }
   ]
 ]

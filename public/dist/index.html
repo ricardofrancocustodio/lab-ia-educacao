@@ -315,6 +315,84 @@
       margin-bottom: 88px;
     }
 
+    .guide-callout {
+      margin: 6px 0 18px;
+      padding: 16px 18px;
+      border: 1px solid #bfd4f6;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #eef5ff 0%, #f9fbff 100%);
+      box-shadow: 0 10px 24px rgba(19, 81, 180, 0.08);
+    }
+
+    .guide-callout-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #1351b4;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .guide-callout-link {
+      display: grid;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .guide-callout-link:hover {
+      text-decoration: none;
+    }
+
+    .guide-callout-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--govbr-blue-dark);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .guide-callout-copy {
+      color: #35507c;
+      font-size: 0.93rem;
+      line-height: 1.5;
+    }
+
+    .credentials-hint {
+      margin: 0 0 18px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--govbr-yellow);
+      background: #fff9df;
+      border-radius: 12px;
+      color: #41320a;
+    }
+
+    .credentials-hint-title {
+      margin-bottom: 6px;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .credentials-hint-copy {
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .credentials-hint a {
+      color: var(--govbr-blue);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .credentials-hint a:hover {
+      text-decoration: underline;
+    }
+
     .alt-item {
       display: flex;
       align-items: center;
@@ -497,9 +575,22 @@
 
         <div class="divider-title">Outras opcoes de identificacao:</div>
 
+        <div class="guide-callout">
+          <div class="guide-callout-badge"><i class="bi bi-arrow-up-right-circle-fill"></i><span>Comece por aqui</span></div>
+          <a class="guide-callout-link" href="/guia-uso#credenciais-teste" target="_blank" rel="noopener noreferrer">
+            <span class="guide-callout-title"><i class="bi bi-journal-arrow-up"></i><span>Orientacoes de acesso e uso institucional</span></span>
+            <span class="guide-callout-copy">Abra o guia para ver as URLs de teste, o fluxo de acesso e as credenciais completas do sandbox antes de entrar no sistema.</span>
+          </a>
+        </div>
+
+        <div class="credentials-hint">
+          <div class="credentials-hint-title">Acesso rapido do sandbox</div>
+          <div class="credentials-hint-copy">A maior parte dos perfis de teste usa a senha padrao <strong>123456789</strong>. As credenciais completas e excecoes ficam no <a href="/guia-uso#credenciais-teste" target="_blank" rel="noopener noreferrer">guia de acesso</a>.</div>
+        </div>
+
         <div class="alt-list">
           <a class="alt-item" href="forgot-password.html"><i class="bi bi-shield-lock"></i><span>Recuperar acesso com redefinicao de senha</span></a>
-          <a class="alt-item" href="/guia-uso" target="_blank"><i class="bi bi-journal-check"></i><span>Orientacoes de acesso e uso institucional</span></a>
+          <a class="alt-item" href="/guia-uso#credenciais-teste" target="_blank" rel="noopener noreferrer"><i class="bi bi-journal-check"></i><span>Orientacoes de acesso e uso institucional</span></a>
           <a class="alt-item" href="#"><i class="bi bi-headset"></i><span>Suporte para credenciais e permissoes</span></a>
         </div>
 

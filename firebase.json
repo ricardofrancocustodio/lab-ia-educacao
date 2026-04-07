@@ -23,7 +23,8 @@
         { "source": "/esqueci-senha", "destination": "/dist/forgot-password.html", "type": 302 },
         { "source": "/redefinir-senha", "destination": "/dist/reset-password.html", "type": 302 },
         { "source": "/ativar-conta", "destination": "/dist/accept-invite.html", "type": 302 },
-        { "source": "/verificar-sessao", "destination": "/dist/verify-session.html", "type": 302 }
+        { "source": "/verificar-sessao", "destination": "/dist/verify-session.html", "type": 302 },
+        { "source": "/guia-uso", "destination": "/dist/guia-uso.html", "type": 302 }
       ],
       "rewrites": [
         {

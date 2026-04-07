@@ -6,6 +6,7 @@ const { getSession, setSession } = require(path.resolve("./.qodo/store/sessions.
 const agents = require(path.resolve("./.qodo/agents/index.js"));
 const buildAssistantGuardrails = require(path.resolve("./.qodo/core/constants/buildAssistantGuardrails.js"));
 const { detectAssistantSafetyIssue, buildSafetyRedirectMessage } = require(path.resolve("./.qodo/core/assistantSafety.js"));
+const { detectCapabilityIntent } = require(path.resolve("./.qodo/core/capabilityIntent.js"));
 
 const SCHOOL_ID = process.env.SCHOOL_ID;
 const SAFE_EVIDENCE_SCORE = 0.78;
@@ -54,11 +55,11 @@ const SCHOOL_INTENT_PROFILES = [
   },
   {
     key: 'finance',
-    area: 'administration.treasury',
-    categories: ['Tesouraria', 'Atendimento Publico'],
+    area: 'administration.secretariat',
+    categories: ['Secretaria', 'Atendimento Publico'],
     keywords: ['financeiro', 'pagamento', 'repasse', 'orcamento', 'empenho'],
-    searchHints: ['informacao financeira'],
-    label: 'financeiro'
+    searchHints: ['orientacao administrativa'],
+    label: 'orientacao administrativa'
   },
   {
     key: 'governance',
@@ -107,6 +108,14 @@ const RETURN_MARKERS = [
   'atendimento geral', 'voltar para o inicio'
 ];
 
+const ROUTE_CONFIRM_YES_MARKERS = [
+  'sim', 's', 'ok', 'claro', 'pode ser', 'pode', 'isso', 'isso mesmo', 'confirmo', 'quero sim'
+];
+
+const ROUTE_CONFIRM_NO_MARKERS = [
+  'nao', 'n', 'negativo', 'prefiro nao', 'deixa', 'deixa pra la', 'cancelar', 'nao precisa'
+];
+
 function isRedirectionIntent(text) {
   const value = normalize(text);
   return REDIRECT_MARKERS.some(marker => value.includes(normalize(marker)));
@@ -123,6 +132,16 @@ function isRoutingMetaQuestion(text) {
   if (/^(falo|eu falo|estou falando|to falando|ja estou|ja to)\s+(com|na|no)\s/.test(value)) return true;
   if (/^(e aqui|aqui mesmo|e essa area|essa area|essa e a)\b/.test(value)) return true;
   return false;
+}
+
+function isRouteConfirmationAccepted(text) {
+  const value = normalizeConversationText(text);
+  return ROUTE_CONFIRM_YES_MARKERS.some(marker => value === normalizeConversationText(marker));
+}
+
+function isRouteConfirmationRejected(text) {
+  const value = normalizeConversationText(text);
+  return ROUTE_CONFIRM_NO_MARKERS.some(marker => value === normalizeConversationText(marker));
 }
 
 async function resolveSchoolIdentity(schoolId, metadata) {
@@ -149,11 +168,23 @@ function buildRedirectionReply(area, identity) {
   const agent = AGENT_LABELS[area];
   if (!agent) return null;
   let msg = 'Sem problemas! A partir de agora voce esta falando com a ' + agent.name;
-  if (identity && identity.schoolName) {
-    msg += ' da ' + identity.schoolName;
-  }
   msg += '. Pode fazer sua pergunta sobre ' + agent.area + ' que eu sigo com o atendimento. Se quiser voltar ao atendimento geral, e so me dizer.';
   return msg;
+}
+
+function buildRouteProposalReply(area, identity) {
+  const agent = AGENT_LABELS[area];
+  if (!agent) return null;
+  let msg = 'Posso te encaminhar para a ' + agent.name;
+  msg += ', que trata de assuntos de ' + agent.area + '. Se quiser seguir com essa transferencia, responda "sim". Se preferir continuar aqui no atendimento geral, responda "nao".';
+  return msg;
+}
+
+function buildRouteCancellationReply(hasRoutedAgent = false) {
+  if (hasRoutedAgent) {
+    return 'Tudo bem. Seguimos por aqui. Se quiser mudar de area depois, e so me avisar.';
+  }
+  return 'Tudo bem. Continuamos aqui no atendimento geral. Se quiser falar com outra area depois, e so me avisar.';
 }
 
 function buildRoutingConfirmation(area) {
@@ -177,20 +208,6 @@ function isGreetingIntent(text) {
   );
 }
 
-function isGeneralHelpIntent(text) {
-  const value = normalizeConversationText(text);
-  return [
-    "preciso de ajuda",
-    "pode me ajudar",
-    "quero ajuda",
-    "tenho uma duvida",
-    "tenho uma pergunta",
-    "quero uma informacao",
-    "quero informacao",
-    "gostaria de informacao",
-    "preciso de informacao"
-  ].some((term) => value === term || value.startsWith(term + " "));
-}
 
 function detectIntentProfile(text) {
   const value = normalizeConversationText(text);
@@ -217,7 +234,7 @@ function detectArea(text) {
   const value = normalize(text);
 
   if (["tesouraria", "financeiro", "pagamento", "repasse", "orcamento", "empenho"].some((term) => value.includes(term))) {
-    return "administration.treasury";
+    return "administration.secretariat";
   }
 
   if (["direcao", "diretoria", "institucional", "ouvidoria", "recurso", "norma"].some((term) => value.includes(term))) {
@@ -248,6 +265,7 @@ function formatSources(entries) {
 function mapConsultedSources(entries = []) {
   return entries.map((entry) => ({
     source_document_id: entry.source_document_id || null,
+    source_document_type: entry.source_document_type || null,
     source_title: entry.source_title || null,
     source_version_id: entry.source_version_id || null,
     source_version_label: entry.source_version_label || entry.source_version_number || null,
@@ -258,6 +276,9 @@ function mapConsultedSources(entries = []) {
 }
 
 function hasReliableInstitutionalSource(source = {}) {
+  if (String(source?.source_document_type || '').trim().toLowerCase() === 'teaching_material') {
+    return false;
+  }
   return Boolean(
     source?.source_version_id ||
     source?.source_document_id ||
@@ -333,7 +354,22 @@ function buildEvidenceAssessment(entries = []) {
 
 function buildAbstentionReply(intentProfile = null) {
   const focus = intentProfile?.label ? ' sobre ' + intentProfile.label : '';
-  return 'Quero te ajudar com isso' + focus + ', mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos, financeiro ou atendimento, eu tento localizar a orientacao correta por outro caminho.';
+  return 'Quero te ajudar com isso' + focus + ', mas ainda nao encontrei um registro institucional suficiente e versionado para responder com seguranca. Se voce puder me dizer o tema exato, como calendario, matricula, documentos ou atendimento, eu tento localizar a orientacao correta por outro caminho.';
+}
+
+function buildFlowSafeFallbackReply(intentProfile = null) {
+  const area = intentProfile?.area;
+  const focus = intentProfile?.label ? ' sobre ' + intentProfile.label : '';
+
+  if (area === 'administration.direction') {
+    return 'Quero te ajudar com isso' + focus + ', mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Direcao, ou descrever o tema com mais detalhe para eu tentar localizar uma orientacao valida.';
+  }
+
+  if (area === 'administration.secretariat') {
+    return 'Quero te ajudar com isso' + focus + ', mas ainda nao encontrei base institucional suficiente para seguir com seguranca. Se quiser, voce pode dizer claramente que deseja falar com a Secretaria, ou detalhar melhor o assunto para eu tentar localizar a orientacao correta.';
+  }
+
+  return buildAbstentionReply(intentProfile);
 }
 
 function buildGreetingReply(identity) {
@@ -346,11 +382,43 @@ function buildGreetingReply(identity) {
     intro += ' da rede e da escola';
   }
   intro += '.';
-  return intro + ' Posso orientar sobre calendario, matricula, documentos, financeiro e encaminhamentos institucionais. Se precisar falar com a Secretaria, Tesouraria ou Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.';
+  return intro + ' Posso orientar sobre calendario, matricula, documentos e encaminhamentos institucionais. Se precisar falar com a Secretaria ou com a Direcao, e so me dizer. Me conte sua duvida e eu sigo com voce.';
 }
 
 function buildClarificationReply() {
-  return 'Posso te ajudar, sim. Me conte qual assunto voce precisa resolver, por exemplo calendario, matricula, documentos, financeiro ou atendimento da escola, que eu continuo daqui.';
+  return 'Posso te ajudar, sim. Me conte qual assunto voce precisa resolver, por exemplo calendario, matricula, documentos ou atendimento da escola, que eu continuo daqui.';
+}
+
+function buildCapabilityReply(intentProfile = null) {
+  if (!intentProfile?.key) {
+    return 'Posso orientar sobre calendario escolar, matricula, documentos, contato e atendimento da escola, vida escolar, comunicados institucionais e encaminhamentos para a Secretaria ou a Direcao. Se voce me disser o tema exato, eu sigo por esse assunto.';
+  }
+
+  if (intentProfile.key === 'calendar') {
+    return 'Sim. Posso orientar sobre calendario escolar, datas oficiais, feriados, recesso, inicio e fim do periodo letivo e eventos institucionais da escola. Se quiser, me diga sua duvida exata sobre calendario.';
+  }
+
+  if (intentProfile.key === 'enrollment') {
+    return 'Sim. Posso orientar sobre matricula, rematricula, cronograma, documentos exigidos e encaminhamentos da Secretaria. Se quiser, me diga sua duvida exata sobre matricula.';
+  }
+
+  if (intentProfile.key === 'documents') {
+    return 'Sim. Posso orientar sobre documentos escolares, declaracoes, historico, comprovantes e outros encaminhamentos da Secretaria. Se quiser, me diga qual documento voce precisa.';
+  }
+
+  if (intentProfile.key === 'contact') {
+    return 'Sim. Posso orientar sobre contato, horario de atendimento, endereco e canais institucionais da escola. Se quiser, me diga a informacao exata que voce procura.';
+  }
+
+  if (intentProfile.key === 'student-life') {
+    return 'Sim. Posso orientar sobre vida escolar, como uniforme, transporte, merenda, boletim e frequencia, quando houver base institucional para isso. Se quiser, me diga sua duvida exata.';
+  }
+
+  if (intentProfile.key === 'governance') {
+    return 'Sim. Posso orientar sobre comunicados oficiais, normas institucionais e encaminhamentos para a Direcao. Se quiser, me diga o tema exato que eu sigo por esse assunto.';
+  }
+
+  return 'Sim. Posso orientar sobre ' + intentProfile.label + '. Se quiser, me diga sua duvida exata sobre esse assunto.';
 }
 
 function buildWarningPrefix() {
@@ -411,12 +479,49 @@ function formatRangeLabel(startDate, endDate) {
 function normalizeCalendarEntry(entry = {}) {
   const startDate = parseCalendarDateToLocal(entry.start_date);
   const endDate = parseCalendarDateToLocal(entry.end_date || entry.start_date) || startDate;
+  const matcherText = buildCalendarMatcherText(entry);
   return {
     ...entry,
     startDate,
     endDate,
-    haystack: normalizeConversationText([entry.title, entry.event_type, entry.notes].filter(Boolean).join(' '))
+    haystack: normalizeConversationText([entry.title, entry.event_type, entry.notes].filter(Boolean).join(' ')),
+    matcherText
   };
+}
+
+function normalizeCalendarMatcherText(value) {
+  return normalizeConversationText(value)
+    .replace(/\bprimeiro\b/g, '1')
+    .replace(/\bsegundo\b/g, '2')
+    .replace(/\bterceiro\b/g, '3')
+    .replace(/\bquarto\b/g, '4')
+    .replace(/\b1o\b/g, '1')
+    .replace(/\b2o\b/g, '2')
+    .replace(/\b3o\b/g, '3')
+    .replace(/\b4o\b/g, '4')
+    .replace(/\bsemestre letivo\b/g, 'semestre periodo letivo')
+    .replace(/\bano escolar\b/g, 'ano letivo')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildCalendarMatcherText(entry = {}) {
+  const title = String(entry.title || '');
+  const eventType = String(entry.event_type || '');
+  const notes = String(entry.notes || '');
+  const audience = String(entry.audience || '');
+  const aliases = [];
+  const combined = normalizeCalendarMatcherText([title, eventType, notes, audience].filter(Boolean).join(' '));
+
+  if (combined.includes('periodo letivo')) aliases.push('periodo letivo', 'inicio do periodo letivo', 'fim do periodo letivo');
+  if (combined.includes('semestre')) aliases.push('semestre', 'periodo semestral');
+  if (combined.includes('1 semestre')) aliases.push('1 semestre', 'primeiro semestre', '1 periodo letivo', 'primeiro periodo letivo');
+  if (combined.includes('2 semestre')) aliases.push('2 semestre', 'segundo semestre', '2 periodo letivo', 'segundo periodo letivo');
+  if (combined.includes('ano letivo')) aliases.push('ano letivo', 'inicio do ano letivo', 'fim do ano letivo');
+  if (combined.includes('inicio') && combined.includes('aula')) aliases.push('quando comecam as aulas', 'inicio das aulas');
+  if ((combined.includes('fim') || combined.includes('termino') || combined.includes('encerramento')) && combined.includes('aula')) aliases.push('fim das aulas', 'termino das aulas', 'ultimo dia de aula');
+
+  return normalizeCalendarMatcherText([title, eventType, notes, audience, ...aliases].filter(Boolean).join(' '));
 }
 
 function buildCalendarSource(context, excerpt) {
@@ -433,7 +538,7 @@ function buildCalendarSource(context, excerpt) {
 }
 
 function detectStructuredCalendarQuestion(text) {
-  const value = normalizeConversationText(text);
+  const value = normalizeCalendarMatcherText(text);
   if (!value) return null;
   if (value.includes('feriado') && (value.includes('mais proximo') || value.includes('proximo') || value.includes('proxima'))) {
     return { kind: 'next_holiday' };
@@ -444,7 +549,92 @@ function detectStructuredCalendarQuestion(text) {
   if (value.includes('reuniao de pais')) {
     return { kind: 'parents_meeting' };
   }
+  if (hasCalendarDateIntent(value)) {
+    return {
+      kind: 'date_lookup',
+      query: value,
+      intent: extractCalendarDateIntent(value)
+    };
+  }
   return null;
+}
+
+function hasCalendarDateIntent(value) {
+  if (!value) return false;
+  const hasDateCue = [
+    'que dia', 'qual dia', 'qual data', 'quando', 'data', 'vai de', 'ate que dia', 'ate quando',
+    'comeca', 'comeca', 'inicio', 'termina', 'termino', 'fim'
+  ].some((term) => value.includes(term));
+  const hasCalendarSubject = [
+    'semestre', 'bimestre', 'trimestre', 'ano letivo', 'periodo letivo', 'periodo escolar',
+    'aulas', 'recesso', 'ferias', 'feriado', 'reuniao', 'conselho', 'avaliacao', 'matricula'
+  ].some((term) => value.includes(term));
+  return hasDateCue && hasCalendarSubject;
+}
+
+function extractCalendarDateIntent(value) {
+  const normalized = normalizeCalendarMatcherText(value);
+  return {
+    wantsRange: normalized.includes('vai de') || normalized.includes('de que dia') || normalized.includes('qual o periodo') || normalized.includes('qual periodo') || normalized.includes('entre que datas') || normalized.includes('de quando ate quando'),
+    wantsStart: normalized.includes('quando comeca') || normalized.includes('quando começa') || normalized.includes('inicio') || normalized.includes('data de inicio') || normalized.includes('comeca') || normalized.includes('comeca'),
+    wantsEnd: normalized.includes('quando termina') || normalized.includes('termina') || normalized.includes('termino') || normalized.includes('fim') || normalized.includes('data final') || normalized.includes('ultimo dia') || normalized.includes('acaba'),
+    query: normalized
+  };
+}
+
+function scoreCalendarEntryForDateQuery(entry, query) {
+  if (!entry?.matcherText || !query) return 0;
+  const tokens = [...new Set(query.split(' ').filter((token) => token.length >= 2))];
+  let score = 0;
+
+  tokens.forEach((token) => {
+    if (entry.matcherText.includes(token)) score += 2;
+  });
+
+  if (query.includes('periodo letivo') && entry.matcherText.includes('periodo letivo')) score += 8;
+  if (query.includes('ano letivo') && entry.matcherText.includes('ano letivo')) score += 7;
+  if (query.includes('semestre') && entry.matcherText.includes('semestre')) score += 8;
+  if (query.includes('1 semestre') && entry.matcherText.includes('1 semestre')) score += 12;
+  if (query.includes('2 semestre') && entry.matcherText.includes('2 semestre')) score += 12;
+  if (query.includes('aulas') && entry.matcherText.includes('aulas')) score += 5;
+  if (query.includes('matricula') && entry.matcherText.includes('matricula')) score += 5;
+
+  if (query.includes('semestre') && !entry.matcherText.includes('semestre')) score -= 5;
+  if (query.includes('1 semestre') && entry.matcherText.includes('2 semestre')) score -= 8;
+  if (query.includes('2 semestre') && entry.matcherText.includes('1 semestre')) score -= 8;
+  if (query.includes('ano letivo') && !entry.matcherText.includes('ano letivo') && !entry.matcherText.includes('periodo letivo')) score -= 2;
+
+  return score;
+}
+
+function findBestCalendarEntryForDateQuery(entries, question) {
+  const scored = entries
+    .map((entry) => ({ entry, score: scoreCalendarEntryForDateQuery(entry, question?.query || '') }))
+    .filter((item) => item.entry?.startDate && item.score > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return left.entry.startDate - right.entry.startDate;
+    });
+
+  return scored.length ? scored[0].entry : null;
+}
+
+function buildStructuredCalendarDateAnswer(entry, question) {
+  const title = entry.title || 'evento do calendario';
+  const hasRange = entry.endDate && entry.startDate && entry.endDate.getTime() !== entry.startDate.getTime();
+  if (question?.intent?.wantsRange && hasRange) {
+    return 'Segundo o calendario oficial, ' + title + ' vai de ' + formatDateLabel(entry.startDate) + ' a ' + formatDateLabel(entry.endDate) + '.';
+  }
+  if (question?.intent?.wantsStart && !question?.intent?.wantsEnd) {
+    return 'Segundo o calendario oficial, ' + title + ' comeca em ' + formatDateLabel(entry.startDate) + '.';
+  }
+  if (question?.intent?.wantsEnd && entry.endDate) {
+    return 'Segundo o calendario oficial, ' + title + ' termina em ' + formatDateLabel(entry.endDate) + '.';
+  }
+  if (hasRange) {
+    return 'Segundo o calendario oficial, ' + title + ' vai de ' + formatDateLabel(entry.startDate) + ' a ' + formatDateLabel(entry.endDate) + '.';
+  }
+  return 'Segundo o calendario oficial, ' + title + ' acontece em ' + formatDateLabel(entry.startDate) + '.';
 }
 
 function findNextCalendarEvent(entries, matcher) {
@@ -565,6 +755,31 @@ async function tryBuildStructuredCalendarReply(text, schoolId) {
     };
   }
 
+  if (question.kind === 'date_lookup') {
+    const matchedEntry = findBestCalendarEntryForDateQuery(entries, question);
+    if (!matchedEntry) return null;
+    const excerpt = matchedEntry.title + ' em ' + formatRangeLabel(matchedEntry.startDate, matchedEntry.endDate);
+    const source = buildCalendarSource(calendarContext, excerpt);
+    return {
+      text: buildStructuredCalendarDateAnswer(matchedEntry, question),
+      audit: {
+        assistant_key: 'public.assistant',
+        assistant_name: 'Assistente Publico',
+        confidence_score: 0.94,
+        evidence_score: 0.96,
+        hallucination_risk_level: 'LOW',
+        review_required: false,
+        review_reason: null,
+        response_mode: 'AUTOMATIC_STRUCTURED_CALENDAR',
+        consulted_sources: [source],
+        supporting_source: source,
+        fallback_to_human: false,
+        abstained: false,
+        source_card: buildSourceCard(source)
+      }
+    };
+  }
+
   return null;
 }
 
@@ -600,6 +815,77 @@ module.exports = {
       };
     }
 
+    if (session.data.pending_route?.area) {
+      const pendingArea = session.data.pending_route.area;
+
+      if (isReturnIntent(text)) {
+        session.data.pending_route = null;
+        setSession(from, session);
+      } else if (isRouteConfirmationAccepted(text)) {
+        session.data.pending_route = null;
+        session.data.routed_agent = pendingArea;
+        setSession(from, session);
+        const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
+        const redirectMsg = buildRedirectionReply(pendingArea, identity);
+        return {
+          text: redirectMsg,
+          audit: {
+            assistant_key: pendingArea,
+            assistant_name: (AGENT_LABELS[pendingArea] || {}).name || 'Assistente',
+            confidence_score: 0.88,
+            evidence_score: 0.5,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_REDIRECT',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      } else if (isRouteConfirmationRejected(text)) {
+        session.data.pending_route = null;
+        setSession(from, session);
+        return {
+          text: buildRouteCancellationReply(Boolean(session.data.routed_agent)),
+          audit: {
+            assistant_key: session.data.routed_agent || 'public.assistant',
+            assistant_name: ((AGENT_LABELS[session.data.routed_agent] || {}).name) || 'Assistente Publico',
+            confidence_score: 0.72,
+            evidence_score: 0.24,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_CLARIFICATION',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      } else {
+        const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
+        return {
+          text: buildRouteProposalReply(pendingArea, identity),
+          audit: {
+            assistant_key: 'public.assistant',
+            assistant_name: 'Assistente Publico',
+            confidence_score: 0.74,
+            evidence_score: 0.26,
+            hallucination_risk_level: 'LOW',
+            review_required: false,
+            review_reason: null,
+            response_mode: 'AUTOMATIC_CLARIFICATION',
+            consulted_sources: [],
+            supporting_source: null,
+            fallback_to_human: false,
+            abstained: false
+          }
+        };
+      }
+    }
+
     // If the user was previously routed to a specialized agent, keep routing there
     if (session.data.routed_agent) {
       const routedArea = session.data.routed_agent;
@@ -631,22 +917,22 @@ module.exports = {
       // Redirect to a DIFFERENT area
       const newArea = detectArea(text);
       if (newArea && newArea !== routedArea && isRedirectionIntent(text)) {
-        session.data.routed_agent = newArea;
+        session.data.pending_route = { area: newArea };
         setSession(from, session);
         const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
-        const redirectMsg = buildRedirectionReply(newArea, identity);
+        const redirectMsg = buildRouteProposalReply(newArea, identity);
         if (redirectMsg) {
           return {
             text: redirectMsg,
             audit: {
-              assistant_key: newArea,
-              assistant_name: (AGENT_LABELS[newArea] || {}).name || 'Assistente',
-              confidence_score: 0.88,
-              evidence_score: 0.5,
+              assistant_key: 'public.assistant',
+              assistant_name: 'Assistente Publico',
+              confidence_score: 0.74,
+              evidence_score: 0.26,
               hallucination_risk_level: 'LOW',
               review_required: false,
               review_reason: null,
-              response_mode: 'AUTOMATIC_REDIRECT',
+              response_mode: 'AUTOMATIC_CLARIFICATION',
               consulted_sources: [],
               supporting_source: null,
               fallback_to_human: false,
@@ -732,28 +1018,10 @@ module.exports = {
       };
     }
 
-    if (isGeneralHelpIntent(text)) {
-      return {
-        text: buildClarificationReply(),
-        audit: {
-          assistant_key: "public.assistant",
-          assistant_name: "Assistente Publico",
-          confidence_score: 0.48,
-          evidence_score: 0.16,
-          hallucination_risk_level: 'LOW',
-          review_required: false,
-          review_reason: null,
-          response_mode: "AUTOMATIC_CLARIFICATION",
-          consulted_sources: [],
-          supporting_source: null,
-          fallback_to_human: false,
-          abstained: false
-        }
-      };
-    }
 
     const safetyIssue = detectAssistantSafetyIssue(text);
     if (safetyIssue) {
+      const isAbuse = ['threat', 'harassment', 'profanity'].includes(safetyIssue.type);
       return {
         text: buildSafetyRedirectMessage({
           issue: safetyIssue,
@@ -768,18 +1036,41 @@ module.exports = {
           confidence_score: 0.42,
           evidence_score: 0.12,
           hallucination_risk_level: safetyIssue.severity === 'high' ? 'HIGH' : 'MEDIUM',
-          review_required: false,
-          review_reason: 'safety_redirect',
+          review_required: isAbuse,
+          review_reason: isAbuse ? `safety_${safetyIssue.type}` : 'safety_redirect',
           response_mode: "AUTOMATIC_LIMITED",
           consulted_sources: [],
           supporting_source: null,
-          fallback_to_human: true,
+          fallback_to_human: !isAbuse,
           abstained: false
         }
       };
     }
 
     const intentProfile = detectIntentProfile(text);
+    const capabilityIntent = detectCapabilityIntent(text, { intentProfile });
+    if (capabilityIntent) {
+      return {
+        text: capabilityIntent.kind === 'topic'
+          ? buildCapabilityReply(capabilityIntent.intentProfile)
+          : buildCapabilityReply(),
+        audit: {
+          assistant_key: "public.assistant",
+          assistant_name: "Assistente Publico",
+          confidence_score: capabilityIntent.kind === 'topic' ? 0.82 : 0.78,
+          evidence_score: 0.22,
+          hallucination_risk_level: 'LOW',
+          review_required: false,
+          review_reason: null,
+          response_mode: "AUTOMATIC_CAPABILITY",
+          consulted_sources: [],
+          supporting_source: null,
+          fallback_to_human: false,
+          abstained: false
+        }
+      };
+    }
+
     const structuredCalendarReply = await tryBuildStructuredCalendarReply(text, resolvedSchoolId || SCHOOL_ID);
     if (structuredCalendarReply) {
       return structuredCalendarReply;
@@ -787,21 +1078,21 @@ module.exports = {
     const area = detectArea(text) || intentProfile?.area || null;
     if (area && isRedirectionIntent(text)) {
       const identity = await resolveSchoolIdentity(resolvedSchoolId, userMessage?.metadata);
-      const redirectMsg = buildRedirectionReply(area, identity);
+      const redirectMsg = buildRouteProposalReply(area, identity);
       if (redirectMsg) {
-        session.data.routed_agent = area;
+        session.data.pending_route = { area };
         setSession(from, session);
         return {
           text: redirectMsg,
           audit: {
-            assistant_key: area,
-            assistant_name: (AGENT_LABELS[area] || {}).name || 'Assistente',
-            confidence_score: 0.88,
-            evidence_score: 0.5,
+            assistant_key: 'public.assistant',
+            assistant_name: 'Assistente Publico',
+            confidence_score: 0.74,
+            evidence_score: 0.26,
             hallucination_risk_level: 'LOW',
             review_required: false,
             review_reason: null,
-            response_mode: 'AUTOMATIC_REDIRECT',
+            response_mode: 'AUTOMATIC_CLARIFICATION',
             consulted_sources: [],
             supporting_source: null,
             fallback_to_human: false,
@@ -810,29 +1101,20 @@ module.exports = {
         };
       }
     }
-    if (area === "administration.secretariat") {
-      return agents.administration.secretariat.handleMessage(from, { text, school_id: resolvedSchoolId, intent_profile: intentProfile });
-    }
-    if (area === "administration.treasury") {
-      return agents.administration.treasury.handleMessage(from, { text, school_id: resolvedSchoolId, intent_profile: intentProfile });
-    }
-    if (area === "administration.direction") {
-      return agents.administration.direction.handleMessage(from, { text, school_id: resolvedSchoolId, intent_profile: intentProfile });
-    }
-
     const retrievalText = intentProfile?.searchHints?.length
       ? [text, ...intentProfile.searchHints].join(' | ')
       : text;
 
     const entries = await findMatchingEntries(retrievalText, resolvedSchoolId || SCHOOL_ID, {
-      categories: mergeKnowledgeCategories(["Atendimento Publico", "Institucional", "Secretaria", "Tesouraria", "Direcao"], intentProfile),
+      categories: mergeKnowledgeCategories(["Atendimento Publico", "Institucional", "Secretaria", "Direcao"], intentProfile),
+      excludeDocumentTypes: ['teaching_material'],
       limit: 3
     });
     const assessment = buildEvidenceAssessment(entries);
 
     if (assessment.decision === 'ABSTAIN_AND_REVIEW') {
       return {
-        text: buildAbstentionReply(intentProfile),
+        text: buildFlowSafeFallbackReply(intentProfile),
         audit: {
           assistant_key: "public.assistant",
           assistant_name: "Assistente Publico",

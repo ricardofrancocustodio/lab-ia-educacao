@@ -592,7 +592,7 @@ function renderizarContatos(lista = conversas) {
     container.empty();
 
     if (!lista.length) {
-        container.html('<div class="p-3 text-muted small">Nenhuma conversa automatizada registrada.</div>');
+        container.html('<div class="p-3 text-muted small">Nenhuma conversa automatizada registrada. Inicie uma conversa no <a class="simulator-link" style="color:#0a2247!important;font-weight:700;text-decoration:underline" href="/simulador-chat" target="_blank" rel="noopener noreferrer">simulador-chat</a> para ela aparecer aqui.</div>');
         return;
     }
 
